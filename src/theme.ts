@@ -12,6 +12,14 @@ const fonts = {
   body: "Open Sans, sans-serif",
 };
 
-const theme = extendTheme({ config, fonts });
+const components = {
+  Link: {
+    baseStyle: {
+      color: "blue.300",
+    },
+  },
+};
+
+const theme = extendTheme({ config, components, fonts });
 
 export default theme;
