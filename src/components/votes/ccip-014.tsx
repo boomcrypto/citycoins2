@@ -12,7 +12,11 @@ function CCIP014() {
   return (
     <Stack spacing={4}>
       <Box textAlign={["left", "center"]} bg="gray.900" p={4}>
-        <Stack direction={["column", "row"]} justifyContent="space-between">
+        <Stack
+          direction={["column", "row"]}
+          justifyContent="space-between"
+          mb={[2, 4]}
+        >
           <Stat>
             <StatLabel>MIA Cycles</StatLabel>
             <StatNumber>54, 55</StatNumber>
@@ -22,7 +26,11 @@ function CCIP014() {
             <StatNumber>54, 55</StatNumber>
           </Stat>
         </Stack>
-        <Stack direction={["column", "row"]} justifyContent="space-between">
+        <Stack
+          direction={["column", "row"]}
+          justifyContent="space-between"
+          mb={[2, 4]}
+        >
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
             <StatNumber>34</StatNumber>

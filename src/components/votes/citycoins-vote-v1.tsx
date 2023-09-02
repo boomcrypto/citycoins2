@@ -12,7 +12,11 @@ function CityCoinsVoteV1() {
   return (
     <Stack spacing={4}>
       <Box textAlign={["left", "center"]} bg="gray.900" p={4}>
-        <Stack direction={["column", "row"]} justifyContent="space-between">
+        <Stack
+          direction={["column", "row"]}
+          justifyContent="space-between"
+          mb={[2, 4]}
+        >
           <Stat>
             <StatLabel>MIA Cycles</StatLabel>
             <StatNumber>12, 13</StatNumber>
@@ -22,7 +26,11 @@ function CityCoinsVoteV1() {
             <StatNumber>6, 7</StatNumber>
           </Stat>
         </Stack>
-        <Stack direction={["column", "row"]} justifyContent="space-between">
+        <Stack
+          direction={["column", "row"]}
+          justifyContent="space-between"
+          mb={[2, 4]}
+        >
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
             <StatNumber>135</StatNumber>
