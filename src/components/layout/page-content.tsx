@@ -1,22 +1,13 @@
-import {
-  Box,
-  Heading,
-  Stack,
-  Tab,
-  TabList,
-  TabPanel,
-  TabPanels,
-  Tabs,
-} from "@chakra-ui/react";
+import { Box, Tab, TabList, TabPanel, TabPanels, Tabs } from "@chakra-ui/react";
 import { useAtom, useAtomValue } from "jotai";
 import { activeTabAtom, stxAddressAtom } from "../../constants";
-import SignIn from "../auth/sign-in";
 import Dashboard from "../tabs/dashboard";
 import Mining from "../tabs/mining";
 import MiningClaims from "../tabs/mining-claims";
 import Stacking from "../tabs/stacking";
 import StackingClaims from "../tabs/stacking-claims";
 import Voting from "../tabs/voting";
+import ConnectWallet from "../auth/connect-wallet";
 
 function Content() {
   const stxAddress = useAtomValue(stxAddressAtom);
@@ -25,10 +16,7 @@ function Content() {
   if (!stxAddress) {
     return (
       <Box width="100%" maxW="1200px">
-        <Stack gap={8}>
-          <Heading>CityCoins</Heading>
-          <SignIn />
-        </Stack>
+        <ConnectWallet />
       </Box>
     );
   }
