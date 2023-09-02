@@ -29,12 +29,18 @@ function Voting() {
                 fontWeight="bold"
                 flex="1"
                 display="flex"
+                flexDirection={["column", "row"]}
                 justifyContent="space-between"
-                alignItems="center"
+                alignItems={["left", "center"]}
                 textAlign="left"
               >
                 <Text>Vote 1: Update emissions schedule</Text>
-                <Badge colorScheme="green" p={[2, 4]}>
+                <Badge
+                  minW={100}
+                  textAlign="center"
+                  colorScheme="green"
+                  p={[2, 4]}
+                >
                   Passed
                 </Badge>
               </Box>
@@ -52,12 +58,18 @@ function Voting() {
                 fontWeight="bold"
                 flex="1"
                 display="flex"
+                flexDirection={["column", "row"]}
                 justifyContent="space-between"
-                alignItems="center"
+                alignItems={["left", "center"]}
                 textAlign="left"
               >
                 <Text>Vote 2: Stabilize protocol part 1</Text>
-                <Badge colorScheme="green" p={[2, 4]}>
+                <Badge
+                  minW={100}
+                  textAlign="center"
+                  colorScheme="green"
+                  p={[2, 4]}
+                >
                   Passed
                 </Badge>
               </Box>
@@ -75,12 +87,18 @@ function Voting() {
                 fontWeight="bold"
                 flex="1"
                 display="flex"
+                flexDirection={["column", "row"]}
                 justifyContent="space-between"
-                alignItems="center"
+                alignItems={["left", "center"]}
                 textAlign="left"
               >
                 <Text>Vote 3: Stabilize protocol part 2</Text>
-                <Badge colorScheme="green" p={[2, 4]}>
+                <Badge
+                  minW={100}
+                  textAlign="center"
+                  colorScheme="green"
+                  p={[2, 4]}
+                >
                   Passed
                 </Badge>
               </Box>
@@ -98,12 +116,18 @@ function Voting() {
                 fontWeight="bold"
                 flex="1"
                 display="flex"
+                flexDirection={["column", "row"]}
                 justifyContent="space-between"
-                alignItems="center"
+                alignItems={["left", "center"]}
                 textAlign="left"
               >
                 <Text>Vote 4: Upgrade to pox-3</Text>
-                <Badge colorScheme="green" p={[2, 4]}>
+                <Badge
+                  minW={100}
+                  textAlign="center"
+                  colorScheme="green"
+                  p={[2, 4]}
+                >
                   Passed
                 </Badge>
               </Box>
@@ -121,13 +145,19 @@ function Voting() {
                 fontWeight="bold"
                 flex="1"
                 display="flex"
+                flexDirection={["column", "row"]}
                 justifyContent="space-between"
-                alignItems="center"
+                alignItems={["left", "center"]}
                 textAlign="left"
               >
                 <Text>Vote 5: Extend sunset period</Text>
-                <Badge colorScheme="orange" p={[2, 4]}>
-                  Active
+                <Badge
+                  minW={100}
+                  textAlign="center"
+                  colorScheme="gray"
+                  p={[2, 4]}
+                >
+                  Pending
                 </Badge>
               </Box>
             </AccordionButton>
