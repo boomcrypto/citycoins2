@@ -3,7 +3,7 @@ import CityCoinsLogo from "./citycoins-logo";
 
 function Footer() {
   return (
-    <Flex align="center" direction={["column", "row"]} p={4}>
+    <Flex align="center" direction={["column-reverse", "row"]} p={4}>
       <Flex flexGrow="1" align="center">
         <CityCoinsLogo width="45px" height="45px" />
         <Heading size="md" ml={2}>
