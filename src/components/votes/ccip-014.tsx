@@ -45,20 +45,21 @@ function CCIP014() {
       </Box>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
-        <Box>
-          <Link href="#your-link-for-CCIP-008" isExternal>
-            CCIP-014
-          </Link>
-        </Box>
+        <Link href="#your-link-for-CCIP-008" isExternal>
+          CCIP-014
+        </Link>
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related Contracts:</Text>
-        <Link href="#your-link-for-contract" isExternal>
-          ccip-014-pox-3
-        </Link>
-        <Link href="#your-link-for-contract" isExternal>
-          ccip-014-pox-3-v2
-        </Link>
+        <Box>
+          <Link href="#your-link-for-contract" isExternal>
+            ccip-014-pox-3
+          </Link>
+          ,{" "}
+          <Link href="#your-link-for-contract" isExternal>
+            ccip-014-pox-3-v2
+          </Link>
+        </Box>
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Voting Method:</Text>
