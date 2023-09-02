@@ -46,29 +46,36 @@ function CCIP017() {
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
         <Box>
-          <Link href="#your-link-for-CCIP-008" isExternal>
+          <Link
+            href="https://github.com/citycoins/governance/blob/feat/add-ccip-017/ccips/ccip-017/ccip-017-extend-direct-execute-sunset-period.md"
+            isExternal
+          >
             CCIP-017
           </Link>
         </Box>
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related Contracts:</Text>
-        <Link href="#your-link-for-contract" isExternal>
+        <Link
+          href="https://github.com/citycoins/protocol/blob/fix/extend-direct-execute-sunset-period/contracts/proposals/ccip017-extend-direct-execute-sunset-period.clar"
+          isExternal
+        >
           ccip-017-extend-direct-execute-sunset-period
         </Link>
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Voting Method:</Text>
-        <Link href="#your-link-for-CCIP-011" isExternal>
+        <Link
+          href="https://github.com/citycoins/governance/blob/feat/add-ccip-015/ccips/ccip-015/ccip-015-community-proposal-voting-process.md"
+          isExternal
+        >
           CCIP-015
         </Link>
       </Stack>
-      <Box>
-        <Text fontWeight="bold" mb={2}>
-          Details:
-        </Text>
+      <Stack spacing={2}>
+        <Text fontWeight="bold">Details:</Text>
         <Text>TODO</Text>
-      </Box>
+      </Stack>
     </Stack>
   );
 }

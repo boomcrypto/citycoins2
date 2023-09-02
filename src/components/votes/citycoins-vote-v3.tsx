@@ -46,27 +46,34 @@ function CityCoinsVoteV3() {
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
         <Box>
-          <Link href="#your-link-for-CCIP-008" isExternal>
+          <Link
+            href="https://github.com/citycoins/governance/blob/main/ccips/ccip-013/ccip-013-stabilize-protocol-and-simplify-contracts.md"
+            isExternal
+          >
             CCIP-013
           </Link>
         </Box>
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related Contracts:</Text>
-        <Link href="#your-link-for-contract" isExternal>
+        <Link
+          href="https://explorer.hiro.so/txid/SP5X6BFPYXTZ8C63EYYPA02X2VQTG4V43XNPGAPF.citycoins-vote-v3?chain=mainnet"
+          isExternal
+        >
           citycoins-vote-v3
         </Link>
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Voting Method:</Text>
-        <Link href="#your-link-for-CCIP-011" isExternal>
+        <Link
+          href="https://github.com/citycoins/governance/blob/main/ccips/ccip-011/ccip-011-citycoins-stacked-tokens-voting.md"
+          isExternal
+        >
           CCIP-011
         </Link>
       </Stack>
-      <Box>
-        <Text fontWeight="bold" mb={2}>
-          Details:
-        </Text>
+      <Stack spacing={2}>
+        <Text fontWeight="bold">Details:</Text>
         <Text>
           Over the summer, CityCoiners have been working on a plan to stabilize
           the protocol and optimize for future development, experimentation, and
@@ -78,11 +85,17 @@ function CityCoinsVoteV3() {
           split into two separate CityCoins Improvement Proposals (CCIPs).
         </Text>
         <Text>
-          CCIP-013 is the second of two proposals, including simplifying the
-          CityCoin contract structure under control of the newly formed DAO, and
-          updating the mining and stacking value flows.
+          <Link
+            href="https://github.com/citycoins/governance/blob/main/ccips/ccip-013/ccip-013-stabilize-protocol-and-simplify-contracts.md"
+            isExternal
+          >
+            CCIP-013
+          </Link>{" "}
+          is the second of two proposals, including simplifying the CityCoin
+          contract structure under control of the newly formed DAO, and updating
+          the mining and stacking value flows.
         </Text>
-      </Box>
+      </Stack>
     </Stack>
   );
 }

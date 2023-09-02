@@ -46,27 +46,34 @@ function CityCoinsVoteV2() {
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
         <Box>
-          <Link href="#your-link-for-CCIP-008" isExternal>
+          <Link
+            href="https://github.com/citycoins/governance/blob/main/ccips/ccip-012/ccip-012-stabilize-emissions-and-treasuries.md"
+            isExternal
+          >
             CCIP-012
           </Link>
         </Box>
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related Contracts:</Text>
-        <Link href="#your-link-for-contract" isExternal>
+        <Link
+          href="https://explorer.hiro.so/txid/SP119FQPVQ39AKVMC0CN3Q1ZN3ZMCGMBR52ZS5K6E.citycoins-vote-v2?chain=mainnet"
+          isExternal
+        >
           citycoins-vote-v2
         </Link>
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Voting Method:</Text>
-        <Link href="#your-link-for-CCIP-011" isExternal>
+        <Link
+          href="https://github.com/citycoins/governance/blob/main/ccips/ccip-011/ccip-011-citycoins-stacked-tokens-voting.md"
+          isExternal
+        >
           CCIP-011
         </Link>
       </Stack>
-      <Box>
-        <Text fontWeight="bold" mb={2}>
-          Details:
-        </Text>
+      <Stack spacing={2}>
+        <Text fontWeight="bold">Details:</Text>
         <Text>
           Over the summer, CityCoiners have been working on a plan to stabilize
           the protocol and optimize for future development, experimentation, and
@@ -78,11 +85,17 @@ function CityCoinsVoteV2() {
           split into two separate CityCoins Improvement Proposals (CCIPs).
         </Text>
         <Text>
-          CCIP-012 is the first of two proposals that will be voted on by the
-          community. The proposal included a 2% emissions model and moving
-          treasuries to smart contract vaults, and is now implemented.
+          <Link
+            href="https://github.com/citycoins/governance/blob/main/ccips/ccip-012/ccip-012-stabilize-emissions-and-treasuries.md"
+            isExternal
+          >
+            CCIP-012
+          </Link>{" "}
+          is the first of two proposals that will be voted on by the community.
+          The proposal included a 2% emissions model and moving treasuries to
+          smart contract vaults, and is now implemented.
         </Text>
-      </Box>
+      </Stack>
     </Stack>
   );
 }
