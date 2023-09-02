@@ -1,7 +1,7 @@
-import { Text } from "@chakra-ui/react";
+import { Heading } from "@chakra-ui/react";
 
 function MiningClaims() {
-  return <Text>Mining Claims</Text>;
+  return <Heading>CityCoins Mining Claims</Heading>;
 }
 
 export default MiningClaims;

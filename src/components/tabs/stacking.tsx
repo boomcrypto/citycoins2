@@ -1,7 +1,7 @@
-import { Text } from "@chakra-ui/react";
+import { Heading } from "@chakra-ui/react";
 
 function Stacking() {
-  return <Text>Stacking</Text>;
+  return <Heading>CityCoins Stacking</Heading>;
 }
 
 export default Stacking;

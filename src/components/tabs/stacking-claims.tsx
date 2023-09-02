@@ -1,7 +1,7 @@
-import { Text } from "@chakra-ui/react";
+import { Heading } from "@chakra-ui/react";
 
 function StackingClaims() {
-  return <Text>Stacking Claims</Text>;
+  return <Heading>CityCoins Stacking Claims</Heading>;
 }
 
 export default StackingClaims;
