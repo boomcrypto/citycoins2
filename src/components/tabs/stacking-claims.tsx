@@ -1,7 +1,13 @@
-import { Heading } from "@chakra-ui/react";
+import { Heading, Stack } from "@chakra-ui/react";
+import ComingSoon from "../coming-soon";
 
 function StackingClaims() {
-  return <Heading>CityCoins Stacking Claims</Heading>;
+  return (
+    <Stack spacing={4}>
+      <Heading>CityCoins Stacking Claims</Heading>
+      <ComingSoon />
+    </Stack>
+  );
 }
 
 export default StackingClaims;

@@ -6,6 +6,7 @@ import {
   Badge,
   Box,
   Heading,
+  Stack,
   Text,
 } from "@chakra-ui/react";
 import CityCoinsVoteV1 from "../votes/citycoins-vote-v1";
@@ -16,8 +17,9 @@ import CCIP017 from "../votes/ccip-017";
 
 function Voting() {
   return (
-    <>
-      <Heading mb={4}>CityCoins Proposals</Heading>
+    <Stack spacing={4}>
+      <Heading>CityCoins Proposals</Heading>
+      <Text>View CityCoins proposal and vote details below.</Text>
       <Accordion allowToggle>
         <AccordionItem>
           <h2>
@@ -135,7 +137,7 @@ function Voting() {
           </AccordionPanel>
         </AccordionItem>
       </Accordion>
-    </>
+    </Stack>
   );
 }
 
