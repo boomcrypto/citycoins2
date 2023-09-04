@@ -1,6 +1,22 @@
 import { Badge, Box, Text } from "@chakra-ui/react";
+import { VoteStatus } from "../../types";
 
-function VoteTitle(props: { title: string; status: string; color: string }) {
+function getStatusColor(status: VoteStatus) {
+  switch (status) {
+    case "passed":
+      return "green";
+    case "failed":
+      return "red";
+    case "active":
+      return "orange";
+    case "pending":
+      return "gray";
+    default:
+      return "gray";
+  }
+}
+
+function VoteTitle(props: { title: string; status: VoteStatus }) {
   return (
     <Box
       as="span"
@@ -13,7 +29,12 @@ function VoteTitle(props: { title: string; status: string; color: string }) {
       textAlign="left"
     >
       <Text>{props.title}</Text>
-      <Badge minW={100} textAlign="center" colorScheme={props.color} p={[2, 4]}>
+      <Badge
+        minW={100}
+        textAlign="center"
+        colorScheme={getStatusColor(props.status)}
+        p={[2, 4]}
+      >
         {props.status}
       </Badge>
     </Box>

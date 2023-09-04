@@ -25,8 +25,7 @@ function Voting() {
             <AccordionButton>
               <VoteTitle
                 title="Vote 1: Update emissions schedule"
-                status="Passed"
-                color="green"
+                status="passed"
               />
             </AccordionButton>
           </h2>
@@ -39,8 +38,7 @@ function Voting() {
             <AccordionButton>
               <VoteTitle
                 title="Vote 2: Stabilize protocol part 1"
-                status="Passed"
-                color="green"
+                status="passed"
               />
             </AccordionButton>
           </h2>
@@ -53,8 +51,7 @@ function Voting() {
             <AccordionButton>
               <VoteTitle
                 title="Vote 3: Stabilize protocol part 2"
-                status="Passed"
-                color="green"
+                status="passed"
               />
             </AccordionButton>
           </h2>
@@ -65,11 +62,7 @@ function Voting() {
         <AccordionItem>
           <h2>
             <AccordionButton>
-              <VoteTitle
-                title="Vote 4: Upgrade to pox-3"
-                status="Passed"
-                color="green"
-              />
+              <VoteTitle title="Vote 4: Upgrade to pox-3" status="passed" />
             </AccordionButton>
           </h2>
           <AccordionPanel pb={4}>
@@ -81,8 +74,7 @@ function Voting() {
             <AccordionButton>
               <VoteTitle
                 title="Vote 5: Extend sunset period"
-                status="Pending"
-                color="gray"
+                status="pending"
               />
             </AccordionButton>
           </h2>
