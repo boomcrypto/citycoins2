@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   Link,
   Spinner,
   Stack,
@@ -8,6 +9,40 @@ import {
   StatNumber,
   Text,
 } from "@chakra-ui/react";
+
+// TODO: button onClick handlers
+// submits contract calls
+
+function voteYes() {
+  return undefined;
+}
+
+function voteNo() {
+  return undefined;
+}
+
+// TODO: fetch current status from contract and display option below
+
+function VoteButtons() {
+  return (
+    <Stack direction={["column", "row"]} spacing={4}>
+      <Button onClick={voteYes()} colorScheme="green" size="lg" isDisabled>
+        Vote Yes
+      </Button>
+      <Button onClick={voteNo()} colorScheme="red" size="lg" isDisabled>
+        Vote No
+      </Button>
+    </Stack>
+  );
+}
+
+function VoteResult() {
+  return (
+    <Stack spacing={4}>
+      <Text>Vote recorded, thank you!</Text>
+    </Stack>
+  );
+}
 
 function CCIP017() {
   return (
@@ -112,10 +147,11 @@ function CCIP017() {
             CCIP-017
           </Link>{" "}
           implements the CCIP-015 voting mechanism as part of a DAO proposal to
-          extend the sunset period by an additional 25,920 Stacks blocks, ending
-          at Stacks block 147,828.
+          extend the sunset period by an additional 25,920 Stacks blocks, with
+          the new sunset period ending at Stacks block 147,828.
         </Text>
       </Stack>
+      <VoteButtons />
     </Stack>
   );
 }
