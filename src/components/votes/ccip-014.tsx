@@ -90,7 +90,33 @@ function CCIP014() {
       </Stack>
       <Stack spacing={2}>
         <Text fontWeight="bold">Details:</Text>
-        <Text>TODO</Text>
+        <Text>
+          The city treasury contracts used with mining directly call the .pox
+          contract for stacking STX, which was disabled in Stacks 2.1 and
+          replaced with .pox-3{" "}
+          <Link
+            href="https://forum.stacks.org/t/stacks-2-4-is-here-stacking-to-be-re-enabled/15024"
+            isExternal
+          >
+            in the Stacks 2.4 release.
+          </Link>
+        </Text>
+        <Text>
+          The STX in each city's mining treasury was automatically unlocked as
+          part of the upgrade, and the mining contract and treasury contract for
+          each city must be updated to support the new .pox-3 contract.
+        </Text>
+        <Text>
+          <Link
+            href="https://github.com/citycoins/governance/blob/main/ccips/ccip-014/ccip-014-upgrade-to-pox3.md"
+            isExternal
+          >
+            CCIP-014
+          </Link>{" "}
+          will implement a new version of the treasury contract
+          ccd002-treasury-v2 that replaces .pox with .pox-3, as well as move the
+          balances and perform the delegated stacking.
+        </Text>
       </Stack>
     </Stack>
   );
