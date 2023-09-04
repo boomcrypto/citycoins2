@@ -1,6 +1,7 @@
 import {
   Box,
   Link,
+  Spinner,
   Stack,
   Stat,
   StatLabel,
@@ -33,21 +34,29 @@ function CCIP017() {
         >
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber>TBD</StatNumber>
+            <StatNumber>
+              <Spinner />
+            </StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber>TBD</StatNumber>
+            <StatNumber>
+              <Spinner />
+            </StatNumber>
           </Stat>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Total</StatLabel>
-            <StatNumber>TBD</StatNumber>
+            <StatNumber>
+              <Spinner />
+            </StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Total</StatLabel>
-            <StatNumber>TBD</StatNumber>
+            <StatNumber>
+              <Spinner />
+            </StatNumber>
           </Stat>
         </Stack>
       </Box>
@@ -82,7 +91,30 @@ function CCIP017() {
       </Stack>
       <Stack spacing={2}>
         <Text fontWeight="bold">Details:</Text>
-        <Text>TODO</Text>
+        <Text>
+          When the ccd001-direct-execute Clarity contract was deployed, a sunset
+          height of 25,920 Stacks blocks or approximately 6 months was set,
+          after which the extension will no longer be able to execute proposals.{" "}
+          <Link
+            href="https://explorer.hiro.so/txid/SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd001-direct-execute?chain=mainnet"
+            isExternal
+          >
+            As seen on the explorer
+          </Link>
+          , the contract was deployed at Stacks block height 95,988 and will
+          reach the sunset height at Stacks block 121,908.
+        </Text>
+        <Text>
+          <Link
+            href="https://github.com/citycoins/governance/blob/feat/add-ccip-017/ccips/ccip-017/ccip-017-extend-direct-execute-sunset-period.md"
+            isExternal
+          >
+            CCIP-017
+          </Link>{" "}
+          implements the CCIP-015 voting mechanism as part of a DAO proposal to
+          extend the sunset period by an additional 25,920 Stacks blocks, ending
+          at Stacks block 147,828.
+        </Text>
       </Stack>
     </Stack>
   );
