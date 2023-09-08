@@ -6,12 +6,17 @@ import {
   StatLabel,
   StatNumber,
   Text,
+  useColorModeValue,
 } from "@chakra-ui/react";
 
 function CityCoinsVoteV1() {
   return (
     <Stack spacing={4}>
-      <Box textAlign={["left", "center"]} bg="gray.900" p={4}>
+      <Box
+        textAlign={["left", "center"]}
+        bg={useColorModeValue("gray.200", "gray.900")}
+        p={4}
+      >
         <Stack
           direction={["column", "row"]}
           justifyContent="space-between"
