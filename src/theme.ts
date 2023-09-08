@@ -1,9 +1,14 @@
-import { extendTheme, type ThemeConfig } from "@chakra-ui/react";
+import {
+  extendTheme,
+  type StyleFunctionProps,
+  type ThemeConfig,
+} from "@chakra-ui/react";
+import { mode } from "@chakra-ui/theme-tools";
 
 // Chakra theme configuration
 const config: ThemeConfig = {
   initialColorMode: "light",
-  useSystemColorMode: false,
+  useSystemColorMode: true,
   cssVarPrefix: "citycoin",
 };
 
@@ -14,9 +19,12 @@ const fonts = {
 
 const components = {
   Link: {
-    baseStyle: {
-      color: "blue.300",
-    },
+    baseStyle: (props: StyleFunctionProps) => ({
+      color: mode("blue.600", "blue.300")(props),
+      _hover: {
+        textDecoration: "underline",
+      },
+    }),
   },
 };
 
