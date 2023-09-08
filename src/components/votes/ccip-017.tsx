@@ -113,26 +113,29 @@ function CCIP017() {
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related Contracts:</Text>
-        <Link
-          href="https://github.com/citycoins/protocol/blob/fix/extend-direct-execute-sunset-period/contracts/proposals/ccip017-extend-direct-execute-sunset-period.clar"
-          isExternal
-        >
-          ccip-017-extend-direct-execute-sunset-period
-        </Link>
+        <Text>
+          <Link
+            href="https://explorer.hiro.so/txid/SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip017-extend-sunset-period?chain=mainnet"
+            isExternal
+          >
+            ccip-017-extend-sunset-period
+          </Link>
+          {" | "}
+          <Link
+            href="https://github.com/citycoins/protocol/blob/fix/extend-direct-execute-sunset-period/contracts/proposals/ccip017-extend-direct-execute-sunset-period.clar"
+            isExternal
+          >
+            github
+          </Link>
+        </Text>
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Voting Method:</Text>
         <Link
-          href="https://explorer.hiro.so/txid/SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip017-extend-sunset-period?chain=mainnet"
-          isExternal
-        >
-          CCIP-015
-        </Link>
-        <Link
           href="https://github.com/citycoins/governance/blob/feat/add-ccip-015/ccips/ccip-015/ccip-015-community-proposal-voting-process.md"
           isExternal
         >
-          (github)
+          CCIP-015
         </Link>
       </Stack>
       <Stack spacing={2}>
