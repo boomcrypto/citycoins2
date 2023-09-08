@@ -27,6 +27,7 @@ function VoteTitle(props: { title: string; status: VoteStatus }) {
       justifyContent="space-between"
       alignItems={["left", "center"]}
       textAlign="left"
+      py={[8, 4]}
     >
       <Text>{props.title}</Text>
       <Badge
