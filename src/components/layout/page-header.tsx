@@ -11,7 +11,7 @@ import CityCoinsLogo from "./citycoins-logo";
 import SignIn from "../auth/sign-in";
 import SignOut from "../auth/sign-out";
 import ClearData from "../auth/clear-data";
-import { stxAddressAtom } from "../../constants";
+import { stxAddressAtom } from "../../store/stacks";
 import { useAtom } from "jotai";
 import { FaMoon, FaSun } from "react-icons/fa";
 

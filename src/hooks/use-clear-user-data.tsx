@@ -1,6 +1,6 @@
 import { useSetAtom } from "jotai";
 import { RESET } from "jotai/utils";
-import { stxAddressAtom } from "../constants";
+import { stxAddressAtom } from "../store/stacks";
 
 export const useClearUserData = () => {
   const setStxAddress = useSetAtom(stxAddressAtom);

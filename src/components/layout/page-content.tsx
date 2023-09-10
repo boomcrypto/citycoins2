@@ -1,6 +1,7 @@
 import { Box, Tab, TabList, TabPanel, TabPanels, Tabs } from "@chakra-ui/react";
 import { useAtom, useAtomValue } from "jotai";
-import { activeTabAtom, stxAddressAtom } from "../../constants";
+import { activeTabAtom } from "../../constants";
+import { stxAddressAtom } from "../../store/stacks";
 import Dashboard from "../tabs/dashboard";
 import Mining from "../tabs/mining";
 import MiningClaims from "../tabs/mining-claims";

@@ -1,7 +1,7 @@
 import { Button } from "@chakra-ui/react";
 import { useAuth } from "@micro-stacks/react";
 import { useAtom } from "jotai";
-import { stxAddressAtom } from "../../constants";
+import { stxAddressAtom } from "../../store/stacks";
 import { useClearUserData } from "../../hooks/use-clear-user-data";
 
 function SignIn(props: { variant?: string }) {
