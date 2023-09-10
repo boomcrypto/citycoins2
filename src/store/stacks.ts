@@ -1,19 +1,23 @@
 import { atomWithStorage } from "jotai/utils";
+import { fetchCoreApiInfo } from "micro-stacks/api";
+import { HIRO_API } from "../constants";
+import { atom } from "jotai";
 
 /////////////////////////
 // TYPES
 /////////////////////////
 
+type BlockHeights = {
+  btc: number;
+  stx: number;
+};
+
 /////////////////////////
 // LOCALSTORAGE ATOMS
 /////////////////////////
 
-export const stxBlock = atomWithStorage<number | null>(
-  "citycoins-stacks-stxBlock",
-  null
-);
-export const btcBlock = atomWithStorage<number | null>(
-  "citycoins-stacks-btcBlock",
+export const blockHeightsAtom = atomWithStorage<BlockHeights | null>(
+  "citycoins-stacks-blocks",
   null
 );
 
@@ -49,10 +53,25 @@ export const acctBalancesAtom = atomWithStorage(
 // LOADABLE ASYNC ATOMS
 /////////////////////////
 
-// TBD
+export const blockHeightsQueryAtom = atom(async () => {
+  return await getBlockHeights();
+});
 
 /////////////////////////
 // HELPER FUNCTIONS
 /////////////////////////
 
-// TBD
+async function getBlockHeights(): Promise<BlockHeights | undefined> {
+  try {
+    const v2InfoResponse = await fetchCoreApiInfo({
+      url: `${HIRO_API}/v2/info`,
+    });
+    const blockHeights: BlockHeights = {
+      btc: v2InfoResponse.burn_block_height,
+      stx: v2InfoResponse.stacks_tip_height,
+    };
+    return blockHeights;
+  } catch (error) {
+    throw new Error(`Failed to fetch v2-info in micro-stacks: ${error}`);
+  }
+}

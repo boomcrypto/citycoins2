@@ -3,6 +3,7 @@ import { atomWithStorage } from "jotai/utils";
 import { fetchReadOnlyFunction } from "micro-stacks/api";
 import { validateStacksAddress } from "micro-stacks/crypto";
 import { uintCV } from "micro-stacks/clarity";
+import { stxAddressAtom } from "./stacks";
 
 /////////////////////////
 // TYPES
@@ -67,19 +68,48 @@ export const hasVoted = atom((get) => {
 // LOADABLE ASYNC ATOMS
 /////////////////////////
 
-// atom for is-executable
-// atom for is-vote-active
-// atom for get-vote-totals
-// atom for get-voter-info
-
-export const ccip017IsExecutableQueryAtom = atom(async (get) => {
+export const ccip017IsExecutableQueryAtom = atom(async () => {
   try {
     const isExecutable = await getIsExecutable();
     return isExecutable;
   } catch (error) {
-    console.error(
-      `Failed to fetch is-executable for ${CONTRACT_FQ_NAME}:`,
-      error
+    throw new Error(
+      `Failed to fetch is-executable for ${CONTRACT_FQ_NAME}: ${error}`
+    );
+  }
+});
+
+export const ccip017IsVoteActiveQueryAtom = atom(async () => {
+  try {
+    const isVoteActive = await getIsVoteActive();
+    return isVoteActive;
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch is-vote-active for ${CONTRACT_FQ_NAME}: ${error}`
+    );
+  }
+});
+
+export const ccip017VoteTotalsQueryAtom = atom(async () => {
+  try {
+    const voteTotals = await getVoteTotals();
+    return voteTotals;
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch get-vote-totals for ${CONTRACT_FQ_NAME}: ${error}`
+    );
+  }
+});
+
+export const ccip017VoterInfoQueryAtom = atom(async (get) => {
+  const stxAddress = get(stxAddressAtom);
+  if (stxAddress === null) return undefined;
+  try {
+    const voterInfo = await getVoterInfo(stxAddress);
+    return voterInfo;
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch get-voter-info with ${stxAddress} for ${CONTRACT_FQ_NAME}: ${error}`
     );
   }
 });

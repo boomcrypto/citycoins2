@@ -4,8 +4,9 @@ import { atomWithStorage } from "jotai/utils";
 // CONSTANTS
 /////////////////////////
 
-export const API_URL = "https://protocol.citycoins.co/api/";
-export const LEGACY_API_URL = "https://api.citycoins.co";
+export const CC_API = "https://protocol.citycoins.co/api/";
+export const CC_API_LEGACY = "https://api.citycoins.co";
+export const HIRO_API = "https://api.hiro.so";
 
 /////////////////////////
 // LOCAL STORAGE ATOMS
