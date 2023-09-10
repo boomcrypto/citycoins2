@@ -1,6 +1,8 @@
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { fetchReadOnlyFunction } from "micro-stacks/api";
+import { validateStacksAddress } from "micro-stacks/crypto";
+import { uintCV } from "micro-stacks/clarity";
 
 /////////////////////////
 // TYPES
@@ -97,4 +99,55 @@ async function getIsExecutable(): Promise<boolean> {
     true
   );
   return isExecutableQuery;
+}
+
+async function getIsVoteActive(): Promise<boolean> {
+  const isVoteActiveQuery = await fetchReadOnlyFunction<boolean>(
+    {
+      contractAddress: CONTRACT_ADDRESS,
+      contractName: CONTRACT_NAME,
+      functionName: "is-vote-active",
+      functionArgs: [],
+    },
+    true
+  );
+  return isVoteActiveQuery;
+}
+
+async function getVoteTotals(): Promise<Ccip017VoteTotals> {
+  const voteTotalsQuery = await fetchReadOnlyFunction<Ccip017VoteTotals>(
+    {
+      contractAddress: CONTRACT_ADDRESS,
+      contractName: CONTRACT_NAME,
+      functionName: "get-vote-totals",
+      functionArgs: [],
+    },
+    true
+  );
+  return voteTotalsQuery;
+}
+
+async function getVoterInfo(voterAddress: string): Promise<Ccip017VoterInfo> {
+  if (!validateStacksAddress(voterAddress)) {
+    throw new Error("Invalid STX address");
+  }
+  const voterIdQuery = await fetchReadOnlyFunction<number>(
+    {
+      contractAddress: CONTRACT_ADDRESS,
+      contractName: CONTRACT_NAME,
+      functionName: "get-voter-id",
+      functionArgs: [voterAddress],
+    },
+    true
+  );
+  const voterInfoQuery = await fetchReadOnlyFunction<Ccip017VoterInfo>(
+    {
+      contractAddress: CONTRACT_ADDRESS,
+      contractName: CONTRACT_NAME,
+      functionName: "get-voter-info",
+      functionArgs: [uintCV(voterIdQuery)],
+    },
+    true
+  );
+  return voterInfoQuery;
 }
