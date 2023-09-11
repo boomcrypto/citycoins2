@@ -10,6 +10,7 @@ import {
   stxAddressAtom,
 } from "../store/stacks";
 import {
+  ccip017HasVotedAtom,
   ccip017IsExecutableAtom,
   ccip017IsVoteActiveAtom,
   ccip017VoteTotalsAtom,
@@ -19,18 +20,19 @@ import {
 export const useClearUserData = () => {
   // constants.ts
   const setActiveTab = useSetAtom(activeTabAtom);
-  // stacks.ts
+  // store/stacks.ts
   const setBlockHeights = useSetAtom(blockHeightsAtom);
   const setStxAddress = useSetAtom(stxAddressAtom);
   const setBnsName = useSetAtom(bnsNameAtom);
   const setAcctTxs = useSetAtom(acctTxsAtom);
   const setAcctMempoolTxs = useSetAtom(acctMempoolTxsAtom);
   const setAcctBalances = useSetAtom(acctBalancesAtom);
-  // ccip-017.ts
+  // store/ccip-017.ts
   const setCcip017IsExecutable = useSetAtom(ccip017IsExecutableAtom);
   const setCcip017IsVoteActive = useSetAtom(ccip017IsVoteActiveAtom);
   const setCcip017VoteTotals = useSetAtom(ccip017VoteTotalsAtom);
   const setCcip017VoterInfo = useSetAtom(ccip017VoterInfoAtom);
+  const setCcip017HasVoted = useSetAtom(ccip017HasVotedAtom);
 
   const clearData = () => {
     // clear all locally stored data
@@ -45,6 +47,7 @@ export const useClearUserData = () => {
     setCcip017IsVoteActive(RESET);
     setCcip017VoteTotals(RESET);
     setCcip017VoterInfo(RESET);
+    setCcip017HasVoted(RESET);
   };
 
   return clearData;
