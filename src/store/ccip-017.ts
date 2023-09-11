@@ -2,7 +2,7 @@ import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { fetchReadOnlyFunction } from "micro-stacks/api";
 import { validateStacksAddress } from "micro-stacks/crypto";
-import { uintCV } from "micro-stacks/clarity";
+import { standardPrincipalCV, uintCV } from "micro-stacks/clarity";
 import { stxAddressAtom } from "./stacks";
 
 /////////////////////////
@@ -62,9 +62,9 @@ export const ccip017VoterInfoAtom = atomWithStorage<Ccip017VoterInfo | null>(
 // DERIVED ATOMS
 /////////////////////////
 
-export const hasVoted = atom((get) => {
+export const hasVotedAtom = atom((get) => {
   const voterInfo = get(ccip017VoterInfoAtom);
-  if (voterInfo) {
+  if (voterInfo !== null) {
     return true;
   }
   return false;
@@ -167,15 +167,17 @@ async function getVoterInfo(voterAddress: string): Promise<Ccip017VoterInfo> {
   if (!validateStacksAddress(voterAddress)) {
     throw new Error("Invalid STX address");
   }
+  console.log("Voter Address", voterAddress);
   const voterIdQuery = await fetchReadOnlyFunction<number>(
     {
       contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-voter-id",
-      functionArgs: [voterAddress],
+      contractName: "ccd003-user-registry",
+      functionName: "get-user-id",
+      functionArgs: [standardPrincipalCV(voterAddress)],
     },
     true
   );
+  console.log("Voter ID", voterIdQuery);
   const voterInfoQuery = await fetchReadOnlyFunction<Ccip017VoterInfo>(
     {
       contractAddress: CONTRACT_ADDRESS,
@@ -185,5 +187,6 @@ async function getVoterInfo(voterAddress: string): Promise<Ccip017VoterInfo> {
     },
     true
   );
+  console.log("Voter Info", voterInfoQuery);
   return voterInfoQuery;
 }

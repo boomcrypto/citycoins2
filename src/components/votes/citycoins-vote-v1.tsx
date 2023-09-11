@@ -38,11 +38,7 @@ function CityCoinsVoteV1() {
             <StatNumber>6, 7</StatNumber>
           </Stat>
         </Stack>
-        <Stack
-          direction={["column", "row"]}
-          justifyContent="space-between"
-          mb={[2, 4]}
-        >
+        <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
             <StatNumber>{yesVotes}</StatNumber>

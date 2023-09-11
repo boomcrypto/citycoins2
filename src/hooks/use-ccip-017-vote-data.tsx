@@ -9,7 +9,9 @@ import {
 } from "../store/ccip-017";
 import { LoadableDataset, extractLoadableState } from "../constants";
 
-export const useCcip017 = (selector: Ccip017Atoms): LoadableDataset<any> => {
+export const useCcip017VoteData = (
+  selector: Ccip017Atoms
+): LoadableDataset<any> => {
   const ccip017IsExecutableLoader = loadable(ccip017IsExecutableQueryAtom);
   const ccip017IsVoteActiveLoader = loadable(ccip017IsVoteActiveQueryAtom);
   const ccip017VoteTotalsLoader = loadable(ccip017VoteTotalsQueryAtom);
