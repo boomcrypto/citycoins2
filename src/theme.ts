@@ -35,10 +35,10 @@ const linkStyles = {
 const tabsBaseStyle = definePartsStyle({
   tab: {
     fontWeight: "semibold",
-    _selected: {
+    _selected: (props: StyleFunctionProps) => ({
       borderTop: "5px solid",
-      color: mode("blue.600", "blue.300"),
-    },
+      color: mode("blue.600", "blue.300")(props),
+    }),
   },
 });
 
