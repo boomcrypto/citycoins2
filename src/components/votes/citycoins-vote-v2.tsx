@@ -1,5 +1,6 @@
 import {
   Box,
+  Divider,
   Link,
   Stack,
   Stat,
@@ -8,8 +9,14 @@ import {
   Text,
   useColorModeValue,
 } from "@chakra-ui/react";
+import VoteProgressBar from "./vote-progress-bar";
 
 function CityCoinsVoteV2() {
+  const yesVotes = 73;
+  const noVotes = 11;
+  const yesTotal = 1530382681000000;
+  const noTotal = 242180281000000;
+
   return (
     <Stack spacing={4}>
       <Box
@@ -38,24 +45,16 @@ function CityCoinsVoteV2() {
         >
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber>73</StatNumber>
+            <StatNumber>{yesVotes}</StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber>11</StatNumber>
-          </Stat>
-        </Stack>
-        <Stack direction={["column", "row"]} justifyContent="space-between">
-          <Stat>
-            <StatLabel>Yes Vote Total</StatLabel>
-            <StatNumber>1,530,382,681</StatNumber>
-          </Stat>
-          <Stat>
-            <StatLabel>No Vote Total</StatLabel>
-            <StatNumber>242,180,281</StatNumber>
+            <StatNumber>{noVotes}</StatNumber>
           </Stat>
         </Stack>
       </Box>
+      <VoteProgressBar yesTotal={yesTotal} noTotal={noTotal} />
+      <Divider />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
         <Box>

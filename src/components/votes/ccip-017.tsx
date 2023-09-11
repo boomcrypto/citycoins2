@@ -1,8 +1,8 @@
 import {
   Box,
   Button,
+  Divider,
   Link,
-  Skeleton,
   Spinner,
   Stack,
   Stat,
@@ -11,8 +11,8 @@ import {
   Text,
   useColorModeValue,
 } from "@chakra-ui/react";
+import VoteProgressBar from "./vote-progress-bar";
 import { useCcip017 } from "../../hooks/use-ccip-017";
-import { formatMicroAmount } from "../../constants";
 
 // TODO: button onClick handlers
 // submits contract calls
@@ -89,29 +89,12 @@ function CCIP017() {
             <StatNumber>{voteTotals.data?.noVotes ?? <Spinner />}</StatNumber>
           </Stat>
         </Stack>
-        <Stack direction={["column", "row"]} justifyContent="space-between">
-          <Stat>
-            <StatLabel>Yes Vote Total</StatLabel>
-            <StatNumber>
-              {voteTotals.data?.yesTotal ? (
-                formatMicroAmount(voteTotals.data?.yesTotal)
-              ) : (
-                <Spinner />
-              )}
-            </StatNumber>
-          </Stat>
-          <Stat>
-            <StatLabel>No Vote Total</StatLabel>
-            <StatNumber>
-              {voteTotals.data?.noTotal ? (
-                formatMicroAmount(voteTotals.data?.noTotal)
-              ) : (
-                <Spinner />
-              )}
-            </StatNumber>
-          </Stat>
-        </Stack>
       </Box>
+      <VoteProgressBar
+        yesTotal={voteTotals.data?.yesTotal}
+        noTotal={voteTotals.data?.noTotal}
+      />
+      <Divider />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
         <Box>
