@@ -1,9 +1,15 @@
 import { useOpenContractCall } from "@micro-stacks/react";
 import { boolCV } from "micro-stacks/clarity";
-import { CONTRACT_ADDRESS, CONTRACT_NAME } from "../store/ccip-017";
+import {
+  CONTRACT_ADDRESS,
+  CONTRACT_NAME,
+  ccip017HasVotedAtom,
+} from "../store/ccip-017";
+import { useSetAtom } from "jotai";
 
 export const useCcip017VoteActions = () => {
   const { openContractCall, isRequestPending } = useOpenContractCall();
+  const setCcip017HasVoted = useSetAtom(ccip017HasVotedAtom);
 
   const voteYes = async () => {
     await openContractCall({
@@ -13,6 +19,7 @@ export const useCcip017VoteActions = () => {
       functionArgs: [boolCV(true)],
       onFinish: async (data) => {
         console.log("Vote Yes on CCIP-017 success!", data);
+        setCcip017HasVoted(true);
       },
       onCancel: () => {
         console.log("Vote Yes on CCIP-017 popup closed!");
@@ -28,6 +35,7 @@ export const useCcip017VoteActions = () => {
       functionArgs: [boolCV(false)],
       onFinish: async (data) => {
         console.log("Vote No on CCIP-017 success!", data);
+        setCcip017HasVoted(true);
       },
       onCancel: () => {
         console.log("Vote No on CCIP-017 popup closed!");

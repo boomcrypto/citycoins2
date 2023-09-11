@@ -17,6 +17,8 @@ import VoteProgressBar from "./vote-progress-bar";
 import { useCcip017VoteData } from "../../hooks/use-ccip-017-vote-data";
 import { useCcip017VoteActions } from "../../hooks/use-ccip-017-vote-actions";
 import { formatMicroAmount } from "../../constants";
+import { ccip017HasVotedAtom } from "../../store/ccip-017";
+import { useAtomValue } from "jotai";
 
 function VoteButtons() {
   const { voteYes, voteNo, isRequestPending } = useCcip017VoteActions();
@@ -65,6 +67,7 @@ function CCIP017() {
   const isVoteActive = useCcip017VoteData("isVoteActive");
   const voteTotals = useCcip017VoteData("voteTotals");
   const voterInfo = useCcip017VoteData("voterInfo");
+  const hasVoted = useAtomValue(ccip017HasVotedAtom);
   //const hasVoted = useAtomValue(hasVotedAtom);
 
   return (
@@ -169,7 +172,11 @@ function CCIP017() {
           the new sunset period ending at Stacks block 147,828.
         </Text>
       </Stack>
-      {isVoteActive.data && voterInfo.data ? <VoteResult /> : <VoteButtons />}
+      {voterInfo.data ? (
+        <VoteResult />
+      ) : isVoteActive.data && !hasVoted ? (
+        <VoteButtons />
+      ) : null}
     </Stack>
   );
 }

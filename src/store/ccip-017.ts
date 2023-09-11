@@ -57,11 +57,16 @@ export const ccip017VoterInfoAtom = atomWithStorage<Ccip017VoterInfo | null>(
   "citycoins-ccip017-voterInfo",
   null
 );
+export const ccip017HasVotedAtom = atomWithStorage(
+  "citycoins-ccip017-hasVoted",
+  false
+);
 
 /////////////////////////
 // DERIVED ATOMS
 /////////////////////////
 
+/* TODO: use in next version
 export const hasVotedAtom = atom((get) => {
   const voterInfo = get(ccip017VoterInfoAtom);
   if (voterInfo !== null) {
@@ -69,6 +74,7 @@ export const hasVotedAtom = atom((get) => {
   }
   return false;
 });
+*/
 
 /////////////////////////
 // LOADABLE ASYNC ATOMS
