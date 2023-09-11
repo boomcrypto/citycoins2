@@ -9,6 +9,12 @@ import { stxAddressAtom } from "./stacks";
 // TYPES
 /////////////////////////
 
+export type Ccip017Atoms =
+  | "isExecutable"
+  | "isVoteActive"
+  | "voteTotals"
+  | "voterInfo";
+
 export type Ccip017VoteTotals = {
   noTotal: number;
   yesTotal: number;

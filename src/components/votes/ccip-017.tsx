@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   Link,
+  Skeleton,
   Spinner,
   Stack,
   Stat,
@@ -10,6 +11,8 @@ import {
   Text,
   useColorModeValue,
 } from "@chakra-ui/react";
+import { useCcip017 } from "../../hooks/use-ccip-017";
+import { formatMicroAmount } from "../../constants";
 
 // TODO: button onClick handlers
 // submits contract calls
@@ -46,6 +49,11 @@ function VoteResult() {
 }
 
 function CCIP017() {
+  const isExecutable = useCcip017("isExecutable");
+  const isVoteActive = useCcip017("isVoteActive");
+  const voteTotals = useCcip017("voteTotals");
+  const voterInfo = useCcip017("voterInfo");
+
   return (
     <Stack spacing={4}>
       <Box
@@ -74,28 +82,32 @@ function CCIP017() {
         >
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber>
-              <Spinner />
-            </StatNumber>
+            <StatNumber>{voteTotals.data?.yesVotes ?? <Spinner />}</StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber>
-              <Spinner />
-            </StatNumber>
+            <StatNumber>{voteTotals.data?.noVotes ?? <Spinner />}</StatNumber>
           </Stat>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Total</StatLabel>
             <StatNumber>
-              <Spinner />
+              {voteTotals.data?.yesTotal ? (
+                formatMicroAmount(voteTotals.data?.yesTotal)
+              ) : (
+                <Spinner />
+              )}
             </StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Total</StatLabel>
             <StatNumber>
-              <Spinner />
+              {voteTotals.data?.noTotal ? (
+                formatMicroAmount(voteTotals.data?.noTotal)
+              ) : (
+                <Spinner />
+              )}
             </StatNumber>
           </Stat>
         </Stack>
