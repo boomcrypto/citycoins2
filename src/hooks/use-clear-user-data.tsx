@@ -1,6 +1,6 @@
 import { useSetAtom } from "jotai";
 import { RESET } from "jotai/utils";
-import { activeTabAtom } from "../constants";
+import { activeTabAtom } from "../store/common";
 import {
   acctBalancesAtom,
   acctMempoolTxsAtom,

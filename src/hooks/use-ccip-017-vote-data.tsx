@@ -7,7 +7,7 @@ import {
   ccip017VoteTotalsQueryAtom,
   ccip017VoterInfoQueryAtom,
 } from "../store/ccip-017";
-import { LoadableDataset, extractLoadableState } from "../constants";
+import { LoadableDataset, extractLoadableState } from "../store/common";
 
 export const useCcip017VoteData = (
   selector: Ccip017Atoms

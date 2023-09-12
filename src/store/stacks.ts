@@ -1,6 +1,6 @@
 import { atomWithStorage } from "jotai/utils";
 import { fetchCoreApiInfo } from "micro-stacks/api";
-import { HIRO_API } from "../constants";
+import { HIRO_API } from "./common";
 import { atom } from "jotai";
 
 /////////////////////////

@@ -1,5 +1,5 @@
 import { Box, Progress, Text, useColorModeValue } from "@chakra-ui/react";
-import { formatMicroAmount } from "../../constants";
+import { formatMicroAmount } from "../../store/common";
 
 function VoteProgressBar(props: { yesTotal: number; noTotal: number }) {
   const totalVotes = Number(props.yesTotal) + Number(props.noTotal);

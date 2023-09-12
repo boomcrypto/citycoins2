@@ -16,7 +16,7 @@ import {
 import VoteProgressBar from "./vote-progress-bar";
 import { useCcip017VoteData } from "../../hooks/use-ccip-017-vote-data";
 import { useCcip017VoteActions } from "../../hooks/use-ccip-017-vote-actions";
-import { formatMicroAmount } from "../../constants";
+import { formatMicroAmount } from "../../store/common";
 import { hasVotedAtom } from "../../store/ccip-017";
 import { useAtomValue } from "jotai";
 
