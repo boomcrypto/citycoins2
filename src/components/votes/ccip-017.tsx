@@ -17,30 +17,35 @@ import VoteProgressBar from "./vote-progress-bar";
 import { useCcip017VoteData } from "../../hooks/use-ccip-017-vote-data";
 import { useCcip017VoteActions } from "../../hooks/use-ccip-017-vote-actions";
 import { formatMicroAmount } from "../../constants";
-import { ccip017HasVotedAtom } from "../../store/ccip-017";
+import { hasVotedAtom } from "../../store/ccip-017";
 import { useAtomValue } from "jotai";
 
 function VoteButtons() {
   const { voteYes, voteNo, isRequestPending } = useCcip017VoteActions();
+  const hasVoted = useAtomValue(hasVotedAtom);
+
   return (
-    <Stack direction={["column", "row"]} spacing={4}>
-      <Button
-        onClick={voteYes}
-        colorScheme="green"
-        size="lg"
-        isLoading={isRequestPending}
-      >
-        Vote Yes
-      </Button>
-      <Button
-        onClick={voteNo}
-        colorScheme="red"
-        size="lg"
-        isLoading={isRequestPending}
-      >
-        Vote No
-      </Button>
-    </Stack>
+    <>
+      <Text fontWeight="bold">{hasVoted ? "Change vote" : "Voting"}:</Text>
+      <Stack direction={["column", "row"]} spacing={4}>
+        <Button
+          onClick={voteYes}
+          colorScheme="green"
+          size="lg"
+          isLoading={isRequestPending}
+        >
+          Vote Yes
+        </Button>
+        <Button
+          onClick={voteNo}
+          colorScheme="red"
+          size="lg"
+          isLoading={isRequestPending}
+        >
+          Vote No
+        </Button>
+      </Stack>
+    </>
   );
 }
 
@@ -49,16 +54,19 @@ function VoteResult() {
 
   return (
     <Stack spacing={4}>
-      <Divider />
-      <Text fontWeight="bold">Vote recorded, thank you!</Text>
+      <Text fontWeight="bold">Your Vote:</Text>
       <UnorderedList>
-        <ListItem>Vote: {voterInfo.data?.vote ? "Yes" : "No"}</ListItem>
-        <ListItem>Total: {formatMicroAmount(voterInfo.data?.total)}</ListItem>
-        <ListItem>MIA: {formatMicroAmount(voterInfo.data?.mia)}</ListItem>
-        <ListItem>NYC: {formatMicroAmount(voterInfo.data?.nyc)}</ListItem>
+        <ListItem>
+          Recorded Vote: {voterInfo.data?.vote ? "Yes" : "No"}
+        </ListItem>
+        <ListItem>
+          Total Votes: {formatMicroAmount(voterInfo.data?.total)} CityCoins
+        </ListItem>
+        <UnorderedList>
+          <ListItem>MIA: {formatMicroAmount(voterInfo.data?.mia)}</ListItem>
+          <ListItem>NYC: {formatMicroAmount(voterInfo.data?.nyc)}</ListItem>
+        </UnorderedList>
       </UnorderedList>
-      <Text fontWeight="bold">Change vote:</Text>
-      <VoteButtons />
     </Stack>
   );
 }
@@ -67,8 +75,7 @@ function CCIP017() {
   const isVoteActive = useCcip017VoteData("isVoteActive");
   const voteTotals = useCcip017VoteData("voteTotals");
   const voterInfo = useCcip017VoteData("voterInfo");
-  const hasVoted = useAtomValue(ccip017HasVotedAtom);
-  //const hasVoted = useAtomValue(hasVotedAtom);
+  const hasVoted = useAtomValue(hasVotedAtom);
 
   return (
     <Stack spacing={4}>
@@ -163,11 +170,16 @@ function CCIP017() {
           the new sunset period ending at Stacks block 147,828.
         </Text>
       </Stack>
-      {voterInfo.data ? (
-        <VoteResult />
-      ) : isVoteActive.data && !hasVoted ? (
+      {isVoteActive.data && hasVoted ? (
+        <>
+          <Divider />
+          <Text fontWeight="bold">Vote recorded, thank you!</Text>
+          <Text>Refresh to see stats once the tx confirms.</Text>
+        </>
+      ) : (
         <VoteButtons />
-      ) : null}
+      )}
+      {voterInfo.data && <VoteResult />}
     </Stack>
   );
 }

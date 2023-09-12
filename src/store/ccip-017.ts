@@ -66,15 +66,14 @@ export const ccip017HasVotedAtom = atomWithStorage(
 // DERIVED ATOMS
 /////////////////////////
 
-/* TODO: use in next version
 export const hasVotedAtom = atom((get) => {
   const voterInfo = get(ccip017VoterInfoAtom);
-  if (voterInfo !== null) {
+  const hasVoted = get(ccip017HasVotedAtom);
+  if (voterInfo !== null || hasVoted) {
     return true;
   }
   return false;
 });
-*/
 
 /////////////////////////
 // LOADABLE ASYNC ATOMS
