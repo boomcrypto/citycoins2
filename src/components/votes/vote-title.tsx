@@ -1,5 +1,5 @@
 import { Badge, Box, Text } from "@chakra-ui/react";
-import { VoteStatus } from "../../types";
+import { VoteStatus } from "../../store/common";
 
 function getStatusColor(status: VoteStatus) {
   switch (status) {

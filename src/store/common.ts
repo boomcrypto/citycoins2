@@ -11,6 +11,8 @@ export const HIRO_API = "https://api.hiro.so";
 
 // TYPES
 
+export type VoteStatus = "pending" | "active" | "passed" | "failed";
+
 export type LoadableDataset<T> = {
   isLoading: boolean;
   hasError: boolean;
