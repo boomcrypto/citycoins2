@@ -1,10 +1,8 @@
 import {
   Box,
-  Button,
   Divider,
   Link,
   ListItem,
-  Spinner,
   Stack,
   Stat,
   StatLabel,
@@ -15,11 +13,9 @@ import {
 } from "@chakra-ui/react";
 import VoteProgressBar from "./vote-progress-bar";
 import { useCcip017VoteData } from "../../hooks/use-ccip-017-vote-data";
-import { useCcip017VoteActions } from "../../hooks/use-ccip-017-vote-actions";
 import { formatMicroAmount } from "../../store/common";
-import { hasVotedAtom } from "../../store/ccip-017";
-import { useAtomValue } from "jotai";
 
+/*
 function VoteButtons() {
   const { voteYes, voteNo, isRequestPending } = useCcip017VoteActions();
   const hasVoted = useAtomValue(hasVotedAtom);
@@ -48,6 +44,7 @@ function VoteButtons() {
     </>
   );
 }
+*/
 
 function VoteResult() {
   const voterInfo = useCcip017VoteData("voterInfo");
@@ -72,8 +69,11 @@ function VoteResult() {
 }
 
 function CCIP017() {
-  const voteTotals = useCcip017VoteData("voteTotals");
   const voterInfo = useCcip017VoteData("voterInfo");
+  const yesVotes = 41;
+  const noVotes = 0;
+  const yesTotal = 2_747_505_330_000_000;
+  const noTotal = 0;
 
   return (
     <Stack spacing={4}>
@@ -99,18 +99,15 @@ function CCIP017() {
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber>{voteTotals.data?.yesVotes ?? <Spinner />}</StatNumber>
+            <StatNumber>{yesVotes}</StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber>{voteTotals.data?.noVotes ?? <Spinner />}</StatNumber>
+            <StatNumber>{noVotes}</StatNumber>
           </Stat>
         </Stack>
       </Box>
-      <VoteProgressBar
-        yesTotal={voteTotals.data?.yesTotal}
-        noTotal={voteTotals.data?.noTotal}
-      />
+      <VoteProgressBar yesTotal={yesTotal} noTotal={noTotal} />
       <Divider />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
