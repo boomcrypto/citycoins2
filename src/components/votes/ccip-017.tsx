@@ -72,10 +72,8 @@ function VoteResult() {
 }
 
 function CCIP017() {
-  const isVoteActive = useCcip017VoteData("isVoteActive");
   const voteTotals = useCcip017VoteData("voteTotals");
   const voterInfo = useCcip017VoteData("voterInfo");
-  const hasVoted = useAtomValue(hasVotedAtom);
 
   return (
     <Stack spacing={4}>
@@ -170,15 +168,6 @@ function CCIP017() {
           the new sunset period ending at Stacks block 147,828.
         </Text>
       </Stack>
-      {isVoteActive.data && hasVoted ? (
-        <>
-          <Divider />
-          <Text fontWeight="bold">Vote recorded, thank you!</Text>
-          <Text>Refresh to see stats once the tx confirms.</Text>
-        </>
-      ) : (
-        <VoteButtons />
-      )}
       {voterInfo.data && <VoteResult />}
     </Stack>
   );

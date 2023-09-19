@@ -72,7 +72,7 @@ function Voting() {
         <AccordionItem>
           <h2>
             <AccordionButton>
-              <VoteTitle title="Vote 5: Extend sunset period" status="active" />
+              <VoteTitle title="Vote 5: Extend sunset period" status="passed" />
             </AccordionButton>
           </h2>
           <AccordionPanel pb={4}>
