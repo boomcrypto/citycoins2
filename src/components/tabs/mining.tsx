@@ -17,9 +17,18 @@ import {
   UnorderedList,
   useToast,
 } from "@chakra-ui/react";
+import { useOpenContractCall } from "@micro-stacks/react";
+import { FinishedTxData } from "micro-stacks/connect";
+import {
+  FungibleConditionCode,
+  makeStandardSTXPostCondition,
+} from "micro-stacks/transactions";
 import { atom, useAtom } from "jotai";
 import { atomWithDefault } from "jotai/utils";
 import { FaQuestion } from "react-icons/fa";
+import { stxAddressAtom } from "../../store/stacks";
+import { useBlockHeights } from "../../hooks/use-block-heights";
+import TxInfo from "../stacks/tx-info";
 
 // NEED
 // current block height
@@ -41,14 +50,25 @@ const finalBlockValuesAtom = atom((get) => {
   }
   return blockValues;
 });
+const sumFinalBlockValuesAtom = atom((get) => {
+  const finalBlockValues = get(finalBlockValuesAtom);
+  return finalBlockValues.reduce((acc, val) => acc + val, 0);
+});
 const consentCheckedAtom = atom(false);
+const txDataAtom = atom<FinishedTxData | null>(null);
 
 function MiningForm() {
+  const { openContractCall, isRequestPending } = useOpenContractCall();
+  const [stxAddress] = useAtom(stxAddressAtom);
+  const blockHeights = useBlockHeights();
+
   const [numberOfBlocks, setNumberOfBlocks] = useAtom(numberOfBlocksAtom);
   const [useSameAmount, setUseSameAmount] = useAtom(useSameAmountAtom);
   const [blockValues, setBlockValues] = useAtom(blockValuesAtom);
   const [finalBlockValues] = useAtom(finalBlockValuesAtom);
+  const [sumFinalBlockValues] = useAtom(sumFinalBlockValuesAtom);
   const [consentChecked, setConsentChecked] = useAtom(consentCheckedAtom);
+  const [txData, setTxData] = useAtom(txDataAtom);
   const toast = useToast();
 
   function handleNumberOfBlocks(e: React.ChangeEvent<HTMLInputElement>) {
@@ -93,8 +113,7 @@ function MiningForm() {
     }
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLButtonElement>) {
-    // e.preventDefault();
+  async function handleSubmit() {
     const isValid = isValidSubmission();
     console.log("isValid", isValid);
     if (!isValid) {
@@ -102,15 +121,66 @@ function MiningForm() {
     }
     console.log("numberOfBlocks", numberOfBlocks);
     console.log("finalBlockValues", finalBlockValues);
-    // TODO: make contract call (hook?)
-    //   onCancel: toast warning
-    //   onFinish: toast success
-    // TODO: component to show tx info
-    // txInfo && <TxInfo txInfo={txInfo} />
+    const postConditions = [
+      makeStandardSTXPostCondition(
+        stxAddress!,
+        FungibleConditionCode.Equal,
+        sumFinalBlockValues
+      ),
+    ];
+    try {
+      await openContractCall({
+        contractAddress: "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH",
+        contractName: "ccd006-citycoin-mining-v2",
+        functionName: "mine",
+        functionArgs: [
+          // city ID
+          // list of block values
+        ],
+        postConditions: postConditions,
+        onCancel: () => {
+          toast({
+            title: "Canceled",
+            description: "Mining transaction cancelled",
+            status: "warning",
+            duration: 3000,
+            isClosable: true,
+          });
+        },
+        onFinish: async (data) => {
+          toast({
+            title: "Success",
+            description: "Mining transaction successful",
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+          });
+          setTxData(data);
+        },
+      });
+    } catch (error) {
+      toast({
+        title: "Error sending transaction",
+        description: String(error),
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   }
 
   function isValidSubmission() {
-    // TODO: check that miner isn't currently mining
+    if (!blockHeights.hasData || !blockHeights.data) {
+      toast({
+        title: "Block heights not loaded",
+        description: "Please try again later",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
+    // TODO: derived atom for if currently mining
     // check if number of blocks is > 0 and <= 200
     if (numberOfBlocks <= 0 || numberOfBlocks > 200) {
       toast({
@@ -175,9 +245,7 @@ function MiningForm() {
           </Stat>
           <Stat>
             <StatLabel>Total Amount</StatLabel>
-            <StatNumber>
-              {finalBlockValues.reduce((acc, val) => acc + val, 0)} STX
-            </StatNumber>
+            <StatNumber>{sumFinalBlockValues} STX</StatNumber>
           </Stat>
         </Stack>
         <Divider />
@@ -229,7 +297,8 @@ function MiningForm() {
             </FormControl>
             <Button
               isDisabled={!consentChecked}
-              onClick={(e) => handleSubmit(e)}
+              isLoading={isRequestPending}
+              onClick={handleSubmit}
             >
               Mine for{" "}
               {numberOfBlocks === 1 ? "1 block" : `${numberOfBlocks} blocks`}
@@ -237,6 +306,7 @@ function MiningForm() {
           </Stack>
         )}
       </Stack>
+      {txData && <TxInfo txData={txData} />}
     </form>
   );
 }
