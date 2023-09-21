@@ -1,7 +1,12 @@
 import {
+  Button,
   Flex,
   Heading,
   IconButton,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
   Stack,
   Text,
   useColorMode,
@@ -13,7 +18,12 @@ import SignOut from "../auth/sign-out";
 import ClearData from "../auth/clear-data";
 import { stxAddressAtom } from "../../store/stacks";
 import { useAtom } from "jotai";
-import { FaMoon, FaSun } from "react-icons/fa";
+import {
+  FaChevronCircleDown,
+  FaChevronCircleRight,
+  FaMoon,
+  FaSun,
+} from "react-icons/fa";
 
 function Header() {
   const { stxAddress } = useAccount();
@@ -28,27 +38,38 @@ function Header() {
           CityCoins
         </Heading>
       </Flex>
-      <Stack direction={["column", "row"]} alignItems="center">
-        <Text fontWeight="semibold" fontSize="md">
-          {stxAddress === undefined && storedStxAddress
-            ? `${storedStxAddress.slice(0, 5)}...${storedStxAddress.slice(-5)}`
-            : stxAddress
-            ? `${stxAddress.slice(0, 5)}...${stxAddress.slice(-5)}`
-            : ""}
-        </Text>
-        <ClearData variant="outline" />
-        {stxAddress === undefined ? (
-          <SignIn variant="outline" />
-        ) : (
-          <SignOut variant="outline" />
-        )}
-        <IconButton
-          aria-label="Learn More"
-          title="Learn More"
-          icon={colorMode === "light" ? <FaMoon /> : <FaSun />}
-          onClick={toggleColorMode}
-        />
-      </Stack>
+      <Button variant="outline" title="View Profile">
+        {stxAddress === undefined && storedStxAddress
+          ? `${storedStxAddress.slice(0, 5)}...${storedStxAddress.slice(-5)}`
+          : stxAddress
+          ? `${stxAddress.slice(0, 5)}...${stxAddress.slice(-5)}`
+          : ""}
+      </Button>
+      <Menu>
+        <MenuButton
+          as={Button}
+          rightIcon={<FaChevronCircleDown />}
+          title="Select City"
+        >
+          Select City
+        </MenuButton>
+        <MenuList>
+          <MenuItem>Miami</MenuItem>
+          <MenuItem>New York City</MenuItem>
+        </MenuList>
+      </Menu>
+      <ClearData variant="outline" />
+      {stxAddress === undefined ? (
+        <SignIn variant="outline" />
+      ) : (
+        <SignOut variant="outline" />
+      )}
+      <IconButton
+        aria-label="Toggle color mode"
+        title="Toggle color mode"
+        icon={colorMode === "light" ? <FaMoon /> : <FaSun />}
+        onClick={toggleColorMode}
+      />
     </Stack>
   );
 }

@@ -64,7 +64,7 @@ export const blockHeightsQueryAtom = atom(async () => {
 async function getBlockHeights(): Promise<BlockHeights | undefined> {
   try {
     const v2InfoResponse = await fetchCoreApiInfo({
-      url: `${HIRO_API}/v2/info`,
+      url: HIRO_API,
     });
     const blockHeights: BlockHeights = {
       btc: v2InfoResponse.burn_block_height,
