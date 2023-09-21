@@ -13,14 +13,122 @@ import {
   Stack,
   Text,
   UnorderedList,
+  useToast,
 } from "@chakra-ui/react";
 import { atom, useAtom } from "jotai";
 import { FaQuestion } from "react-icons/fa";
 
+// NEED
+// current reward cycle
+// current user's balance
+// city token symbol
+
+const amountToStackAtom = atom(0);
+const numberOfCyclesAtom = atom(0);
 const consentCheckedAtom = atom(false);
 
 function StackingForm() {
+  const [amountToStack, setAmountToStack] = useAtom(amountToStackAtom);
+  const [numberOfCycles, setNumberOfCycles] = useAtom(numberOfCyclesAtom);
   const [consentChecked, setConsentChecked] = useAtom(consentCheckedAtom);
+  const toast = useToast();
+
+  function handleAmountToStack(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.value === "") {
+      setAmountToStack(0);
+      return;
+    }
+    let parsedValue = Number(e.target.value.trim());
+    if (isNaN(parsedValue) || parsedValue < 1) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a number greater than 0",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      setAmountToStack(0);
+      return;
+    }
+    setAmountToStack(parsedValue);
+  }
+
+  function handleNumberOfCycles(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.value === "") {
+      setNumberOfCycles(0);
+      return;
+    }
+    let parsedValue = Number(e.target.value.trim());
+    if (isNaN(parsedValue) || parsedValue < 1 || parsedValue > 32) {
+      toast({
+        title: "Invalid number of cycles",
+        description: "Please enter a number between 1 and 32",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      setNumberOfCycles(0);
+      return;
+    }
+    setNumberOfCycles(parsedValue);
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLButtonElement>) {
+    // e.preventDefault();
+    const isValid = isValidSubmission();
+    console.log(isValid);
+    if (!isValid) {
+      return;
+    }
+    console.log("amountToStack", amountToStack);
+    console.log("numberOfCycles", numberOfCycles);
+    // TODO: make contract call (hook?)
+    //   onCancel: toast warning
+    //   onFinish: toast success
+    // TODO: component to show tx info
+    // txInfo && <TxInfo txInfo={txInfo} />
+  }
+
+  function isValidSubmission() {
+    // check if number of cycles is > 0 and <= 32
+    if (numberOfCycles <= 0 || numberOfCycles > 32) {
+      toast({
+        title: "Invalid number of cycles",
+        description: "Please enter a number between 1 and 32",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
+    // check if amount to stack is > 0
+    if (amountToStack <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a number greater than 0",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
+    // check if consent is checked
+    if (!consentChecked) {
+      toast({
+        title: "Consent not checked",
+        description: "Please check the consent box",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
+    // TODO: check that user balances are loaded
+    // TODO: check that user has enough CityCoins to stack
+    // TODO: check that user has enough balance for tx + fee
+    return true;
+  }
+
   return (
     <form id="stacking">
       <Stack spacing={8}>
@@ -30,13 +138,24 @@ function StackingForm() {
         <Stack direction="row" alignItems="center">
           <InputGroup>
             <FormControl>
-              <Input type="number" min="1" placeholder="Amount in XX" />
+              <Input
+                type="number"
+                min="1"
+                placeholder="Amount in XX"
+                onChange={(e) => handleAmountToStack(e)}
+              />
             </FormControl>
             <InputRightAddon>XX</InputRightAddon>
             <Button>MAX</Button>
           </InputGroup>
         </Stack>
-        <Input type="number" min="1" max="32" placeholder="Number of Cycles" />
+        <Input
+          type="number"
+          min="1"
+          max="32"
+          placeholder="Number of Cycles"
+          onChange={(e) => handleNumberOfCycles(e)}
+        />
         <FormControl>
           <Checkbox
             alignItems="flex-start"
@@ -62,7 +181,9 @@ function StackingForm() {
             </Stack>
           </Checkbox>
         </FormControl>
-        <Button type="submit">Stack XX</Button>
+        <Button isDisabled={!consentChecked} onClick={(e) => handleSubmit(e)}>
+          Stack XX
+        </Button>
       </Stack>
     </form>
   );

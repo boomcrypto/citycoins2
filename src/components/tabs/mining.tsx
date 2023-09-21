@@ -24,6 +24,7 @@ import { FaQuestion } from "react-icons/fa";
 // NEED
 // current block height
 // current user's balance
+// capture loading state
 
 const numberOfBlocksAtom = atom(0);
 const useSameAmountAtom = atom(false);
@@ -34,12 +35,10 @@ const blockValuesAtom = atomWithDefault((get) => {
 const finalBlockValuesAtom = atom((get) => {
   const blockValues = get(blockValuesAtom);
   const useSameAmount = get(useSameAmountAtom);
-
   if (useSameAmount && blockValues.length > 0) {
     const firstValue = blockValues[0];
     return Array(blockValues.length).fill(firstValue);
   }
-
   return blockValues;
 });
 const consentCheckedAtom = atom(false);
@@ -53,8 +52,11 @@ function MiningForm() {
   const toast = useToast();
 
   function handleNumberOfBlocks(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.value === "") {
+      setNumberOfBlocks(0);
+      return;
+    }
     let parsedValue = Number(e.target.value.trim());
-
     if (isNaN(parsedValue) || parsedValue < 1 || parsedValue > 200) {
       toast({
         title: "Invalid number of blocks",
@@ -66,14 +68,12 @@ function MiningForm() {
       setNumberOfBlocks(0);
       return;
     }
-
     setNumberOfBlocks(parsedValue);
     setBlockValues(new Array(parsedValue).fill(0));
   }
 
   function handleBlockValueChange(index: number, value: string) {
     const newValue = Number(value.trim());
-
     if (newValue <= 0 || isNaN(newValue)) {
       toast({
         title: "Invalid amount",
@@ -84,7 +84,6 @@ function MiningForm() {
       });
       return;
     }
-
     if (useSameAmount) {
       setBlockValues(new Array(blockValues.length).fill(newValue));
     } else {
@@ -95,8 +94,59 @@ function MiningForm() {
   }
 
   function handleSubmit(e: React.FormEvent<HTMLButtonElement>) {
-    e.preventDefault();
-    console.log("submit");
+    // e.preventDefault();
+    const isValid = isValidSubmission();
+    console.log("isValid", isValid);
+    if (!isValid) {
+      return;
+    }
+    console.log("numberOfBlocks", numberOfBlocks);
+    console.log("finalBlockValues", finalBlockValues);
+    // TODO: make contract call (hook?)
+    //   onCancel: toast warning
+    //   onFinish: toast success
+    // TODO: component to show tx info
+    // txInfo && <TxInfo txInfo={txInfo} />
+  }
+
+  function isValidSubmission() {
+    // TODO: check that miner isn't currently mining
+    // check if number of blocks is > 0 and <= 200
+    if (numberOfBlocks <= 0 || numberOfBlocks > 200) {
+      toast({
+        title: "Invalid number of blocks",
+        description: "Please enter a number between 1 and 200",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
+    // check that each block value is > 0
+    if (finalBlockValues.some((val) => val <= 0)) {
+      toast({
+        title: "Invalid block value",
+        description: "Amount per block must be greater than 0",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
+    // check that consent is checked
+    if (!consentChecked) {
+      toast({
+        title: "Consent not checked",
+        description: "Please check the consent box to continue",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
+    // TODO: check that user balances are loaded
+    // TODO: check that user has enough balance for tx + fee
+    return true;
   }
 
   return (
@@ -162,6 +212,7 @@ function MiningForm() {
                     I confirm that by participating in mining, I understand:
                   </Text>
                   <UnorderedList>
+                    {/* show text below for NYC */}
                     <ListItem>
                       the city has not claimed the protocol contribution
                     </ListItem>
@@ -177,9 +228,8 @@ function MiningForm() {
               </Checkbox>
             </FormControl>
             <Button
-              type="submit"
               isDisabled={!consentChecked}
-              onSubmit={handleSubmit}
+              onClick={(e) => handleSubmit(e)}
             >
               Mine for{" "}
               {numberOfBlocks === 1 ? "1 block" : `${numberOfBlocks} blocks`}
