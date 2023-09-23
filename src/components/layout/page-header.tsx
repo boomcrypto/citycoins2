@@ -18,6 +18,7 @@ import ClearData from "../auth/clear-data";
 import { stxAddressAtom } from "../../store/stacks";
 import { useAtom } from "jotai";
 import { FaChevronCircleDown, FaMoon, FaSun } from "react-icons/fa";
+import Profile from "../auth/profile";
 
 function Header() {
   const { stxAddress } = useAccount();
@@ -32,11 +33,7 @@ function Header() {
           CityCoins
         </Heading>
       </Flex>
-      {storedStxAddress && (
-        <Button variant="outline" title="View Profile">
-          {storedStxAddress.slice(0, 5)}...{storedStxAddress.slice(-5)}
-        </Button>
-      )}
+      <Profile />
       <Menu>
         <MenuButton
           as={Button}
