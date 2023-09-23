@@ -2,7 +2,6 @@ import {
   Button,
   Drawer,
   DrawerBody,
-  DrawerCloseButton,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
@@ -14,7 +13,7 @@ import {
   useColorMode,
   useDisclosure,
 } from "@chakra-ui/react";
-import { FaMoon, FaSun } from "react-icons/fa";
+import { FaMoon, FaSun, FaWindowClose } from "react-icons/fa";
 import { useAtom } from "jotai";
 import { stxAddressAtom } from "../../store/stacks";
 import ClearData from "./clear-data";
@@ -37,24 +36,21 @@ function Profile() {
       <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
         <DrawerOverlay />
         <DrawerContent>
-          <DrawerCloseButton />
-          <DrawerHeader>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-              mt={8}
-            >
-              <SignOut variant="outline" />
-              <ClearData variant="outline" />
-              <IconButton
-                variant="outline"
-                aria-label="Toggle color mode"
-                title="Toggle color mode"
-                icon={colorMode === "light" ? <FaMoon /> : <FaSun />}
-                onClick={toggleColorMode}
-              />
-            </Stack>
+          <DrawerHeader display="flex" justifyContent="space-between">
+            <IconButton
+              variant="outline"
+              aria-label="Toggle color mode"
+              title="Toggle color mode"
+              icon={colorMode === "light" ? <FaMoon /> : <FaSun />}
+              onClick={toggleColorMode}
+            />
+            <IconButton
+              variant="outline"
+              aria-label="Close"
+              title="Close"
+              icon={<FaWindowClose />}
+              onClick={onClose}
+            />
           </DrawerHeader>
           <DrawerBody>
             <Stack spacing={8}>
@@ -68,9 +64,16 @@ function Profile() {
             </Stack>
           </DrawerBody>
           <DrawerFooter>
-            <Button variant="outline" mr={3} onClick={onClose}>
-              Close
-            </Button>
+            <Stack
+              w="100%"
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              mt={8}
+            >
+              <SignOut colorScheme="blue" />
+              <ClearData colorScheme="blue" />
+            </Stack>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
