@@ -8,7 +8,6 @@ import {
   MenuItem,
   MenuList,
   Stack,
-  Text,
   useColorMode,
 } from "@chakra-ui/react";
 import { useAccount } from "@micro-stacks/react";
@@ -18,12 +17,7 @@ import SignOut from "../auth/sign-out";
 import ClearData from "../auth/clear-data";
 import { stxAddressAtom } from "../../store/stacks";
 import { useAtom } from "jotai";
-import {
-  FaChevronCircleDown,
-  FaChevronCircleRight,
-  FaMoon,
-  FaSun,
-} from "react-icons/fa";
+import { FaChevronCircleDown, FaMoon, FaSun } from "react-icons/fa";
 
 function Header() {
   const { stxAddress } = useAccount();
@@ -38,16 +32,15 @@ function Header() {
           CityCoins
         </Heading>
       </Flex>
-      <Button variant="outline" title="View Profile">
-        {stxAddress === undefined && storedStxAddress
-          ? `${storedStxAddress.slice(0, 5)}...${storedStxAddress.slice(-5)}`
-          : stxAddress
-          ? `${stxAddress.slice(0, 5)}...${stxAddress.slice(-5)}`
-          : ""}
-      </Button>
+      {storedStxAddress && (
+        <Button variant="outline" title="View Profile">
+          {storedStxAddress.slice(0, 5)}...{storedStxAddress.slice(-5)}
+        </Button>
+      )}
       <Menu>
         <MenuButton
           as={Button}
+          variant="outline"
           rightIcon={<FaChevronCircleDown />}
           title="Select City"
         >
