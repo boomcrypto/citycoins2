@@ -8,6 +8,7 @@ import {
   DrawerOverlay,
   Heading,
   IconButton,
+  Skeleton,
   Stack,
   Stat,
   StatLabel,
@@ -22,12 +23,14 @@ import { useAtom } from "jotai";
 import { stxAddressAtom } from "../../store/stacks";
 import ClearData from "./clear-data";
 import SignOut from "./sign-out";
+import { useBlockHeights } from "../../hooks/use-block-heights";
 
 function Profile() {
   const calloutColor = useColorModeValue("gray.200", "gray.900");
   const { colorMode, toggleColorMode } = useColorMode();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [storedStxAddress] = useAtom(stxAddressAtom);
+  const { isLoading, data: blockHeights } = useBlockHeights();
 
   if (!storedStxAddress) {
     return null;
@@ -59,13 +62,17 @@ function Profile() {
           </DrawerHeader>
           <DrawerBody>
             <Stack spacing={8}>
-              <Heading size="lg" textAlign="center" bg={calloutColor}>
+              <Heading size="lg" py={4} textAlign="center" bg={calloutColor}>
                 {storedStxAddress.slice(0, 5)}...{storedStxAddress.slice(-5)}
               </Heading>
               <Stack direction="row">
                 <Stat>
                   <StatLabel>Current Block</StatLabel>
-                  <StatNumber>XX</StatNumber>
+                  <Skeleton isLoaded={!isLoading}>
+                    <StatNumber>
+                      {blockHeights && blockHeights.stx.toLocaleString()}
+                    </StatNumber>
+                  </Skeleton>
                 </Stat>
                 <Stat>
                   <StatLabel>Current Cycle</StatLabel>
