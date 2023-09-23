@@ -54,3 +54,15 @@ export function formatMicroAmount(
     maximumFractionDigits: decimalsToDisplay,
   });
 }
+
+// fetch and return JSON from URL
+export async function fetchJson<T>(url: string): Promise<T> {
+  const response = await fetch(url);
+  if (response.status === 200) {
+    const json = await response.json();
+    return json as T;
+  }
+  throw new Error(
+    `fetchJson: ${url} ${response.status} ${response.statusText}`
+  );
+}
