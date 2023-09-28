@@ -27,33 +27,43 @@ import {
   displayStxBalanceAtom,
   displayTokenBalancesAtom,
   fetchAccountBalancesAtom,
+  fetchBlockHeightsAtom,
   fetchStacksRewardCycleAtom,
   getBlockHeights,
   stacksRewardCycleAtom,
 } from "../../store/stacks";
 import ClearData from "./clear-data";
 import SignOut from "./sign-out";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   citycoinsRewardCycleAtom,
   fetchCitycoinsRewardCycleAtom,
 } from "../../store/citycoins";
+import { triggerSpin } from "../../store/common";
 
 function Profile() {
-  const calloutColor = useColorModeValue("gray.200", "gray.900");
+  const calloutColor = useColorModeValue("blue.300", "blue.600");
   const { colorMode, toggleColorMode } = useColorMode();
   const { isOpen, onOpen, onClose } = useDisclosure();
+
   const [blockHeights, setBlockHeights] = useAtom(blockHeightsAtom);
   const stacksRewardCycle = useAtomValue(stacksRewardCycleAtom);
   const citycoinsRewardCycle = useAtomValue(citycoinsRewardCycleAtom);
+
+  const fetchBlockHeights = useSetAtom(fetchBlockHeightsAtom);
   const fetchAccountBalances = useSetAtom(fetchAccountBalancesAtom);
   const fetchStacksRewardCycle = useSetAtom(fetchStacksRewardCycleAtom);
   const fetchCitycoinsRewardCycle = useSetAtom(fetchCitycoinsRewardCycleAtom);
+
   const displayStxAddress = useAtomValue(displayStxAddressAtom);
   const displayStxBalance = useAtomValue(displayStxBalanceAtom);
   const displayTokenBalances = useAtomValue(displayTokenBalancesAtom);
 
-  // get block heights on load and then every 30 seconds
+  const refreshBlockHeights = useRef(null);
+  const refreshRewardCycles = useRef(null);
+  const refreshAccountBalances = useRef(null);
+
+  // get block heights on load and then every 5 minutes
   useEffect(() => {
     async function fetchAndSetBlockHeights() {
       const newBlockHeights = await getBlockHeights();
@@ -72,7 +82,7 @@ function Profile() {
 
     const intervalId = setInterval(() => {
       fetchAndSetBlockHeights();
-    }, 30000); // add a 0 for 5 minutes
+    }, 300000); // 5 minutes
 
     return () => clearInterval(intervalId);
   }, [blockHeights, setBlockHeights]);
@@ -120,6 +130,24 @@ function Profile() {
                 {displayStxAddress}
               </Heading>
               {/* Block Heights */}
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <Heading size="lg">Block Heights</Heading>
+                <IconButton
+                  aria-label="Refresh block heights"
+                  title="Refresh block heights"
+                  size="sm"
+                  icon={<BiRefresh />}
+                  ref={refreshBlockHeights}
+                  onClick={() => {
+                    triggerSpin(refreshBlockHeights);
+                    fetchBlockHeights();
+                  }}
+                />
+              </Stack>
               <Stack direction="row">
                 <Stat>
                   <StatLabel noOfLines={1}>Stacks Height</StatLabel>
@@ -151,7 +179,9 @@ function Profile() {
                   title="Refresh reward cycles"
                   size="sm"
                   icon={<BiRefresh />}
+                  ref={refreshRewardCycles}
                   onClick={() => {
+                    triggerSpin(refreshRewardCycles);
                     fetchStacksRewardCycle();
                     fetchCitycoinsRewardCycle();
                   }}
@@ -189,7 +219,11 @@ function Profile() {
                   title="Refresh account balances"
                   size="sm"
                   icon={<BiRefresh />}
-                  onClick={() => fetchAccountBalances()}
+                  ref={refreshAccountBalances}
+                  onClick={() => {
+                    triggerSpin(refreshAccountBalances);
+                    fetchAccountBalances();
+                  }}
                 />
               </Stack>
               <Skeleton isLoaded={!!displayStxBalance}>

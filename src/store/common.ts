@@ -32,6 +32,17 @@ export const activeTabAtom = atomWithStorage<number>(
 
 // HELPER FUNCTIONS
 
+export function triggerSpin(ref: React.RefObject<HTMLElement>): void {
+  if (ref.current) {
+    ref.current.classList.add("spin");
+    setTimeout(() => {
+      if (ref.current) {
+        ref.current.classList.remove("spin");
+      }
+    }, 3000); // 3 seconds
+  }
+}
+
 export function extractLoadableState<T>(loadedAtom: Loadable<T>) {
   const isLoading = loadedAtom.state === "loading";
   const hasError = loadedAtom.state === "hasError" && "error" in loadedAtom;
