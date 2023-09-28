@@ -23,11 +23,10 @@ import {
   FungibleConditionCode,
   makeStandardSTXPostCondition,
 } from "micro-stacks/transactions";
-import { atom, useAtom } from "jotai";
+import { atom, useAtom, useAtomValue } from "jotai";
 import { atomWithDefault } from "jotai/utils";
 import { FaQuestion } from "react-icons/fa";
-import { stxAddressAtom } from "../../store/stacks";
-import { useBlockHeights } from "../../hooks/use-block-heights";
+import { blockHeightsAtom, stxAddressAtom } from "../../store/stacks";
 import TxInfo from "../stacks/tx-info";
 
 // NEED
@@ -59,9 +58,8 @@ const txDataAtom = atom<FinishedTxData | null>(null);
 
 function MiningForm() {
   const { openContractCall, isRequestPending } = useOpenContractCall();
+  const blockHeights = useAtomValue(blockHeightsAtom);
   const [stxAddress] = useAtom(stxAddressAtom);
-  const blockHeights = useBlockHeights();
-
   const [numberOfBlocks, setNumberOfBlocks] = useAtom(numberOfBlocksAtom);
   const [useSameAmount, setUseSameAmount] = useAtom(useSameAmountAtom);
   const [blockValues, setBlockValues] = useAtom(blockValuesAtom);
@@ -170,7 +168,7 @@ function MiningForm() {
   }
 
   function isValidSubmission() {
-    if (!blockHeights.hasData || !blockHeights.data) {
+    if (!blockHeights) {
       toast({
         title: "Block heights not loaded",
         description: "Please try again later",

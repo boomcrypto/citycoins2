@@ -2,7 +2,7 @@ import { useSetAtom } from "jotai";
 import { RESET } from "jotai/utils";
 import { activeTabAtom } from "../store/common";
 import {
-  acctBalancesAtom,
+  accountBalancesAtom,
   acctMempoolTxsAtom,
   acctTxsAtom,
   blockHeightsAtom,
@@ -26,7 +26,7 @@ export const useClearUserData = () => {
   const setBnsName = useSetAtom(bnsNameAtom);
   const setAcctTxs = useSetAtom(acctTxsAtom);
   const setAcctMempoolTxs = useSetAtom(acctMempoolTxsAtom);
-  const setAcctBalances = useSetAtom(acctBalancesAtom);
+  const setaccountBalances = useSetAtom(accountBalancesAtom);
   // store/ccip-017.ts
   const setCcip017IsExecutable = useSetAtom(ccip017IsExecutableAtom);
   const setCcip017IsVoteActive = useSetAtom(ccip017IsVoteActiveAtom);
@@ -42,7 +42,7 @@ export const useClearUserData = () => {
     setBnsName(RESET);
     setAcctTxs(RESET);
     setAcctMempoolTxs(RESET);
-    setAcctBalances(RESET);
+    setaccountBalances(RESET);
     setCcip017IsExecutable(RESET);
     setCcip017IsVoteActive(RESET);
     setCcip017VoteTotals(RESET);
