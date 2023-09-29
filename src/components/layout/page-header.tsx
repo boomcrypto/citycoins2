@@ -49,6 +49,7 @@ function Header() {
             fontWeight="bold"
             onClick={() => handleCitySelect("mia")}
             backgroundColor={selectedCity === "mia" ? calloutColor : ""}
+            color={selectedCity === "mia" ? "white" : ""}
           >
             Miami
           </MenuItem>
@@ -56,6 +57,7 @@ function Header() {
             fontWeight="bold"
             onClick={() => handleCitySelect("nyc")}
             backgroundColor={selectedCity === "nyc" ? calloutColor : ""}
+            color={selectedCity === "nyc" ? "white" : ""}
           >
             New York City
           </MenuItem>
