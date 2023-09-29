@@ -26,7 +26,6 @@ import {
   displayProfileNameAtom,
   displayStxAddressAtom,
   displayStxBalanceAtom,
-  displayTokenBalancesAtom,
   fetchAccountBalancesAtom,
   fetchBlockHeightsAtom,
   fetchStacksRewardCycleAtom,
@@ -38,6 +37,7 @@ import SignOut from "./sign-out";
 import { useEffect, useRef } from "react";
 import {
   citycoinsRewardCycleAtom,
+  displayCitycoinBalancesAtom,
   fetchCitycoinsRewardCycleAtom,
 } from "../../store/citycoins";
 import { triggerSpin } from "../../store/common";
@@ -59,7 +59,7 @@ function Profile() {
   const displayProfileName = useAtomValue(displayProfileNameAtom);
   const displayStxAddress = useAtomValue(displayStxAddressAtom);
   const displayStxBalance = useAtomValue(displayStxBalanceAtom);
-  const displayTokenBalances = useAtomValue(displayTokenBalancesAtom);
+  const displayCitycoinBalances = useAtomValue(displayCitycoinBalancesAtom);
 
   const refreshBlockHeights = useRef(null);
   const refreshRewardCycles = useRef(null);
@@ -121,13 +121,12 @@ function Profile() {
             <Stack spacing={4}>
               {/* STX Address Box */}
               <Heading
-                size="lg"
+                size={["md", "lg"]}
                 py={4}
                 textAlign="center"
                 border="3px solid"
                 borderRadius="lg"
                 borderColor={calloutColor}
-                noOfLines={1}
               >
                 {displayProfileName}
               </Heading>
@@ -137,7 +136,7 @@ function Profile() {
                 alignItems="center"
                 justifyContent="space-between"
               >
-                <Heading size="lg">Block Heights</Heading>
+                <Heading size={["md", "lg"]}>Block Heights</Heading>
                 <IconButton
                   aria-label="Refresh block heights"
                   title="Refresh block heights"
@@ -175,7 +174,7 @@ function Profile() {
                 alignItems="center"
                 justifyContent="space-between"
               >
-                <Heading size="lg">Reward Cycles</Heading>
+                <Heading size={["md", "lg"]}>Reward Cycles</Heading>
                 <IconButton
                   aria-label="Refresh reward cycles"
                   title="Refresh reward cycles"
@@ -215,7 +214,7 @@ function Profile() {
                 alignItems="center"
                 justifyContent="space-between"
               >
-                <Heading size="lg">Account Balances</Heading>
+                <Heading size={["md", "lg"]}>Account Balances</Heading>
                 <IconButton
                   aria-label="Refresh account balances"
                   title="Refresh account balances"
@@ -236,15 +235,15 @@ function Profile() {
                   </StatNumber>
                 </Stat>
               </Skeleton>
-              <Skeleton isLoaded={!!displayTokenBalances}>
-                {displayTokenBalances &&
-                  Object.keys(displayTokenBalances)
+              <Skeleton isLoaded={!!displayCitycoinBalances}>
+                {displayCitycoinBalances &&
+                  Object.keys(displayCitycoinBalances)
                     .reduce<JSX.Element[][]>((acc, key, index) => {
                       const statElem = (
                         <Stat key={key}>
                           <StatLabel noOfLines={1}>{key}</StatLabel>
                           <StatNumber noOfLines={1}>
-                            {displayTokenBalances[key]}
+                            {displayCitycoinBalances[key]}
                           </StatNumber>
                         </Stat>
                       );

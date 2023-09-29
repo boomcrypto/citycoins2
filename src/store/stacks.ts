@@ -130,27 +130,6 @@ export const displayStxBalanceAtom = atom((get) => {
   return formatMicroAmount(stxBalance, 6, 6);
 });
 
-// TODO: derived atom for displayCityCoinBalancesAtom
-//   if fungible token name matches known token name
-//   return formatted object for display of just CityCoins
-export const displayTokenBalancesAtom = atom((get) => {
-  const accountBalances = get(accountBalancesAtom);
-  const formattedBalances: Record<string, string> = {};
-
-  if (!accountBalances || !accountBalances.fungible_tokens) return null;
-
-  for (const key in accountBalances.fungible_tokens) {
-    const balance = accountBalances.fungible_tokens[key];
-    if (balance) {
-      const tokenName = key.split("::")[1];
-      // TODO: assumes 6 decimal places
-      formattedBalances[tokenName] = formatMicroAmount(Number(balance.balance));
-    }
-  }
-
-  return formattedBalances;
-});
-
 /////////////////////////
 // LOADABLE ASYNC ATOMS
 /////////////////////////

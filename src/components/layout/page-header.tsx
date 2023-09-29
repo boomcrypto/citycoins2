@@ -13,9 +13,17 @@ import { FaChevronCircleDown } from "react-icons/fa";
 import CityCoinsLogo from "./citycoins-logo";
 import Profile from "../auth/profile";
 import SignIn from "../auth/sign-in";
+import { CityKeys, citycoinsSelectedCityAtom } from "../../store/citycoins";
+import { useSetAtom } from "jotai";
 
 function Header() {
   const { stxAddress } = useAccount();
+  const setCity = useSetAtom(citycoinsSelectedCityAtom);
+
+  const handleCitySelect = (cityKey: CityKeys) => {
+    setCity(cityKey);
+  };
+
   return (
     <Stack align="center" direction={["column", "row"]} p={4}>
       <Flex flexGrow="1" align="center">
@@ -35,8 +43,10 @@ function Header() {
           Select City
         </MenuButton>
         <MenuList>
-          <MenuItem>Miami</MenuItem>
-          <MenuItem>New York City</MenuItem>
+          <MenuItem onClick={() => handleCitySelect("mia")}>Miami</MenuItem>
+          <MenuItem onClick={() => handleCitySelect("nyc")}>
+            New York City
+          </MenuItem>
         </MenuList>
       </Menu>
     </Stack>
