@@ -14,14 +14,16 @@ import CityCoinsLogo from "./citycoins-logo";
 import Profile from "../auth/profile";
 import SignIn from "../auth/sign-in";
 import { CityKeys, citycoinsSelectedCityAtom } from "../../store/citycoins";
-import { useSetAtom } from "jotai";
+import { useAtom } from "jotai";
+import { useCalloutColor } from "../../hooks/use-callout-color";
 
 function Header() {
+  const calloutColor = useCalloutColor();
   const { stxAddress } = useAccount();
-  const setCity = useSetAtom(citycoinsSelectedCityAtom);
+  const [selectedCity, setSelectedCity] = useAtom(citycoinsSelectedCityAtom);
 
   const handleCitySelect = (cityKey: CityKeys) => {
-    setCity(cityKey);
+    setSelectedCity(cityKey);
   };
 
   return (
@@ -43,8 +45,18 @@ function Header() {
           Select City
         </MenuButton>
         <MenuList>
-          <MenuItem onClick={() => handleCitySelect("mia")}>Miami</MenuItem>
-          <MenuItem onClick={() => handleCitySelect("nyc")}>
+          <MenuItem
+            fontWeight="bold"
+            onClick={() => handleCitySelect("mia")}
+            backgroundColor={selectedCity === "mia" ? calloutColor : ""}
+          >
+            Miami
+          </MenuItem>
+          <MenuItem
+            fontWeight="bold"
+            onClick={() => handleCitySelect("nyc")}
+            backgroundColor={selectedCity === "nyc" ? calloutColor : ""}
+          >
             New York City
           </MenuItem>
         </MenuList>

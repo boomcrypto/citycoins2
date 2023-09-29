@@ -15,7 +15,6 @@ import {
   StatLabel,
   StatNumber,
   useColorMode,
-  useColorModeValue,
   useDisclosure,
 } from "@chakra-ui/react";
 import { FaMoon, FaSun, FaWindowClose } from "react-icons/fa";
@@ -41,9 +40,10 @@ import {
   fetchCitycoinsRewardCycleAtom,
 } from "../../store/citycoins";
 import { triggerSpin } from "../../store/common";
+import { useCalloutColor } from "../../hooks/use-callout-color";
 
 function Profile() {
-  const calloutColor = useColorModeValue("blue.300", "blue.600");
+  const calloutColor = useCalloutColor();
   const { colorMode, toggleColorMode } = useColorMode();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
