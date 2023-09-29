@@ -10,7 +10,10 @@ import {
   acctMempoolTxsAtom,
   accountBalancesAtom,
 } from "../store/stacks";
-import { citycoinsRewardCycleAtom } from "../store/citycoins";
+import {
+  citycoinsRewardCycleAtom,
+  citycoinsSelectedCityAtom,
+} from "../store/citycoins";
 
 export const useClearUserData = () => {
   // constants.ts
@@ -25,6 +28,7 @@ export const useClearUserData = () => {
   const setaccountBalances = useSetAtom(accountBalancesAtom);
   // store/citycoins.ts
   const setCitycoinsRewardCycle = useSetAtom(citycoinsRewardCycleAtom);
+  const setCitycoinsSelectedCity = useSetAtom(citycoinsSelectedCityAtom);
 
   const clearData = () => {
     // constants.ts
@@ -39,6 +43,7 @@ export const useClearUserData = () => {
     setaccountBalances(RESET);
     // store/citycoins.ts
     setCitycoinsRewardCycle(RESET);
+    setCitycoinsSelectedCity(RESET);
   };
 
   return clearData;

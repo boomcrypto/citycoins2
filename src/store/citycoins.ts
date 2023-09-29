@@ -164,6 +164,13 @@ const NYC_TOKEN_V2: TokenContract = {
   uri: "https://cdn.citycoins.co/metadata/newyorkcitycoin.json",
 };
 
+const CITYCOIN_TOKENS = [
+  MIA_TOKEN_V1,
+  MIA_TOKEN_V2,
+  NYC_TOKEN_V1,
+  NYC_TOKEN_V2,
+];
+
 // DAO CONFIG
 
 const DAO_V2: CityConfigFunction = (city: CityKeys) => {
@@ -369,7 +376,7 @@ const CITY_CONFIG: CompiledCityConfig = {
 /////////////////////////
 
 export const citycoinsRewardCycleAtom = atomWithStorage<RewardCycle | null>(
-  "citycoins-cc-ccRewardCycle",
+  "citycoins-cc-RewardCycle",
   null
 );
 
@@ -382,24 +389,39 @@ export const citycoinsSelectedCityAtom = atomWithStorage<CityKeys | null>(
 // DERIVED ATOMS
 /////////////////////////
 
-// TODO: derived atom for displayCityCoinBalancesAtom
-//   if fungible token name matches known token name
-//   return formatted object for display of just CityCoins
+export const validTokensAtom = atom(() => {
+  return CITYCOIN_TOKENS.map(
+    (token: TokenContract) =>
+      `${token.deployer}.${token.contractName}::${token.tokenName}`
+  );
+});
+
 export const displayCitycoinBalancesAtom = atom((get) => {
   const accountBalances = get(accountBalancesAtom);
+  const validTokens = get(validTokensAtom);
   const formattedBalances: Record<string, string> = {};
 
   if (!accountBalances || !accountBalances.fungible_tokens) return null;
 
-  for (const key in accountBalances.fungible_tokens) {
-    const balance = accountBalances.fungible_tokens[key];
-    if (balance) {
-      const tokenName = key.split("::")[1];
-      formattedBalances[tokenName] = formatMicroAmount(Number(balance.balance));
+  validTokens.forEach((tokenIdentifier) => {
+    const [contractName, tokenName] = tokenIdentifier.split("::");
+    const cityKey = mapTokenToCityKey(tokenName);
+    if (cityKey) {
+      const balanceInfo = accountBalances.fungible_tokens[tokenIdentifier];
+      const version = contractName.includes("-v2") ? "-v2" : "";
+      const finalKey = `${cityKey}${version}`;
+      formattedBalances[finalKey] = balanceInfo
+        ? formatMicroAmount(Number(balanceInfo.balance))
+        : "0";
     }
-  }
-
+  });
   return formattedBalances;
+});
+
+export const currentCityConfigAtom = atom((get) => {
+  const selectedCity = get(citycoinsSelectedCityAtom);
+  if (!selectedCity) return null;
+  return CITY_CONFIG[selectedCity];
 });
 
 /////////////////////////
@@ -476,4 +498,19 @@ export function getVersionByCycle(city: CityKeys, cycle: number) {
       return version;
     }
   }
+}
+
+function mapTokenToCityKey(tokenName: string) {
+  if (
+    tokenName === MIA_TOKEN_V1.tokenName ||
+    tokenName === MIA_TOKEN_V2.tokenName
+  ) {
+    return "mia";
+  } else if (
+    tokenName === NYC_TOKEN_V1.tokenName ||
+    tokenName === NYC_TOKEN_V2.tokenName
+  ) {
+    return "nyc";
+  }
+  return null;
 }
