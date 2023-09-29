@@ -1,11 +1,11 @@
-/////////////////////////
-// TYPES
-/////////////////////////
-
 import { atomWithStorage } from "jotai/utils";
 import { RewardCycle } from "./stacks";
 import { CC_API, fetchJson } from "./common";
 import { atom } from "jotai";
+
+/////////////////////////
+// TYPES
+/////////////////////////
 
 type CityKeys = "mia" | "nyc";
 

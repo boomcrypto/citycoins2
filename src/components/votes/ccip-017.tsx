@@ -2,18 +2,14 @@ import {
   Box,
   Divider,
   Link,
-  ListItem,
   Stack,
   Stat,
   StatLabel,
   StatNumber,
   Text,
-  UnorderedList,
   useColorModeValue,
 } from "@chakra-ui/react";
 import VoteProgressBar from "./vote-progress-bar";
-import { useCcip017VoteData } from "../../hooks/use-ccip-017-vote-data";
-import { formatMicroAmount } from "../../store/common";
 
 /*
 function VoteButtons() {
@@ -44,7 +40,7 @@ function VoteButtons() {
     </>
   );
 }
-*/
+
 
 function VoteResult() {
   const voterInfo = useCcip017VoteData("voterInfo");
@@ -68,8 +64,10 @@ function VoteResult() {
   );
 }
 
+*/
+
 function CCIP017() {
-  const voterInfo = useCcip017VoteData("voterInfo");
+  //const voterInfo = useCcip017VoteData("voterInfo");
   const yesVotes = 41;
   const noVotes = 0;
   const yesTotal = 2_747_505_330_000_000;
@@ -165,7 +163,7 @@ function CCIP017() {
           the new sunset period ending at Stacks block 147,828.
         </Text>
       </Stack>
-      {voterInfo.data && <VoteResult />}
+      {/* voterInfo.data && <VoteResult /> */}
     </Stack>
   );
 }

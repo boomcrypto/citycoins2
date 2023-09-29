@@ -1,13 +1,23 @@
 import { Button } from "@chakra-ui/react";
 import { useAuth } from "@micro-stacks/react";
-import { useAtom } from "jotai";
-import { stxAddressAtom } from "../../store/stacks";
+import { useAtom, useSetAtom } from "jotai";
+import {
+  fetchAccountBalancesAtom,
+  fetchBnsNameAtom,
+  fetchStacksRewardCycleAtom,
+  stxAddressAtom,
+} from "../../store/stacks";
 import { useClearUserData } from "../../hooks/use-clear-user-data";
+import { fetchCitycoinsRewardCycleAtom } from "../../store/citycoins";
 
 function SignIn(props: { variant?: string }) {
   const { openAuthRequest, isRequestPending } = useAuth();
   const clearUserData = useClearUserData();
   const [stxAddress, setStxAddress] = useAtom(stxAddressAtom);
+  const fetchBnsName = useSetAtom(fetchBnsNameAtom);
+  const fetchAccountBalances = useSetAtom(fetchAccountBalancesAtom);
+  const fetchStacksRewardCycle = useSetAtom(fetchStacksRewardCycleAtom);
+  const fetchCitycoinsRewardCycle = useSetAtom(fetchCitycoinsRewardCycleAtom);
 
   return (
     <Button
@@ -22,6 +32,11 @@ function SignIn(props: { variant?: string }) {
               clearUserData();
               // set STX address
               setStxAddress(session.addresses.mainnet);
+              // fetch STX data
+              fetchBnsName();
+              fetchAccountBalances();
+              fetchStacksRewardCycle();
+              fetchCitycoinsRewardCycle();
             }
           },
           onCancel: () => {

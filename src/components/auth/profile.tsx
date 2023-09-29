@@ -23,6 +23,7 @@ import { BiRefresh } from "react-icons/bi";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   blockHeightsAtom,
+  displayProfileNameAtom,
   displayStxAddressAtom,
   displayStxBalanceAtom,
   displayTokenBalancesAtom,
@@ -55,6 +56,7 @@ function Profile() {
   const fetchStacksRewardCycle = useSetAtom(fetchStacksRewardCycleAtom);
   const fetchCitycoinsRewardCycle = useSetAtom(fetchCitycoinsRewardCycleAtom);
 
+  const displayProfileName = useAtomValue(displayProfileNameAtom);
   const displayStxAddress = useAtomValue(displayStxAddressAtom);
   const displayStxBalance = useAtomValue(displayStxBalanceAtom);
   const displayTokenBalances = useAtomValue(displayTokenBalancesAtom);
@@ -94,7 +96,7 @@ function Profile() {
   return (
     <>
       <Button variant="outline" title="View Profile" onClick={onOpen}>
-        {displayStxAddress}
+        {displayProfileName}
       </Button>
       <Drawer isOpen={isOpen} placement="left" onClose={onClose} size="md">
         <DrawerOverlay />
@@ -127,7 +129,7 @@ function Profile() {
                 borderColor={calloutColor}
                 noOfLines={1}
               >
-                {displayStxAddress}
+                {displayProfileName}
               </Heading>
               {/* Block Heights */}
               <Stack

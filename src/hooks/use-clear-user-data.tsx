@@ -2,52 +2,43 @@ import { useSetAtom } from "jotai";
 import { RESET } from "jotai/utils";
 import { activeTabAtom } from "../store/common";
 import {
-  accountBalancesAtom,
-  acctMempoolTxsAtom,
-  acctTxsAtom,
   blockHeightsAtom,
-  bnsNameAtom,
+  stacksRewardCycleAtom,
   stxAddressAtom,
+  bnsNameAtom,
+  acctTxsAtom,
+  acctMempoolTxsAtom,
+  accountBalancesAtom,
 } from "../store/stacks";
-import {
-  ccip017HasVotedAtom,
-  ccip017IsExecutableAtom,
-  ccip017IsVoteActiveAtom,
-  ccip017VoteTotalsAtom,
-  ccip017VoterInfoAtom,
-} from "../store/ccip-017";
+import { citycoinsRewardCycleAtom } from "../store/citycoins";
 
 export const useClearUserData = () => {
   // constants.ts
   const setActiveTab = useSetAtom(activeTabAtom);
   // store/stacks.ts
   const setBlockHeights = useSetAtom(blockHeightsAtom);
+  const setStacksRewardCycle = useSetAtom(stacksRewardCycleAtom);
   const setStxAddress = useSetAtom(stxAddressAtom);
   const setBnsName = useSetAtom(bnsNameAtom);
   const setAcctTxs = useSetAtom(acctTxsAtom);
   const setAcctMempoolTxs = useSetAtom(acctMempoolTxsAtom);
   const setaccountBalances = useSetAtom(accountBalancesAtom);
-  // store/ccip-017.ts
-  const setCcip017IsExecutable = useSetAtom(ccip017IsExecutableAtom);
-  const setCcip017IsVoteActive = useSetAtom(ccip017IsVoteActiveAtom);
-  const setCcip017VoteTotals = useSetAtom(ccip017VoteTotalsAtom);
-  const setCcip017VoterInfo = useSetAtom(ccip017VoterInfoAtom);
-  const setCcip017HasVoted = useSetAtom(ccip017HasVotedAtom);
+  // store/citycoins.ts
+  const setCitycoinsRewardCycle = useSetAtom(citycoinsRewardCycleAtom);
 
   const clearData = () => {
-    // clear all locally stored data
+    // constants.ts
     setActiveTab(RESET);
+    // store/stacks.ts
     setBlockHeights(RESET);
+    setStacksRewardCycle(RESET);
     setStxAddress(RESET);
     setBnsName(RESET);
     setAcctTxs(RESET);
     setAcctMempoolTxs(RESET);
     setaccountBalances(RESET);
-    setCcip017IsExecutable(RESET);
-    setCcip017IsVoteActive(RESET);
-    setCcip017VoteTotals(RESET);
-    setCcip017VoterInfo(RESET);
-    setCcip017HasVoted(RESET);
+    // store/citycoins.ts
+    setCitycoinsRewardCycle(RESET);
   };
 
   return clearData;

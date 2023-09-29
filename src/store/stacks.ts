@@ -8,7 +8,12 @@ import {
   fetchCoreApiInfo,
   fetchPox,
 } from "micro-stacks/api";
-import { HIRO_API, formatMicroAmount } from "./common";
+import {
+  CC_API_LEGACY,
+  HIRO_API,
+  fetchJson,
+  formatMicroAmount,
+} from "./common";
 import { atom } from "jotai";
 
 /////////////////////////
@@ -100,12 +105,22 @@ export const accountBalancesAtom =
 // DERIVED ATOMS
 /////////////////////////
 
+export const displayProfileNameAtom = atom((get) => {
+  const stxAddress = get(stxAddressAtom);
+  const bnsName = get(bnsNameAtom);
+  if (!stxAddress) return null;
+  const displayName = bnsName
+    ? bnsName
+    : `${stxAddress.slice(0, 5)}...${stxAddress.slice(-5)}`;
+  return displayName;
+});
+
 // TODO: make displayProfileName
 //   BNS first, truncated address second
 export const displayStxAddressAtom = atom((get) => {
   const stxAddress = get(stxAddressAtom);
   if (!stxAddress) return null;
-  return `${stxAddress.slice(0, 5)}...${stxAddress.slice(-5)}`;
+  return stxAddress;
 });
 
 export const displayStxBalanceAtom = atom((get) => {
@@ -147,6 +162,23 @@ export const blockHeightsQueryAtom = atom(async () => {
 /////////////////////////
 // FETCH ATOMS
 /////////////////////////
+
+export const fetchBnsNameAtom = atom(
+  (get) => get(bnsNameAtom),
+  async (get, set) => {
+    const stxAddress = get(stxAddressAtom);
+    if (!stxAddress) {
+      set(bnsNameAtom, null);
+      return;
+    }
+    try {
+      const bnsName = await getBnsName(stxAddress);
+      set(bnsNameAtom, bnsName);
+    } catch (error) {
+      throw error;
+    }
+  }
+);
 
 export const fetchBlockHeightsAtom = atom(
   (get) => get(blockHeightsAtom),
@@ -193,6 +225,21 @@ export const fetchStacksRewardCycleAtom = atom(
 // HELPER FUNCTIONS
 /////////////////////////
 
+export async function getBnsName(address: string): Promise<string> {
+  try {
+    const bnsNameUrl = new URL(
+      `/stacks/get-bns-name/${address}`,
+      CC_API_LEGACY
+    );
+    bnsNameUrl.searchParams.set("format", "raw");
+    const bnsName = await fetchJson<string>(bnsNameUrl.toString());
+    return bnsName;
+  } catch (error) {
+    throw new Error(`Failed to fetch bns name in CC legacy API: ${error}`);
+  }
+}
+
+// TODO: | null needed here?
 export async function getBlockHeights(): Promise<BlockHeights | null> {
   try {
     const v2InfoResponse = await fetchCoreApiInfo({
