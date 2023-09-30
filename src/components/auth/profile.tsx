@@ -108,7 +108,11 @@ function Profile() {
       <Drawer isOpen={isOpen} placement="left" onClose={onClose} size="md">
         <DrawerOverlay />
         <DrawerContent>
-          <DrawerHeader display="flex" justifyContent="space-between">
+          <DrawerHeader
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
+          >
             <IconButton
               variant="ghost"
               aria-label="Toggle color mode"
@@ -116,6 +120,17 @@ function Profile() {
               icon={colorMode === "light" ? <FaMoon /> : <FaSun />}
               onClick={toggleColorMode}
             />
+            {/* STX Address Box */}
+            <Heading
+              size={["md", "lg"]}
+              p={4}
+              textAlign="center"
+              border="3px solid"
+              borderRadius="lg"
+              borderColor={calloutColor}
+            >
+              {displayProfileName}
+            </Heading>
             <IconButton
               variant="ghost"
               aria-label="Close"
@@ -126,17 +141,6 @@ function Profile() {
           </DrawerHeader>
           <DrawerBody>
             <Stack spacing={4}>
-              {/* STX Address Box */}
-              <Heading
-                size={["md", "lg"]}
-                py={4}
-                textAlign="center"
-                border="3px solid"
-                borderRadius="lg"
-                borderColor={calloutColor}
-              >
-                {displayProfileName}
-              </Heading>
               {/* Block Heights */}
               <Stack
                 direction="row"
@@ -353,7 +357,6 @@ function Profile() {
               direction="row"
               alignItems="center"
               justifyContent="space-evenly"
-              mt={8}
             >
               <SignOut variant="outline" />
               <ClearData variant="outline" />
