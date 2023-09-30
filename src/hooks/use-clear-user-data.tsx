@@ -13,6 +13,7 @@ import {
 import {
   citycoinsRewardCycleAtom,
   citycoinsSelectedCityAtom,
+  citycoinsUserIdsAtom,
 } from "../store/citycoins";
 
 export const useClearUserData = () => {
@@ -29,6 +30,7 @@ export const useClearUserData = () => {
   // store/citycoins.ts
   const setCitycoinsRewardCycle = useSetAtom(citycoinsRewardCycleAtom);
   const setCitycoinsSelectedCity = useSetAtom(citycoinsSelectedCityAtom);
+  const setCitycoinsUserIds = useSetAtom(citycoinsUserIdsAtom);
 
   const clearData = () => {
     // constants.ts
@@ -44,6 +46,7 @@ export const useClearUserData = () => {
     // store/citycoins.ts
     setCitycoinsRewardCycle(RESET);
     setCitycoinsSelectedCity(RESET);
+    setCitycoinsUserIds(RESET);
   };
 
   return clearData;

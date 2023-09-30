@@ -36,8 +36,10 @@ import SignOut from "./sign-out";
 import { useEffect, useRef } from "react";
 import {
   citycoinsRewardCycleAtom,
+  citycoinsUserIdsAtom,
   displayCitycoinBalancesAtom,
   fetchCitycoinsRewardCycleAtom,
+  fetchCitycoinsUserIdsAtom,
 } from "../../store/citycoins";
 import { triggerSpin } from "../../store/common";
 import { useCalloutColor } from "../../hooks/use-callout-color";
@@ -50,11 +52,13 @@ function Profile() {
   const [blockHeights, setBlockHeights] = useAtom(blockHeightsAtom);
   const stacksRewardCycle = useAtomValue(stacksRewardCycleAtom);
   const citycoinsRewardCycle = useAtomValue(citycoinsRewardCycleAtom);
+  const citycoinsUserIds = useAtomValue(citycoinsUserIdsAtom);
 
   const fetchBlockHeights = useSetAtom(fetchBlockHeightsAtom);
   const fetchAccountBalances = useSetAtom(fetchAccountBalancesAtom);
   const fetchStacksRewardCycle = useSetAtom(fetchStacksRewardCycleAtom);
   const fetchCitycoinsRewardCycle = useSetAtom(fetchCitycoinsRewardCycleAtom);
+  const fetchCitycoinsUserIds = useSetAtom(fetchCitycoinsUserIdsAtom);
 
   const displayProfileName = useAtomValue(displayProfileNameAtom);
   const displayStxAddress = useAtomValue(displayStxAddressAtom);
@@ -64,6 +68,7 @@ function Profile() {
   const refreshBlockHeights = useRef(null);
   const refreshRewardCycles = useRef(null);
   const refreshAccountBalances = useRef(null);
+  const refreshUserIds = useRef(null);
 
   // get block heights on load and then every 5 minutes
   useEffect(() => {
@@ -261,6 +266,73 @@ function Profile() {
                     ))}
               </Skeleton>
               <Divider />
+              {/* User IDs */}
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <Heading size={["md", "lg"]}>User IDs</Heading>
+                <IconButton
+                  aria-label="Refresh user IDs"
+                  title="Refresh user IDs"
+                  size="sm"
+                  icon={<BiRefresh />}
+                  ref={refreshUserIds}
+                  onClick={() => {
+                    fetchCitycoinsUserIds();
+                  }}
+                />
+              </Stack>
+              <Skeleton isLoaded={!!citycoinsUserIds}>
+                {citycoinsUserIds &&
+                  Object.entries(citycoinsUserIds)
+                    .reduce<JSX.Element[][]>((acc, [key, value]) => {
+                      let elements: JSX.Element[] = [];
+
+                      if (value && typeof value === "object") {
+                        elements = Object.entries(value).map(
+                          ([nestedKey, nestedValue]) => {
+                            return (
+                              <Stat key={`${key}-${nestedKey}`}>
+                                <StatLabel>{`${key} ${nestedKey}`}</StatLabel>
+                                <StatNumber>
+                                  {nestedValue !== null ? nestedValue : "none"}
+                                </StatNumber>
+                              </Stat>
+                            );
+                          }
+                        );
+                      } else {
+                        elements.push(
+                          <Stat key={key}>
+                            <StatLabel>{key}</StatLabel>
+                            <StatNumber>
+                              {value !== null ? value : "none"}
+                            </StatNumber>
+                          </Stat>
+                        );
+                      }
+
+                      elements.forEach((elem) => {
+                        if (
+                          acc.length === 0 ||
+                          acc[acc.length - 1].length === 2
+                        ) {
+                          acc.push([elem]);
+                        } else {
+                          acc[acc.length - 1].push(elem);
+                        }
+                      });
+
+                      return acc;
+                    }, [])
+                    .map((pair, i) => (
+                      <Stack direction="row" key={i}>
+                        {pair}
+                      </Stack>
+                    ))}
+              </Skeleton>
             </Stack>
           </DrawerBody>
           <DrawerFooter>

@@ -1,6 +1,6 @@
 import { atomWithStorage } from "jotai/utils";
-import { RewardCycle, accountBalancesAtom } from "./stacks";
-import { CC_API, fetchJson, formatMicroAmount } from "./common";
+import { RewardCycle, accountBalancesAtom, stxAddressAtom } from "./stacks";
+import { CC_API, CC_API_LEGACY, fetchJson, formatMicroAmount } from "./common";
 import { atom } from "jotai";
 
 /////////////////////////
@@ -10,6 +10,19 @@ import { atom } from "jotai";
 export type CityKeys = "mia" | "nyc";
 
 type VersionKeys = (typeof VERSIONS)[number];
+
+// TODO figure out how this fits in with other types
+type UserIds = {
+  mia: {
+    legacyV1: number | null;
+    legacyV2: number | null;
+  };
+  nyc: {
+    legacyV1: number | null;
+    legacyV2: number | null;
+  };
+  ccd003: number | null;
+};
 
 type CityInfo = {
   name: string;
@@ -385,6 +398,11 @@ export const citycoinsSelectedCityAtom = atomWithStorage<CityKeys | null>(
   null
 );
 
+export const citycoinsUserIdsAtom = atomWithStorage<UserIds | null>(
+  "citycoins-cc-userIds",
+  null
+);
+
 /////////////////////////
 // DERIVED ATOMS
 /////////////////////////
@@ -457,6 +475,23 @@ export const fetchCitycoinsRewardCycleAtom = atom(
   }
 );
 
+export const fetchCitycoinsUserIdsAtom = atom(
+  (get) => get(citycoinsUserIdsAtom),
+  async (get, set) => {
+    const stxAddress = get(stxAddressAtom);
+    if (!stxAddress) {
+      set(citycoinsUserIdsAtom, null);
+      return;
+    }
+    try {
+      const userIds = await getUserIds(stxAddress);
+      set(citycoinsUserIdsAtom, userIds);
+    } catch (error) {
+      throw error;
+    }
+  }
+);
+
 /////////////////////////
 // HELPER FUNCTIONS
 /////////////////////////
@@ -513,4 +548,52 @@ function mapTokenToCityKey(tokenName: string) {
     return "nyc";
   }
   return null;
+}
+
+export async function getUserIds(stxAddress: string): Promise<UserIds> {
+  const miaLegacyV1Url = new URL(
+    `v1/mia/activation/get-user-id/${stxAddress}`,
+    CC_API_LEGACY
+  );
+  miaLegacyV1Url.searchParams.set("format", "raw");
+  const miaLegacyV2Url = new URL(
+    `v2/mia/activation/get-user-id/${stxAddress}`,
+    CC_API_LEGACY
+  );
+  miaLegacyV2Url.searchParams.set("format", "raw");
+  const nycLegacyV1Url = new URL(
+    `v1/nyc/activation/get-user-id/${stxAddress}`,
+    CC_API_LEGACY
+  );
+  nycLegacyV1Url.searchParams.set("format", "raw");
+  const nycLegacyV2Url = new URL(
+    `v2/nyc/activation/get-user-id/${stxAddress}`,
+    CC_API_LEGACY
+  );
+  nycLegacyV2Url.searchParams.set("format", "raw");
+  const ccd003Url = new URL(`ccd003-user-registry/get-user-id`, CC_API);
+  ccd003Url.searchParams.set("user", stxAddress);
+  const userIdsArray = await Promise.allSettled([
+    fetchJson<number>(miaLegacyV1Url.toString()),
+    fetchJson<number>(miaLegacyV2Url.toString()),
+    fetchJson<number>(nycLegacyV1Url.toString()),
+    fetchJson<number>(nycLegacyV2Url.toString()),
+    fetchJson<number>(ccd003Url.toString()),
+  ]);
+
+  const processedArray = userIdsArray.map((result) =>
+    result.status === "fulfilled" ? result.value : null
+  );
+
+  return {
+    mia: {
+      legacyV1: processedArray[0],
+      legacyV2: processedArray[1],
+    },
+    nyc: {
+      legacyV1: processedArray[2],
+      legacyV2: processedArray[3],
+    },
+    ccd003: processedArray[4],
+  };
 }

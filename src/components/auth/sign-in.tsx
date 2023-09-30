@@ -8,7 +8,10 @@ import {
   stxAddressAtom,
 } from "../../store/stacks";
 import { useClearUserData } from "../../hooks/use-clear-user-data";
-import { fetchCitycoinsRewardCycleAtom } from "../../store/citycoins";
+import {
+  fetchCitycoinsRewardCycleAtom,
+  fetchCitycoinsUserIdsAtom,
+} from "../../store/citycoins";
 
 function SignIn(props: { variant?: string }) {
   const { openAuthRequest, isRequestPending } = useAuth();
@@ -18,6 +21,7 @@ function SignIn(props: { variant?: string }) {
   const fetchAccountBalances = useSetAtom(fetchAccountBalancesAtom);
   const fetchStacksRewardCycle = useSetAtom(fetchStacksRewardCycleAtom);
   const fetchCitycoinsRewardCycle = useSetAtom(fetchCitycoinsRewardCycleAtom);
+  const fetchCitycoinsUserIds = useSetAtom(fetchCitycoinsUserIdsAtom);
 
   return (
     <Button
@@ -36,7 +40,9 @@ function SignIn(props: { variant?: string }) {
               fetchBnsName();
               fetchAccountBalances();
               fetchStacksRewardCycle();
+              // fetch CityCoins data
               fetchCitycoinsRewardCycle();
+              fetchCitycoinsUserIds();
             }
           },
           onCancel: () => {
