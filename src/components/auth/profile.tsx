@@ -25,6 +25,7 @@ import {
   displayProfileNameAtom,
   displayStxAddressAtom,
   displayStxBalanceAtom,
+  displayStxLockedAtom,
   fetchAccountBalancesAtom,
   fetchBlockHeightsAtom,
   fetchStacksRewardCycleAtom,
@@ -63,6 +64,7 @@ function Profile() {
   const displayProfileName = useAtomValue(displayProfileNameAtom);
   const displayStxAddress = useAtomValue(displayStxAddressAtom);
   const displayStxBalance = useAtomValue(displayStxBalanceAtom);
+  const displayStxLocked = useAtomValue(displayStxLockedAtom);
   const displayCitycoinBalances = useAtomValue(displayCitycoinBalancesAtom);
 
   const refreshBlockHeights = useRef(null);
@@ -232,14 +234,24 @@ function Profile() {
                   }}
                 />
               </Stack>
-              <Skeleton isLoaded={!!displayStxBalance}>
+              <Stack direction="row">
                 <Stat>
-                  <StatLabel>Stacks (STX)</StatLabel>
-                  <StatNumber>
-                    {displayStxBalance && displayStxBalance}
-                  </StatNumber>
+                  <StatLabel>stx (available)</StatLabel>
+                  <Skeleton isLoaded={!!displayStxBalance}>
+                    <StatNumber>
+                      {displayStxBalance && displayStxBalance}
+                    </StatNumber>
+                  </Skeleton>
                 </Stat>
-              </Skeleton>
+                <Stat>
+                  <StatLabel>stx (locked)</StatLabel>
+                  <Skeleton isLoaded={!!displayStxLocked}>
+                    <StatNumber>
+                      {displayStxLocked && displayStxLocked}
+                    </StatNumber>
+                  </Skeleton>
+                </Stat>
+              </Stack>
               <Skeleton isLoaded={!!displayCitycoinBalances}>
                 {displayCitycoinBalances &&
                   Object.keys(displayCitycoinBalances)

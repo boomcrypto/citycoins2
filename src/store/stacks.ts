@@ -127,7 +127,15 @@ export const displayStxBalanceAtom = atom((get) => {
   const accountBalances = get(accountBalancesAtom);
   if (!accountBalances) return null;
   const stxBalance = Number(accountBalances.stx.balance);
-  return formatMicroAmount(stxBalance, 6, 6);
+  const stxLocked = Number(accountBalances.stx.locked);
+  return formatMicroAmount(stxBalance - stxLocked, 6, 6);
+});
+
+export const displayStxLockedAtom = atom((get) => {
+  const accountBalances = get(accountBalancesAtom);
+  if (!accountBalances) return null;
+  const stxLocked = Number(accountBalances.stx.locked);
+  return formatMicroAmount(stxLocked, 6, 6);
 });
 
 /////////////////////////
