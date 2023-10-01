@@ -63,6 +63,11 @@ interface UpdatedCoreNodePoxResponse extends CoreNodePoxResponse {
     first_reward_cycle_id: number;
   }>;
 }
+/////////////////////////
+// CONSTANTS
+/////////////////////////
+
+export const MICRO_STX = 10 ** 6;
 
 /////////////////////////
 // LOCALSTORAGE ATOMS

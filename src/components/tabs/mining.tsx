@@ -19,6 +19,7 @@ import {
 } from "@chakra-ui/react";
 import { useOpenContractCall } from "@micro-stacks/react";
 import { FinishedTxData } from "micro-stacks/connect";
+import { stringAsciiCV, listCV, uintCV } from "micro-stacks/clarity";
 import {
   FungibleConditionCode,
   makeStandardSTXPostCondition,
@@ -26,21 +27,25 @@ import {
 import { atom, useAtom, useAtomValue } from "jotai";
 import { atomWithDefault } from "jotai/utils";
 import { FaQuestion } from "react-icons/fa";
-import { blockHeightsAtom, stxAddressAtom } from "../../store/stacks";
+import {
+  MICRO_STX,
+  blockHeightsAtom,
+  stxAddressAtom,
+} from "../../store/stacks";
 import TxInfo from "../stacks/tx-info";
-
-// NEED
-// current block height
-// current user's balance
-// capture loading state
+import {
+  currentCityConfigAtom,
+  currentCityInfoAtom,
+  isCitySelectedAtom,
+} from "../../store/citycoins";
 
 const numberOfBlocksAtom = atom(0);
 const useSameAmountAtom = atom(false);
-const blockValuesAtom = atomWithDefault((get) => {
+const blockValuesAtom = atomWithDefault<number[]>((get) => {
   const numberOfBlocks = get(numberOfBlocksAtom);
   return new Array(numberOfBlocks).fill(0);
 });
-const finalBlockValuesAtom = atom((get) => {
+const finalBlockValuesAtom = atom<number[]>((get) => {
   const blockValues = get(blockValuesAtom);
   const useSameAmount = get(useSameAmountAtom);
   if (useSameAmount && blockValues.length > 0) {
@@ -49,7 +54,7 @@ const finalBlockValuesAtom = atom((get) => {
   }
   return blockValues;
 });
-const sumFinalBlockValuesAtom = atom((get) => {
+const sumFinalBlockValuesAtom = atom<number>((get) => {
   const finalBlockValues = get(finalBlockValuesAtom);
   return finalBlockValues.reduce((acc, val) => acc + val, 0);
 });
@@ -59,7 +64,10 @@ const txDataAtom = atom<FinishedTxData | null>(null);
 function MiningForm() {
   const { openContractCall, isRequestPending } = useOpenContractCall();
   const blockHeights = useAtomValue(blockHeightsAtom);
-  const [stxAddress] = useAtom(stxAddressAtom);
+  const stxAddress = useAtomValue(stxAddressAtom);
+  const isCitySelected = useAtomValue(isCitySelectedAtom);
+  const currentCityInfo = useAtomValue(currentCityInfoAtom);
+  const currentCityConfig = useAtomValue(currentCityConfigAtom);
   const [numberOfBlocks, setNumberOfBlocks] = useAtom(numberOfBlocksAtom);
   const [useSameAmount, setUseSameAmount] = useAtom(useSameAmountAtom);
   const [blockValues, setBlockValues] = useAtom(blockValuesAtom);
@@ -74,7 +82,7 @@ function MiningForm() {
       setNumberOfBlocks(0);
       return;
     }
-    let parsedValue = Number(e.target.value.trim());
+    let parsedValue = Math.floor(Number(e.target.value.trim()));
     if (isNaN(parsedValue) || parsedValue < 1 || parsedValue > 200) {
       toast({
         title: "Invalid number of blocks",
@@ -117,23 +125,28 @@ function MiningForm() {
     if (!isValid) {
       return;
     }
-    console.log("numberOfBlocks", numberOfBlocks);
-    console.log("finalBlockValues", finalBlockValues);
+    const microStxFinalValues = finalBlockValues.map((val) =>
+      Math.floor(parseFloat(val.toFixed(6)) * MICRO_STX)
+    );
+    const sumMicroStxFinalvalues = microStxFinalValues.reduce(
+      (acc, val) => acc + val,
+      0
+    );
     const postConditions = [
       makeStandardSTXPostCondition(
         stxAddress!,
         FungibleConditionCode.Equal,
-        sumFinalBlockValues
+        sumMicroStxFinalvalues
       ),
     ];
     try {
       await openContractCall({
-        contractAddress: "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH",
-        contractName: "ccd006-citycoin-mining-v2",
-        functionName: "mine",
+        contractAddress: currentCityConfig!.daoV2.mining.deployer,
+        contractName: currentCityConfig!.daoV2.mining.contractName,
+        functionName: currentCityConfig!.daoV2.mining.miningFunction,
         functionArgs: [
-          // city ID
-          // list of block values
+          stringAsciiCV(currentCityInfo!.name),
+          listCV(microStxFinalValues.map((val) => uintCV(val))),
         ],
         postConditions: postConditions,
         onCancel: () => {
@@ -217,6 +230,10 @@ function MiningForm() {
     return true;
   }
 
+  if (!isCitySelected) {
+    return <Text>Please select a city to continue.</Text>;
+  }
+
   return (
     <form id="mining">
       <Stack spacing={8}>
@@ -243,7 +260,12 @@ function MiningForm() {
           </Stat>
           <Stat>
             <StatLabel>Total Amount</StatLabel>
-            <StatNumber>{sumFinalBlockValues} STX</StatNumber>
+            <StatNumber>
+              {sumFinalBlockValues.toLocaleString(undefined, {
+                maximumFractionDigits: 6,
+              })}{" "}
+              STX
+            </StatNumber>
           </Stat>
         </Stack>
         <Divider />

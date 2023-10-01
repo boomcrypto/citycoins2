@@ -26,6 +26,7 @@ type UserIds = {
 
 type CityInfo = {
   name: string;
+  id: number;
   displayName: string;
   symbol: string;
   // logo: string; // SVG component
@@ -100,6 +101,7 @@ const CURRENT_VERSION = VERSIONS[VERSIONS.length - 1];
 
 const MIA_INFO: CityInfo = {
   name: "mia",
+  id: 1,
   displayName: "Miami",
   symbol: "MIA",
   // logo: MiamiCoin,
@@ -110,6 +112,7 @@ const MIA_INFO: CityInfo = {
 
 const NYC_INFO: CityInfo = {
   name: "nyc",
+  id: 2,
   displayName: "New York City",
   symbol: "NYC",
   // logo: NewYorkCityCoin,
@@ -434,6 +437,17 @@ export const displayCitycoinBalancesAtom = atom((get) => {
     }
   });
   return formattedBalances;
+});
+
+export const isCitySelectedAtom = atom((get) => {
+  const selectedCity = get(citycoinsSelectedCityAtom);
+  return selectedCity !== null;
+});
+
+export const currentCityInfoAtom = atom((get) => {
+  const selectedCity = get(citycoinsSelectedCityAtom);
+  if (!selectedCity) return null;
+  return CITY_INFO[selectedCity];
 });
 
 export const currentCityConfigAtom = atom((get) => {
