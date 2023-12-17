@@ -10,13 +10,23 @@ import {
   InputRightAddon,
   ListItem,
   Spacer,
+  Spinner,
   Stack,
   Text,
   UnorderedList,
   useToast,
 } from "@chakra-ui/react";
-import { atom, useAtom } from "jotai";
+import { atom, useAtom, useAtomValue } from "jotai";
 import { FaQuestion } from "react-icons/fa";
+import { blockHeightsAtom } from "../../store/stacks";
+import {
+  citycoinsSelectedCityAtom,
+  currentCityConfigAtom,
+  currentCityInfoAtom,
+  isCitySelectedAtom,
+  citycoinsRewardCycleAtom,
+  citycoinsUserIdsAtom,
+} from "../../store/citycoins";
 
 // NEED
 // current reward cycle
@@ -28,6 +38,19 @@ const numberOfCyclesAtom = atom(0);
 const consentCheckedAtom = atom(false);
 
 function StackingForm() {
+  const blockHeights = useAtomValue(blockHeightsAtom);
+  const citycoinsSelectedCity = useAtomValue(citycoinsSelectedCityAtom);
+  const selectedCity = () => {
+    if (citycoinsSelectedCity) {
+      return citycoinsSelectedCity.toUpperCase();
+    }
+    return undefined;
+  };
+  const currentCityConfig = useAtomValue(currentCityConfigAtom);
+  const currentCityInfo = useAtomValue(currentCityInfoAtom);
+  const isCitySelected = useAtomValue(isCitySelectedAtom);
+  const citycoinsRewardCycle = useAtomValue(citycoinsRewardCycleAtom);
+  const citycoinsUserIds = useAtomValue(citycoinsUserIdsAtom);
   const [amountToStack, setAmountToStack] = useAtom(amountToStackAtom);
   const [numberOfCycles, setNumberOfCycles] = useAtom(numberOfCyclesAtom);
   const [consentChecked, setConsentChecked] = useAtom(consentCheckedAtom);
@@ -82,6 +105,12 @@ function StackingForm() {
     }
     console.log("amountToStack", amountToStack);
     console.log("numberOfCycles", numberOfCycles);
+    console.log("cityCoinsSelectedCity", citycoinsSelectedCity);
+    console.log("currentCityConfig", currentCityConfig);
+    console.log("currentCityInfo", currentCityInfo);
+    console.log("isCitySelected", isCitySelected);
+    console.log("citycoinsRewardCycle", citycoinsRewardCycle);
+    console.log("citycoinsUserIds", citycoinsUserIds);
     // TODO: make contract call (hook?)
     //   onCancel: toast warning
     //   onFinish: toast success
@@ -132,21 +161,51 @@ function StackingForm() {
   return (
     <form id="stacking">
       <Stack spacing={8}>
-        <Heading as="h3" size="lg">
-          Stack XX in cycle XX
-        </Heading>
+        <Stack
+          direction={["column", "row"]}
+          alignItems={["flex-start", "center"]}
+          justifyContent={["flex-start", "space-between"]}
+        >
+          <Heading as="h3" size="lg">
+            {citycoinsSelectedCity && citycoinsRewardCycle ? (
+              <>
+                Stack {citycoinsSelectedCity.toUpperCase()} in cycle{" "}
+                {citycoinsRewardCycle.currentCycle + 1}
+              </>
+            ) : (
+              <Spinner label="Loading city data..." />
+            )}
+          </Heading>
+          {blockHeights && citycoinsRewardCycle && (
+            <>
+              <Text fontStyle="italic">
+                starts in{" "}
+                {(
+                  citycoinsRewardCycle.endBlock - blockHeights.btc
+                ).toLocaleString()}{" "}
+                blocks
+              </Text>
+            </>
+          )}
+        </Stack>
         <Stack direction="row" alignItems="center">
           <InputGroup>
             <FormControl>
               <Input
                 type="number"
                 min="1"
-                placeholder="Amount in XX"
+                placeholder={`Amount in ${
+                  selectedCity() ? selectedCity() : "CC"
+                }`}
                 onChange={(e) => handleAmountToStack(e)}
               />
             </FormControl>
-            <InputRightAddon>XX</InputRightAddon>
-            <Button>MAX</Button>
+            <InputRightAddon>
+              {selectedCity() ? selectedCity() : "CC"}
+            </InputRightAddon>
+            <Button isDisabled title="Coming soon!">
+              MAX
+            </Button>
           </InputGroup>
         </Stack>
         <Input
@@ -182,7 +241,7 @@ function StackingForm() {
           </Checkbox>
         </FormControl>
         <Button isDisabled={!consentChecked} onClick={(e) => handleSubmit(e)}>
-          Stack XX
+          {`Stack ${selectedCity() ? selectedCity() : "CC"}`}
         </Button>
       </Stack>
     </form>
