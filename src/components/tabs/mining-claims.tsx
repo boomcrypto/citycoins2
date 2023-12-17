@@ -1,5 +1,6 @@
 import {
   Button,
+  Divider,
   GridItem,
   Heading,
   IconButton,
@@ -13,10 +14,14 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { atom, useAtom, useSetAtom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import { FaQuestion, FaTimes } from "react-icons/fa";
 
 const blockSelectionAtom = atom("single");
-const miningClaimListAtom = atom<number[]>([]);
+const miningClaimListAtom = atomWithStorage<number[]>(
+  "citycoins-cc-miningClaimList",
+  []
+);
 const startBlockHeightAtom = atom(0);
 const endBlockHeightAtom = atom(0);
 
@@ -81,6 +86,40 @@ function MiningClaimsForm() {
         )}
       </Stack>
       <Button onClick={handleMiningClaim}>Search for mining claims</Button>
+      <SimpleGrid
+        templateColumns={{ base: "repeat(3, 1fr)", md: "repeat(6, 1fr)" }}
+        spacingX="2em"
+        spacingY="2em"
+        alignItems="center"
+        alignContent="center"
+        display={{ base: "none", md: "grid" }}
+      >
+        {/* Header */}
+        <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 1, md: 1 }}>
+          <Heading size="lg">Block</Heading>
+        </GridItem>
+        {/* Close Button */}
+        <GridItem
+          colSpan={{ base: 1, md: 1 }}
+          colStart={{ md: 6 }}
+          order={{ base: 2, md: 6 }}
+        ></GridItem>
+        {/* Column Contents */}
+        <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
+          <Text fontWeight="bold">Col 1</Text>
+        </GridItem>
+        <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
+          <Text fontWeight="bold">Col 2</Text>
+        </GridItem>
+        <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 5, md: 4 }}>
+          <Text fontWeight="bold">Col 3</Text>
+        </GridItem>
+        {/* Claim Button */}
+        <GridItem
+          colSpan={{ base: 1, md: 1 }}
+          order={{ base: 6, md: 5 }}
+        ></GridItem>
+      </SimpleGrid>
       {miningClaimList.length === 0 && <Text>Mining claim list is empty.</Text>}
       {miningClaimList
         .sort((a, b) => a - b)
@@ -103,34 +142,51 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
 
   return (
     <SimpleGrid
-      key={`block-${blockHeight}`}
-      columns={6}
+      key={`claimBlock-${blockHeight}`}
+      templateColumns={{ base: "repeat(3, 1fr)", md: "repeat(6, 1fr)" }}
       spacingX="2em"
       spacingY="2em"
       alignItems="center"
+      alignContent="center"
     >
-      <GridItem>
-        <Heading>Block {blockHeight}</Heading>
+      {/* Header */}
+      <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 1, md: 1 }}>
+        <Heading size="lg">{blockHeight}</Heading>
       </GridItem>
-      <GridItem>
-        <Text>Col 1</Text>
-      </GridItem>
-      <GridItem>
-        <Text>Col 2</Text>
-      </GridItem>
-      <GridItem>
-        <Text>Col 3</Text>
-      </GridItem>
-      <GridItem>
-        <Button>Claim</Button>
-      </GridItem>
-      <GridItem>
+      {/* Close Button */}
+      <GridItem
+        colSpan={{ base: 1, md: 1 }}
+        colStart={{ md: 6 }}
+        order={{ base: 2, md: 6 }}
+        textAlign="right"
+      >
         <IconButton
           aria-label="Remove"
           title="Remove"
           icon={<FaTimes />}
           onClick={handleRemoveBlock}
         />
+      </GridItem>
+      {/* Column Contents */}
+      <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
+        <Text>Col 1</Text>
+      </GridItem>
+      <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
+        <Text>Col 2</Text>
+      </GridItem>
+      <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 5, md: 4 }}>
+        <Text>Col 3</Text>
+      </GridItem>
+      {/* Claim Button */}
+      <GridItem
+        colSpan={{ base: 1, md: 1 }}
+        order={{ base: 6, md: 5 }}
+        textAlign="right"
+      >
+        <Button>Claim</Button>
+      </GridItem>
+      <GridItem colSpan={{ base: 3, md: 6 }}>
+        <Divider orientation="horizontal" />
       </GridItem>
     </SimpleGrid>
   );
