@@ -17,7 +17,7 @@ import {
   useColorMode,
   useDisclosure,
 } from "@chakra-ui/react";
-import { FaMoon, FaSun, FaWindowClose } from "react-icons/fa";
+import { FaMoon, FaSun, FaAngleDoubleLeft } from "react-icons/fa";
 import { BiRefresh } from "react-icons/bi";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
@@ -112,7 +112,15 @@ function Profile() {
             display="flex"
             alignItems="center"
             justifyContent="space-between"
+            border="3px solid"
+            borderRadius="lg"
+            borderColor={calloutColor}
+            mb={4}
           >
+            {/* STX Address Box */}
+            <Heading size={["md", "lg"]} p={4} textAlign="center">
+              {displayProfileName}
+            </Heading>
             <IconButton
               variant="ghost"
               aria-label="Toggle color mode"
@@ -120,22 +128,11 @@ function Profile() {
               icon={colorMode === "light" ? <FaMoon /> : <FaSun />}
               onClick={toggleColorMode}
             />
-            {/* STX Address Box */}
-            <Heading
-              size={["md", "lg"]}
-              p={4}
-              textAlign="center"
-              border="3px solid"
-              borderRadius="lg"
-              borderColor={calloutColor}
-            >
-              {displayProfileName}
-            </Heading>
             <IconButton
               variant="ghost"
-              aria-label="Close"
-              title="Close"
-              icon={<FaWindowClose />}
+              aria-label="Close Panel"
+              title="Close Panel"
+              icon={<FaAngleDoubleLeft />}
               onClick={onClose}
             />
           </DrawerHeader>
