@@ -2,13 +2,14 @@ import { Button } from "@chakra-ui/react";
 import { useAuth } from "@micro-stacks/react";
 import { useClearUserData } from "../../hooks/use-clear-user-data";
 
-function ClearData(props: { variant?: string }) {
+function ClearData(props: { colorScheme?: string; variant?: string }) {
   const { signOut } = useAuth();
   const clearUserData = useClearUserData();
 
   return (
     <Button
       variant={props.variant || "solid"}
+      colorScheme={props.colorScheme || "gray"}
       title="Clear Data"
       onClick={() => {
         // clear locally stored data

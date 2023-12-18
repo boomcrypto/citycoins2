@@ -32,6 +32,17 @@ export const activeTabAtom = atomWithStorage<number>(
 
 // HELPER FUNCTIONS
 
+export function triggerSpin(ref: React.RefObject<HTMLElement>): void {
+  if (ref.current) {
+    ref.current.classList.add("spin");
+    setTimeout(() => {
+      if (ref.current) {
+        ref.current.classList.remove("spin");
+      }
+    }, 3000); // 3 seconds
+  }
+}
+
 export function extractLoadableState<T>(loadedAtom: Loadable<T>) {
   const isLoading = loadedAtom.state === "loading";
   const hasError = loadedAtom.state === "hasError" && "error" in loadedAtom;
@@ -53,4 +64,16 @@ export function formatMicroAmount(
     minimumFractionDigits: decimalsToDisplay,
     maximumFractionDigits: decimalsToDisplay,
   });
+}
+
+// fetch and return JSON from URL
+export async function fetchJson<T>(url: string): Promise<T> {
+  const response = await fetch(url);
+  if (response.status === 200) {
+    const json = await response.json();
+    return json as T;
+  }
+  throw new Error(
+    `fetchJson: ${url} ${response.status} ${response.statusText}`
+  );
 }

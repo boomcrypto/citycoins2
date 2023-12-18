@@ -1,24 +1,30 @@
 import {
+  Button,
   Flex,
   Heading,
-  IconButton,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
   Stack,
-  Text,
-  useColorMode,
 } from "@chakra-ui/react";
 import { useAccount } from "@micro-stacks/react";
+import { FaChevronCircleDown } from "react-icons/fa";
 import CityCoinsLogo from "./citycoins-logo";
+import Profile from "../auth/profile";
 import SignIn from "../auth/sign-in";
-import SignOut from "../auth/sign-out";
-import ClearData from "../auth/clear-data";
-import { stxAddressAtom } from "../../store/stacks";
+import { CityKeys, citycoinsSelectedCityAtom } from "../../store/citycoins";
 import { useAtom } from "jotai";
-import { FaMoon, FaSun } from "react-icons/fa";
+import { useCalloutColor } from "../../hooks/use-callout-color";
 
 function Header() {
+  const calloutColor = useCalloutColor();
   const { stxAddress } = useAccount();
-  const { colorMode, toggleColorMode } = useColorMode();
-  const [storedStxAddress] = useAtom(stxAddressAtom);
+  const [selectedCity, setSelectedCity] = useAtom(citycoinsSelectedCityAtom);
+
+  const handleCitySelect = (cityKey: CityKeys) => {
+    setSelectedCity(cityKey);
+  };
 
   return (
     <Stack align="center" direction={["column", "row"]} p={4}>
@@ -28,27 +34,35 @@ function Header() {
           CityCoins
         </Heading>
       </Flex>
-      <Stack direction={["column", "row"]} alignItems="center">
-        <Text fontWeight="semibold" fontSize="md">
-          {stxAddress === undefined && storedStxAddress
-            ? `${storedStxAddress.slice(0, 5)}...${storedStxAddress.slice(-5)}`
-            : stxAddress
-            ? `${stxAddress.slice(0, 5)}...${stxAddress.slice(-5)}`
-            : ""}
-        </Text>
-        <ClearData variant="outline" />
-        {stxAddress === undefined ? (
-          <SignIn variant="outline" />
-        ) : (
-          <SignOut variant="outline" />
-        )}
-        <IconButton
-          aria-label="Learn More"
-          title="Learn More"
-          icon={colorMode === "light" ? <FaMoon /> : <FaSun />}
-          onClick={toggleColorMode}
-        />
-      </Stack>
+      {stxAddress === undefined ? <SignIn /> : <Profile />}
+      <Menu>
+        <MenuButton
+          as={Button}
+          variant="outline"
+          rightIcon={<FaChevronCircleDown />}
+          title="Select City"
+        >
+          Select City
+        </MenuButton>
+        <MenuList>
+          <MenuItem
+            fontWeight="bold"
+            onClick={() => handleCitySelect("mia")}
+            backgroundColor={selectedCity === "mia" ? calloutColor : ""}
+            color={selectedCity === "mia" ? "white" : ""}
+          >
+            Miami
+          </MenuItem>
+          <MenuItem
+            fontWeight="bold"
+            onClick={() => handleCitySelect("nyc")}
+            backgroundColor={selectedCity === "nyc" ? calloutColor : ""}
+            color={selectedCity === "nyc" ? "white" : ""}
+          >
+            New York City
+          </MenuItem>
+        </MenuList>
+      </Menu>
     </Stack>
   );
 }
