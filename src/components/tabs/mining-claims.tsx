@@ -13,16 +13,11 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { Atom, atom, useAtom, useAtomValue, useSetAtom } from "jotai";
-import { atomFamily, atomWithStorage } from "jotai/utils";
+import { atom, useAtom, useSetAtom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import { FaQuestion, FaTimes } from "react-icons/fa";
 import { blockHeightsAtom } from "../../store/stacks";
-import {
-  REWARD_DELAY,
-  citycoinsSelectedCityAtom,
-  getVersionByBlock,
-} from "../../store/citycoins";
-import { useEffect } from "react";
+import { REWARD_DELAY } from "../../store/citycoins";
 
 const blockSelectionAtom = atom("single");
 const miningClaimListAtom = atomWithStorage<number[]>(
@@ -42,10 +37,6 @@ const startBlockHeightAtom = atom(
   }
 );
 const endBlockHeightAtom = atom(0);
-const claimVersionAtomFamily = atomFamily(
-  (blockHeight: number): Atom<string | null> => atom(null),
-  (a, b) => a === b
-);
 
 function MiningClaimsForm() {
   const [blockSelection, setBlockSelection] = useAtom(blockSelectionAtom);
@@ -168,18 +159,6 @@ function MiningClaimsForm() {
 
 function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
   const setMiningClaimList = useSetAtom(miningClaimListAtom);
-  const selectedCity = useAtomValue(citycoinsSelectedCityAtom);
-  const claimVersionAtom = claimVersionAtomFamily(blockHeight);
-  const setClaimVersion = useSetAtom(claimVersionAtom);
-
-  useEffect(() => {
-    async function fetchVersion() {
-      if (!selectedCity) return;
-      const version = await getVersionByBlock(selectedCity, blockHeight);
-      version && setClaimVersion(version);
-    }
-    fetchVersion();
-  }, [selectedCity, blockHeight, setClaimVersion]);
 
   const handleRemoveBlock = () => {
     setMiningClaimList((prev) => prev.filter((b) => b !== blockHeight));
