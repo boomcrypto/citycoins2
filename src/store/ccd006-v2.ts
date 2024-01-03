@@ -46,8 +46,59 @@ export const miningStatsAtom = atomWithStorage<MiningStats | null>(
 
 export const miningStatsQueryAtomFamily = atomFamily(
   ({ cityId, blockHeight }: { cityId: number; blockHeight: number }) =>
-    atom(async (): Promise<MiningStats> => {
+    atom(async () => {
       return await getMiningStats(cityId, blockHeight);
+    })
+);
+
+export const minerStatsQueryAtomFamily = atomFamily(
+  ({
+    cityId,
+    blockHeight,
+    address,
+  }: {
+    cityId: number;
+    blockHeight: number;
+    address: string;
+  }) =>
+    atom(async () => {
+      return await getMiner(cityId, blockHeight, address);
+    })
+);
+
+export const hasMinedQueryAtomFamily = atomFamily(
+  ({ cityId, blockHeight }: { cityId: number; blockHeight: number }) =>
+    atom(async () => {
+      return await hasMinedAtBlock(cityId, blockHeight);
+    })
+);
+
+export const blockWinnerQueryAtomFamily = atomFamily(
+  ({ cityId, blockHeight }: { cityId: number; blockHeight: number }) =>
+    atom(async () => {
+      return await getBlockWinner(cityId, blockHeight);
+    })
+);
+
+export const isBlockWinnerQueryAtomFamily = atomFamily(
+  ({
+    cityId,
+    blockHeight,
+    address,
+  }: {
+    cityId: number;
+    blockHeight: number;
+    address: string;
+  }) =>
+    atom(async () => {
+      return await isBlockWinner(cityId, blockHeight, address);
+    })
+);
+
+export const hasMinedAtBlockQueryAtomFamily = atomFamily(
+  ({ cityId, blockHeight }: { cityId: number; blockHeight: number }) =>
+    atom(async () => {
+      return await hasMinedAtBlock(cityId, blockHeight);
     })
 );
 
