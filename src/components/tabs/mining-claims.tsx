@@ -31,6 +31,10 @@ function MiningClaimsForm() {
   const [startBlockHeight, setStartBlockHeight] = useAtom(startBlockHeightAtom);
   const [endBlockHeight, setEndBlockHeight] = useAtom(endBlockHeightAtom);
 
+  function handleClearMiningClaims() {
+    setMiningClaimList([]);
+  }
+
   function handleMiningClaim() {
     if (blockSelection === "single") {
       setMiningClaimList((prev) =>
@@ -85,13 +89,13 @@ function MiningClaimsForm() {
           </>
         )}
       </Stack>
-      <Button onClick={handleMiningClaim}>Search for mining claims</Button>
+      <Button mb={4} onClick={handleMiningClaim}>
+        Search for mining claims
+      </Button>
       <SimpleGrid
         templateColumns={{ base: "repeat(3, 1fr)", md: "repeat(6, 1fr)" }}
         spacingX="2em"
-        spacingY="2em"
         alignItems="center"
-        alignContent="center"
         display={{ base: "none", md: "grid" }}
       >
         {/* Header */}
@@ -115,10 +119,11 @@ function MiningClaimsForm() {
           <Text fontWeight="bold">Col 3</Text>
         </GridItem>
         {/* Claim Button */}
-        <GridItem
-          colSpan={{ base: 1, md: 1 }}
-          order={{ base: 6, md: 5 }}
-        ></GridItem>
+        <GridItem colSpan={{ base: 1, md: 2 }} order={{ base: 6, md: 5 }}>
+          <Button w="100%" onClick={handleClearMiningClaims}>
+            Clear All
+          </Button>
+        </GridItem>
       </SimpleGrid>
       {miningClaimList.length === 0 && <Text>Mining claim list is empty.</Text>}
       {miningClaimList
@@ -183,7 +188,7 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
         order={{ base: 6, md: 5 }}
         textAlign="right"
       >
-        <Button>Claim</Button>
+        <Button w="100%">Claim</Button>
       </GridItem>
       <GridItem colSpan={{ base: 3, md: 6 }}>
         <Divider orientation="horizontal" />
