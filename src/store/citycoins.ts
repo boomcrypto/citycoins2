@@ -92,6 +92,8 @@ type CompiledCityConfig = {
 // CONSTANTS
 /////////////////////////
 
+export const REWARD_DELAY = 100;
+
 // VERSIONS
 
 const VERSIONS = ["legacyV1", "legacyV2", "daoV1", "daoV2"] as const;

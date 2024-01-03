@@ -16,13 +16,26 @@ import {
 import { atom, useAtom, useSetAtom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { FaQuestion, FaTimes } from "react-icons/fa";
+import { blockHeightsAtom } from "../../store/stacks";
+import { REWARD_DELAY } from "../../store/citycoins";
 
 const blockSelectionAtom = atom("single");
 const miningClaimListAtom = atomWithStorage<number[]>(
   "citycoins-cc-miningClaimList",
   []
 );
-const startBlockHeightAtom = atom(0);
+const startBlockHeightAtom = atom(
+  (get) => {
+    const blockHeight = get(blockHeightsAtom);
+    if (blockHeight) {
+      return blockHeight.stx - REWARD_DELAY;
+    }
+    return 0;
+  },
+  (_, set, update) => {
+    set(startBlockHeightAtom, update);
+  }
+);
 const endBlockHeightAtom = atom(0);
 
 function MiningClaimsForm() {
