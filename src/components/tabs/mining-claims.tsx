@@ -92,6 +92,12 @@ function MiningClaimsForm() {
       <Button mb={4} onClick={handleMiningClaim}>
         Search for mining claims
       </Button>
+      <Button
+        onClick={handleClearMiningClaims}
+        display={{ base: "block", md: "none" }}
+      >
+        Clear All
+      </Button>
       <SimpleGrid
         templateColumns={{ base: "repeat(3, 1fr)", md: "repeat(6, 1fr)" }}
         spacingX="2em"
