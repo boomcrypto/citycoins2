@@ -96,7 +96,7 @@ function MiningClaimsForm() {
         onClick={handleClearMiningClaims}
         display={{ base: "block", md: "none" }}
       >
-        Clear All
+        Clear all blocks
       </Button>
       <SimpleGrid
         templateColumns={{ base: "repeat(3, 1fr)", md: "repeat(6, 1fr)" }}
@@ -127,7 +127,7 @@ function MiningClaimsForm() {
         {/* Claim Button */}
         <GridItem colSpan={{ base: 1, md: 2 }} order={{ base: 6, md: 5 }}>
           <Button w="100%" onClick={handleClearMiningClaims}>
-            Clear All
+            Clear all blocks
           </Button>
         </GridItem>
       </SimpleGrid>
