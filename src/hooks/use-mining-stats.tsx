@@ -7,6 +7,10 @@ import {
 import { extractLoadableState } from "../store/common";
 import { stxAddressAtom } from "../store/stacks";
 
+// split into individual items, easier debugging
+// useMiningStats
+// useMinerStats
+// all ccd006 related
 export const useMiningStats = (cityId: number, blockHeight: number) => {
   const address = useAtomValue(stxAddressAtom);
   if (!address) throw new Error("No STX address found");

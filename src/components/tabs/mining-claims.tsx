@@ -13,11 +13,16 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { atom, useAtom, useSetAtom } from "jotai";
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { FaQuestion, FaTimes } from "react-icons/fa";
 import { blockHeightsAtom } from "../../store/stacks";
-import { REWARD_DELAY } from "../../store/citycoins";
+import {
+  REWARD_DELAY,
+  citycoinsSelectedCityAtom,
+  currentCityInfoAtom,
+} from "../../store/citycoins";
+import useMiningStats from "../../hooks/use-mining-stats";
 
 const blockSelectionAtom = atom("single");
 const miningClaimListAtom = atomWithStorage<number[]>(
@@ -159,9 +164,18 @@ function MiningClaimsForm() {
 
 function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
   const setMiningClaimList = useSetAtom(miningClaimListAtom);
+  const currentCityInfo = useAtomValue(currentCityInfoAtom);
+
+  if (!currentCityInfo) throw new Error("No current city info found");
+
+  const { miningStats, minerStats } = useMiningStats(
+    currentCityInfo.id,
+    blockHeight
+  );
 
   const handleRemoveBlock = () => {
     setMiningClaimList((prev) => prev.filter((b) => b !== blockHeight));
+    // TODO: remove from related atom family
   };
 
   return (
@@ -193,7 +207,7 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
       </GridItem>
       {/* Column Contents */}
       <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
-        <Text>Col 1</Text>
+        <Text>Claimed: {miningStats.hasData && miningStats.data?.claimed}</Text>
       </GridItem>
       <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
         <Text>Col 2</Text>
