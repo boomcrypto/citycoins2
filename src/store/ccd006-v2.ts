@@ -5,6 +5,7 @@
 import { atom } from "jotai";
 import { CC_API, fetchJson } from "./common";
 import { atomFamily, atomWithStorage } from "jotai/utils";
+import { citycoinsUserIdsAtom } from "./citycoins";
 
 type MiningStats = {
   miners: number;
@@ -46,7 +47,7 @@ export const miningStatsAtom = atomWithStorage<MiningStats | null>(
 
 export const miningStatsQueryAtomFamily = atomFamily(
   ({ cityId, blockHeight }: { cityId: number; blockHeight: number }) =>
-    atom(async () => {
+    atom(async (get) => {
       return await getMiningStats(cityId, blockHeight);
     })
 );
@@ -55,14 +56,14 @@ export const minerStatsQueryAtomFamily = atomFamily(
   ({
     cityId,
     blockHeight,
-    address,
+    userId,
   }: {
     cityId: number;
     blockHeight: number;
-    address: string;
+    userId: number;
   }) =>
     atom(async () => {
-      return await getMiner(cityId, blockHeight, address);
+      return await getMiner(cityId, blockHeight, userId);
     })
 );
 
@@ -133,7 +134,7 @@ export async function getMiningStats(
 ): Promise<MiningStats> {
   const url = new URL("ccd006-citycoin-mining-v2/get-mining-stats", CC_API);
   url.searchParams.set("height", String(blockHeight));
-  url.searchParams.set("city", String(cityId));
+  url.searchParams.set("cityId", String(cityId));
   try {
     const miningStats = await fetchJson<MiningStats>(url.toString());
     return miningStats;
@@ -153,7 +154,7 @@ export async function hasMinedAtBlock(
 ): Promise<boolean> {
   const url = new URL("ccd006-citycoin-mining-v2/has-mined-at-block", CC_API);
   url.searchParams.set("height", String(blockHeight));
-  url.searchParams.set("city", String(cityId));
+  url.searchParams.set("cityId", String(cityId));
   try {
     const hasMined = await fetchJson<boolean>(url.toString());
     return hasMined;
@@ -170,10 +171,9 @@ export async function hasMinedAtBlock(
 export async function getMiner(
   cityId: number,
   blockHeight: number,
-  address: string
+  userId: number
 ): Promise<Miners> {
   try {
-    const userId = await getUserId(address);
     const url = new URL("ccd006-citycoin-mining-v2/get-miner", CC_API);
     url.searchParams.set("height", String(blockHeight));
     url.searchParams.set("cityId", String(cityId));
