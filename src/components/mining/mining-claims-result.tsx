@@ -1,6 +1,4 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { useIsBlockWinner, useMinerStats } from "../../hooks/use-ccd006-v2";
-import { currentCityInfoAtom } from "../../store/citycoins";
 import {
   Button,
   Divider,
@@ -8,20 +6,31 @@ import {
   Heading,
   IconButton,
   SimpleGrid,
+  Spinner,
   Text,
+  useToast,
 } from "@chakra-ui/react";
+import { useOpenContractCall } from "@micro-stacks/react";
+import { uintCV } from "micro-stacks/clarity";
 import { FaTimes } from "react-icons/fa";
+import { useIsBlockWinner } from "../../hooks/use-ccd006-v2";
+import {
+  currentCityConfigAtom,
+  currentCityInfoAtom,
+} from "../../store/citycoins";
 import { miningClaimListAtom } from "../../store/ccd006-v2";
-import { formatMicroAmount } from "../../store/common";
 
 function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
+  const toast = useToast();
+  const { openContractCall, isRequestPending } = useOpenContractCall();
   const setMiningClaimList = useSetAtom(miningClaimListAtom);
   const currentCityInfo = useAtomValue(currentCityInfoAtom);
+  const currentCityConfig = useAtomValue(currentCityConfigAtom);
 
   if (!currentCityInfo) throw new Error("No current city info found");
 
   // const miningStats = useMiningStats(currentCityInfo.id, blockHeight);
-  const minerStats = useMinerStats(currentCityInfo.id, blockHeight);
+  // const minerStats = useMinerStats(currentCityInfo.id, blockHeight);
   const isBlockWinner = useIsBlockWinner(currentCityInfo.id, blockHeight);
 
   const handleRemoveBlock = () => {
@@ -29,10 +38,34 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
     // TODO: remove from related atom family
   };
 
+  /*
+  const handleMiningClaimTx = async (blockHeight: number) => {
+    if (!currentCityConfig) return null;
+
+
+    try {
+      await openContractCall({
+        contractAddress: currentCityConfig.contractAddress,
+        contractName: currentCityConfig.contractName,
+        functionName: "claim-mining-reward",
+        functionArgs: [uintCV(blockHeight)],
+        postConditions: [],
+      });
+    } catch (error) {
+      toast({
+        title: "Error sending transaction",
+        description: String(error),
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+  };
+  */
+
   return (
     <SimpleGrid
       key={`claimBlock-${blockHeight}`}
-      templateColumns={{ base: "repeat(3, 1fr)", md: "repeat(6, 1fr)" }}
+      templateColumns={{ base: "repeat(3, 1fr)", md: "repeat(5, 1fr)" }}
       spacingX="2em"
       spacingY="2em"
       alignItems="center"
@@ -45,8 +78,8 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
       {/* Close Button */}
       <GridItem
         colSpan={{ base: 1, md: 1 }}
-        colStart={{ md: 6 }}
-        order={{ base: 2, md: 6 }}
+        colStart={{ md: 5 }}
+        order={{ base: 2, md: 5 }}
         textAlign="right"
       >
         <IconButton
@@ -57,40 +90,11 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
         />
       </GridItem>
       {/* Column Contents */}
-      {isBlockWinner.data ? (
-        <>
-          <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
-            <Heading size="sm">Claimed</Heading>
-            <Text>{isBlockWinner.data?.claimed.toString()}</Text>
-          </GridItem>
-          <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
-            <Heading size="sm">Winner</Heading>
-            <Text>{isBlockWinner.data?.winner.toString()}</Text>
-          </GridItem>
-          <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 5, md: 4 }}>
-            <Heading size="sm">Commit</Heading>
-            <Text>
-              {minerStats.data && formatMicroAmount(minerStats.data?.commit)}
-            </Text>
-          </GridItem>
-        </>
-      ) : (
-        <>
-          <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
-            <Text>No data</Text>
-          </GridItem>
-          <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
-            <Text>No data</Text>
-          </GridItem>
-          <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 5, md: 4 }}>
-            <Text>No data</Text>
-          </GridItem>
-        </>
-      )}
+      <MiningClaimResultData blockHeight={blockHeight} />
       {/* Claim Button */}
       <GridItem
         colSpan={{ base: 1, md: 1 }}
-        order={{ base: 6, md: 5 }}
+        order={{ base: 6, md: 4 }}
         textAlign="right"
       >
         <Button
@@ -104,11 +108,51 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
           Claim
         </Button>
       </GridItem>
-      <GridItem colSpan={{ base: 3, md: 6 }}>
+      <GridItem colSpan={{ base: 3, md: 5 }}>
         <Divider orientation="horizontal" />
       </GridItem>
     </SimpleGrid>
   );
+}
+
+function MiningClaimResultData({ blockHeight }: { blockHeight: number }) {
+  const currentCityInfo = useAtomValue(currentCityInfoAtom);
+
+  if (!currentCityInfo) throw new Error("No current city info found");
+  const isBlockWinner = useIsBlockWinner(currentCityInfo.id, blockHeight);
+
+  if (isBlockWinner.isLoading) {
+    return (
+      <GridItem colSpan={2} order={{ base: 3, md: 2 }}>
+        <Spinner label="Loading winner data..." />
+      </GridItem>
+    );
+  }
+
+  if (isBlockWinner.hasError) {
+    return (
+      <GridItem colSpan={2} order={{ base: 3, md: 2 }}>
+        Unable to fetch data...
+      </GridItem>
+    );
+  }
+
+  if (isBlockWinner.data) {
+    return (
+      <>
+        <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
+          <Heading size="sm">Claimed</Heading>
+          <Text>{isBlockWinner.data.claimed.toString()}</Text>
+        </GridItem>
+        <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
+          <Heading size="sm">Winner</Heading>
+          <Text>{isBlockWinner.data.winner.toString()}</Text>
+        </GridItem>
+      </>
+    );
+  }
+
+  return <Text>No data available</Text>;
 }
 
 export default MiningClaimResult;

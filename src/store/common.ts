@@ -1,11 +1,14 @@
 import { atomWithStorage } from "jotai/utils";
 import { Loadable } from "jotai/vanilla/utils/loadable";
+import throttledQueue from "throttled-queue";
 
 /////////////////////////
 // CONSTANTS
 /////////////////////////
 
-export const CC_API = "https://protocol.citycoins.co/api/";
+// export const CC_API = "https://protocol.citycoins.co/api/";
+export const CC_API =
+  "https://fix-add-hiro-api-key.protocol-api.pages.dev/api/";
 export const CC_API_LEGACY = "https://api.citycoins.co";
 export const HIRO_API = "https://api.hiro.so";
 
@@ -66,9 +69,12 @@ export function formatMicroAmount(
   });
 }
 
+// throttle requests for fetch calls
+const throttle = throttledQueue(1, 1000, true);
+
 // fetch and return JSON from URL
 export async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
+  const response = await throttle(() => fetch(url));
   if (response.status === 200) {
     const json = await response.json();
     return json as T;
