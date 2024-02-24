@@ -19,6 +19,11 @@ type Miners = {
   winner: boolean;
 };
 
+type BlockWinner = {
+  winner: boolean;
+  claimed: boolean;
+};
+
 /////////////////////////
 // CONSTANTS
 /////////////////////////
@@ -218,13 +223,13 @@ export async function isBlockWinner(
   cityId: number,
   blockHeight: number,
   address: string
-): Promise<boolean> {
+): Promise<BlockWinner> {
   const url = new URL("ccd006-citycoin-mining-v2/is-block-winner", CC_API);
-  url.searchParams.set("height", String(blockHeight));
+  url.searchParams.set("claimHeight", String(blockHeight));
   url.searchParams.set("cityId", String(cityId));
   url.searchParams.set("user", address);
   try {
-    const isWinner = await fetchJson<boolean>(url.toString());
+    const isWinner = await fetchJson<BlockWinner>(url.toString());
     return isWinner;
   } catch (error) {
     throw new Error(
