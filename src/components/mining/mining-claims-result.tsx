@@ -12,6 +12,7 @@ import {
 } from "@chakra-ui/react";
 import { FaTimes } from "react-icons/fa";
 import { miningClaimListAtom } from "../../store/ccd006-v2";
+import { formatMicroAmount } from "../../store/common";
 
 function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
   const setMiningClaimList = useSetAtom(miningClaimListAtom);
@@ -59,13 +60,18 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
       {isBlockWinner.data ? (
         <>
           <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
-            <Text>{isBlockWinner.data?.claimed}</Text>
+            <Heading size="sm">Claimed</Heading>
+            <Text>{isBlockWinner.data?.claimed.toString()}</Text>
           </GridItem>
           <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
-            <Text>{isBlockWinner.data?.winner}</Text>
+            <Heading size="sm">Winner</Heading>
+            <Text>{isBlockWinner.data?.winner.toString()}</Text>
           </GridItem>
           <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 5, md: 4 }}>
-            <Text>{minerStats.data?.commit}</Text>
+            <Heading size="sm">Commit</Heading>
+            <Text>
+              {minerStats.data && formatMicroAmount(minerStats.data?.commit)}
+            </Text>
           </GridItem>
         </>
       ) : (

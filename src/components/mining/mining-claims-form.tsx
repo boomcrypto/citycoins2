@@ -2,12 +2,9 @@ import { atom, useAtom } from "jotai";
 import { atomWithDefault } from "jotai/utils";
 import {
   Button,
-  GridItem,
-  Heading,
   Input,
   Radio,
   RadioGroup,
-  SimpleGrid,
   Stack,
   Text,
 } from "@chakra-ui/react";
@@ -107,48 +104,14 @@ function MiningClaimsForm() {
           </>
         )}
       </Stack>
-      <Button mb={4} onClick={handleMiningClaim}>
-        Search for mining claims
-      </Button>
-      <Button
-        onClick={handleClearMiningClaims}
-        display={{ base: "block", md: "none" }}
-      >
-        Clear all blocks
-      </Button>
-      <SimpleGrid
-        templateColumns={{ base: "repeat(3, 1fr)", md: "repeat(6, 1fr)" }}
-        spacingX="2em"
-        alignItems="center"
-        display={{ base: "none", md: "grid" }}
-      >
-        {/* Header */}
-        <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 1, md: 1 }}>
-          <Heading size="lg">Block</Heading>
-        </GridItem>
-        {/* Close Button */}
-        <GridItem
-          colSpan={{ base: 1, md: 1 }}
-          colStart={{ md: 6 }}
-          order={{ base: 2, md: 6 }}
-        ></GridItem>
-        {/* Column Contents */}
-        <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
-          <Text fontWeight="bold">Claimed</Text>
-        </GridItem>
-        <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
-          <Text fontWeight="bold">Winner</Text>
-        </GridItem>
-        <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 5, md: 4 }}>
-          <Text fontWeight="bold">Commit</Text>
-        </GridItem>
-        {/* Claim Button */}
-        <GridItem colSpan={{ base: 1, md: 2 }} order={{ base: 6, md: 5 }}>
-          <Button w="100%" onClick={handleClearMiningClaims}>
-            Clear all blocks
-          </Button>
-        </GridItem>
-      </SimpleGrid>
+      <Stack direction={["column", null, "row"]} flexGrow="1">
+        <Button w="100%" mb={4} onClick={handleMiningClaim}>
+          Search for mining claims
+        </Button>
+        <Button w="100%" onClick={handleClearMiningClaims}>
+          Clear all blocks
+        </Button>
+      </Stack>
       {miningClaimList.length === 0 && <Text>Mining claim list is empty.</Text>}
       {miningClaimList
         .sort((a, b) => a - b)
