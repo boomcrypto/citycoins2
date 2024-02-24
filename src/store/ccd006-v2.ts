@@ -5,7 +5,6 @@
 import { atom } from "jotai";
 import { CC_API, fetchJson } from "./common";
 import { atomFamily, atomWithStorage } from "jotai/utils";
-import { citycoinsUserIdsAtom } from "./citycoins";
 
 type MiningStats = {
   miners: number;
@@ -35,6 +34,11 @@ export const CONTRACT_FQ_NAME = `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`;
 export const miningStatsAtom = atomWithStorage<MiningStats | null>(
   "citycoins-miningStats",
   null
+);
+
+export const miningClaimListAtom = atomWithStorage<number[]>(
+  "citycoins-cc-miningClaimList",
+  []
 );
 
 /////////////////////////

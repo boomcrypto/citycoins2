@@ -1,6 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { useMiningStats, useMinerStats } from "../../hooks/use-mining-stats";
-import { miningClaimListAtom } from "../../store/citycoins-mining";
 import { currentCityInfoAtom } from "../../store/citycoins";
 import {
   Button,
@@ -12,6 +11,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { FaTimes } from "react-icons/fa";
+import { miningClaimListAtom } from "../../store/ccd006-v2";
 
 function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
   const setMiningClaimList = useSetAtom(miningClaimListAtom);

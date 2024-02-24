@@ -1,10 +1,5 @@
-import { useAtom } from "jotai";
-import {
-  blockSelectionAtom,
-  endBlockHeightAtom,
-  miningClaimListAtom,
-  startBlockHeightAtom,
-} from "../../store/citycoins-mining";
+import { atom, useAtom } from "jotai";
+import { atomWithDefault, atomWithStorage } from "jotai/utils";
 import {
   Button,
   GridItem,
@@ -17,6 +12,32 @@ import {
   Text,
 } from "@chakra-ui/react";
 import MiningClaimResult from "./mining-claims-result";
+import { blockHeightsAtom } from "../../store/stacks";
+import { REWARD_DELAY } from "../../store/citycoins";
+import { miningClaimListAtom } from "../../store/ccd006-v2";
+
+type BlockSelection = "single" | "multiple";
+
+const blockSelectionAtom = atom<BlockSelection>("single");
+
+// either get computed value or set to user input
+const startBlockHeightAtom = atomWithDefault(
+  // getter no longer tracks dep when set
+  // can be reset to default value with RESET
+  (get) => {
+    const blockHeight = get(blockHeightsAtom);
+    return blockHeight ? blockHeight.stx - REWARD_DELAY * 3 : 0;
+  }
+);
+
+const endBlockHeightAtom = atomWithDefault(
+  // getter no longer tracks dep when set
+  // can be reset to default value with RESET
+  (get) => {
+    const blockHeight = get(blockHeightsAtom);
+    return blockHeight ? blockHeight.stx - REWARD_DELAY : 0;
+  }
+);
 
 function MiningClaimsForm() {
   const [blockSelection, setBlockSelection] = useAtom(blockSelectionAtom);
@@ -52,7 +73,11 @@ function MiningClaimsForm() {
       <Stack spacing={4} direction="row" alignItems="center">
         <RadioGroup
           name="blockSelectionRadio"
-          onChange={setBlockSelection}
+          onChange={(value) => {
+            if (value === "single" || value === "multiple") {
+              setBlockSelection(value);
+            }
+          }}
           value={blockSelection}
         >
           <Stack direction="row">
