@@ -1,5 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { useMiningStats, useMinerStats } from "../../hooks/use-mining-stats";
+import { useIsBlockWinner, useMinerStats } from "../../hooks/use-ccd006-v2";
 import { currentCityInfoAtom } from "../../store/citycoins";
 import {
   Button,
@@ -19,8 +19,9 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
 
   if (!currentCityInfo) throw new Error("No current city info found");
 
-  const miningStats = useMiningStats(currentCityInfo.id, blockHeight);
-  //const minerStats = useMinerStats(currentCityInfo.id, blockHeight);
+  // const miningStats = useMiningStats(currentCityInfo.id, blockHeight);
+  const minerStats = useMinerStats(currentCityInfo.id, blockHeight);
+  const isBlockWinner = useIsBlockWinner(currentCityInfo.id, blockHeight);
 
   const handleRemoveBlock = () => {
     setMiningClaimList((prev) => prev.filter((b) => b !== blockHeight));
@@ -55,24 +56,47 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
         />
       </GridItem>
       {/* Column Contents */}
-      <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
-        <Text>
-          Claimed: {miningStats.hasData && miningStats.data?.claimed.toString()}
-        </Text>
-      </GridItem>
-      <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
-        <Text>Miners: {miningStats.hasData && miningStats.data?.miners}</Text>
-      </GridItem>
-      <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 5, md: 4 }}>
-        <Text>Commit: </Text>
-      </GridItem>
+      {isBlockWinner.data ? (
+        <>
+          <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
+            <Text>{isBlockWinner.data?.claimed}</Text>
+          </GridItem>
+          <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
+            <Text>{isBlockWinner.data?.winner}</Text>
+          </GridItem>
+          <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 5, md: 4 }}>
+            <Text>{minerStats.data?.commit}</Text>
+          </GridItem>
+        </>
+      ) : (
+        <>
+          <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
+            <Text>No data</Text>
+          </GridItem>
+          <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
+            <Text>No data</Text>
+          </GridItem>
+          <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 5, md: 4 }}>
+            <Text>No data</Text>
+          </GridItem>
+        </>
+      )}
       {/* Claim Button */}
       <GridItem
         colSpan={{ base: 1, md: 1 }}
         order={{ base: 6, md: 5 }}
         textAlign="right"
       >
-        <Button w="100%">Claim</Button>
+        <Button
+          w="100%"
+          isDisabled={
+            !isBlockWinner.data ||
+            isBlockWinner.data?.claimed ||
+            !isBlockWinner.data?.winner
+          }
+        >
+          Claim
+        </Button>
       </GridItem>
       <GridItem colSpan={{ base: 3, md: 6 }}>
         <Divider orientation="horizontal" />

@@ -1,24 +1,21 @@
-import { atom, useAtomValue } from "jotai";
+import { useMemo } from "react";
+import { useAtomValue } from "jotai";
 import { loadable } from "jotai/utils";
+import { extractLoadableState } from "../store/common";
+import { stxAddressAtom } from "../store/stacks";
 import {
-  getMiningStats,
+  isBlockWinnerQueryAtomFamily,
   minerStatsQueryAtomFamily,
   miningStatsQueryAtomFamily,
 } from "../store/ccd006-v2";
-import { extractLoadableState } from "../store/common";
-import { stxAddressAtom } from "../store/stacks";
-import { useMemo } from "react";
 import { citycoinsUserIdsAtom } from "../store/citycoins";
 
-// split into individual items, easier debugging
-// useMiningStats
-// useMinerStats
-// all ccd006 related
+// return the mining stats
 export const useMiningStats = (cityId: number, blockHeight: number) => {
   const address = useAtomValue(stxAddressAtom);
   if (!address) throw new Error("No STX address found");
 
-  // load mining stats at block
+  // load mining stats at block from contract
   const miningStatsAtom = useMemo(
     () =>
       miningStatsQueryAtomFamily({
@@ -33,13 +30,14 @@ export const useMiningStats = (cityId: number, blockHeight: number) => {
   return extractLoadableState(miningStats);
 };
 
+// return the miner stats
 export const useMinerStats = (cityId: number, blockHeight: number) => {
   const userIds = useAtomValue(citycoinsUserIdsAtom);
   if (!userIds) throw new Error("No user IDs found");
   if (!userIds.ccd003) throw new Error("No CCD003 user ID found");
   const userId = userIds.ccd003;
 
-  // load miner stats at block
+  // load miner stats at block from contract
   const minerStatsAtom = useMemo(
     () =>
       minerStatsQueryAtomFamily({
@@ -53,4 +51,26 @@ export const useMinerStats = (cityId: number, blockHeight: number) => {
   const minerStats = useAtomValue(loadMinerStats);
 
   return extractLoadableState(minerStats);
+};
+
+// return if the user is the winner at the block
+export const useIsBlockWinner = (cityId: number, blockHeight: number) => {
+  const address = useAtomValue(stxAddressAtom);
+  if (!address) throw new Error("No STX address found");
+
+  // load is block winner from contract
+  const isBlockWinnerAtom = useMemo(
+    () =>
+      isBlockWinnerQueryAtomFamily({
+        cityId,
+        blockHeight,
+        address,
+      }),
+    [cityId, blockHeight, address]
+  );
+
+  const loadIsBlockWinner = loadable(isBlockWinnerAtom);
+  const isBlockWinner = useAtomValue(loadIsBlockWinner);
+
+  return extractLoadableState(isBlockWinner);
 };

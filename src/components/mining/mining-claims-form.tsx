@@ -1,5 +1,5 @@
 import { atom, useAtom } from "jotai";
-import { atomWithDefault, atomWithStorage } from "jotai/utils";
+import { atomWithDefault } from "jotai/utils";
 import {
   Button,
   GridItem,
@@ -134,13 +134,13 @@ function MiningClaimsForm() {
         ></GridItem>
         {/* Column Contents */}
         <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
-          <Text fontWeight="bold">Col 1</Text>
+          <Text fontWeight="bold">Claimed</Text>
         </GridItem>
         <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
-          <Text fontWeight="bold">Col 2</Text>
+          <Text fontWeight="bold">Winner</Text>
         </GridItem>
         <GridItem colSpan={{ base: 2, md: 1 }} order={{ base: 5, md: 4 }}>
-          <Text fontWeight="bold">Col 3</Text>
+          <Text fontWeight="bold">Commit</Text>
         </GridItem>
         {/* Claim Button */}
         <GridItem colSpan={{ base: 1, md: 2 }} order={{ base: 6, md: 5 }}>
