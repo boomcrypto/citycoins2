@@ -1,3 +1,4 @@
+import { useAtomValue } from "jotai";
 import {
   Heading,
   IconButton,
@@ -6,11 +7,19 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
-
 import { FaQuestion } from "react-icons/fa";
 import MiningClaimsForm from "../mining/mining-claims-form";
 
+import { isCitySelectedAtom } from "../../store/citycoins";
+
 function MiningClaims() {
+  const isCitySelected = useAtomValue(isCitySelectedAtom);
+
+  // prevent render if city is not selected
+  if (!isCitySelected) {
+    return <Text>Please select a city to continue.</Text>;
+  }
+
   return (
     <Stack spacing={4}>
       <Stack direction="row" alignItems="space-betwen">

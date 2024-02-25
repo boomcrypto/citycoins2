@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { useAtomValue } from "jotai";
+import { atom, useAtomValue } from "jotai";
 import { loadable } from "jotai/utils";
 import { extractLoadableState } from "../store/common";
 import { stxAddressAtom } from "../store/stacks";
 import {
+  isBlockWinnerMapAtom,
   isBlockWinnerQueryAtomFamily,
   minerStatsQueryAtomFamily,
   miningStatsQueryAtomFamily,
@@ -58,19 +59,28 @@ export const useIsBlockWinner = (cityId: number, blockHeight: number) => {
   const address = useAtomValue(stxAddressAtom);
   if (!address) throw new Error("No STX address found");
 
-  // load is block winner from contract
-  const isBlockWinnerAtom = useMemo(
-    () =>
-      isBlockWinnerQueryAtomFamily({
+  const localWinnerMap = useAtomValue(isBlockWinnerMapAtom);
+  const localData = localWinnerMap.get(blockHeight);
+
+  // Use a simple atom for local data or a query atom family for fetching
+  const isBlockWinnerAtom = useMemo(() => {
+    if (localData) {
+      console.log(`use-ccd006-v2: using local data for ${blockHeight}`);
+      // Create a simple atom that just returns the local data
+      return atom(Promise.resolve(localData));
+    } else {
+      console.log(`use-ccd006-v2: fetching onchain data for ${blockHeight}`);
+      return isBlockWinnerQueryAtomFamily({
         cityId,
         blockHeight,
         address,
-      }),
-    [cityId, blockHeight, address]
-  );
+      });
+    }
+  }, [cityId, blockHeight, address, localData]);
 
   const loadIsBlockWinner = loadable(isBlockWinnerAtom);
   const isBlockWinner = useAtomValue(loadIsBlockWinner);
 
+  // Use extractLoadableState to normalize the return structure
   return extractLoadableState(isBlockWinner);
 };

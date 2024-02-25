@@ -1,4 +1,4 @@
-import { atom, useAtom } from "jotai";
+import { atom, useAtom, useSetAtom } from "jotai";
 import { atomWithDefault } from "jotai/utils";
 import {
   Button,
@@ -11,7 +11,10 @@ import {
 import MiningClaimResult from "./mining-claims-result";
 import { blockHeightsAtom } from "../../store/stacks";
 import { REWARD_DELAY } from "../../store/citycoins";
-import { miningClaimListAtom } from "../../store/ccd006-v2";
+import {
+  isBlockWinnerMapAtom,
+  miningClaimListAtom,
+} from "../../store/ccd006-v2";
 
 type BlockSelection = "single" | "multiple";
 
@@ -42,11 +45,11 @@ function MiningClaimsForm() {
   const [startBlockHeight, setStartBlockHeight] = useAtom(startBlockHeightAtom);
   const [endBlockHeight, setEndBlockHeight] = useAtom(endBlockHeightAtom);
 
-  function handleClearMiningClaims() {
+  function handleClearMiningClaimBlocks() {
     setMiningClaimList([]);
   }
 
-  function handleMiningClaim() {
+  function handleMiningClaimBlocks() {
     if (blockSelection === "single") {
       setMiningClaimList((prev) =>
         Array.from(new Set([...prev, startBlockHeight]))
@@ -105,10 +108,10 @@ function MiningClaimsForm() {
         )}
       </Stack>
       <Stack direction={["column", null, "row"]} flexGrow="1">
-        <Button w="100%" mb={4} onClick={handleMiningClaim}>
+        <Button w="100%" mb={4} onClick={handleMiningClaimBlocks}>
           Search for mining claims
         </Button>
-        <Button w="100%" onClick={handleClearMiningClaims}>
+        <Button w="100%" onClick={handleClearMiningClaimBlocks}>
           Clear all blocks
         </Button>
       </Stack>

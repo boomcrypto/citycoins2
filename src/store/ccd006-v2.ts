@@ -84,6 +84,14 @@ export const isBlockWinnerMapAtom = atomWithStorage<Map<number, BlockWinner>>(
   storageForMaps
 );
 
+// create an atom family with a default value of false
+export const isBlockWinnerAtomFamily = atomFamily((blockHeight: number) =>
+  atomWithStorage<BlockWinner>(`citycoins-cc-isBlockWinner-${blockHeight}`, {
+    winner: false,
+    claimed: false,
+  })
+);
+
 /////////////////////////
 // DERIVED ATOMS
 /////////////////////////

@@ -18,7 +18,7 @@ import {
   miningClaimListAtom,
   isBlockWinnerMapAtom,
 } from "../../store/ccd006-v2";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
   const toast = useToast();
@@ -26,11 +26,20 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
   const setMiningClaimList = useSetAtom(miningClaimListAtom);
   const currentCityInfo = useAtomValue(currentCityInfoAtom);
 
+  // should be unreachable
   if (!currentCityInfo) throw new Error("No current city info found");
 
   // const miningStats = useMiningStats(currentCityInfo.id, blockHeight);
   // const minerStats = useMinerStats(currentCityInfo.id, blockHeight);
   // const isBlockWinnerValue = useIsBlockWinner(currentCityInfo.id, blockHeight);
+
+  useEffect(() => {
+    console.log("MiningClaimResult mounted or updated", blockHeight);
+
+    return () => {
+      console.log("MiningClaimResult will unmount or update");
+    };
+  });
 
   const handleRemoveBlock = () => {
     setMiningClaimList((prev) => prev.filter((b) => b !== blockHeight));
@@ -98,23 +107,32 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
 function MiningClaimResultData({ blockHeight }: { blockHeight: number }) {
   const currentCityInfo = useAtomValue(currentCityInfoAtom);
   if (!currentCityInfo) throw new Error("No current city info found");
-  const isBlockWinnerValue = useIsBlockWinner(currentCityInfo.id, blockHeight);
+  const cityId = useMemo(() => currentCityInfo?.id, [currentCityInfo?.id]);
+  const isBlockWinnerValue = useIsBlockWinner(cityId, blockHeight);
+  const isBlockWinnerValueData = isBlockWinnerValue.data;
   const [isBlockWinnerMap, setIsBlockWinnerMap] = useAtom(isBlockWinnerMapAtom);
   const blockWinnerData = isBlockWinnerMap.get(blockHeight);
+
+  useEffect(() => {
+    console.log("MiningClaimResultData mounted or updated", { blockHeight });
+
+    return () => {
+      console.log("MiningClaimResultData will unmount or update");
+    };
+  });
 
   // do I need the hook at this point
   // or do I just fetch and set the data?
   // what about fetching a second time?
   useEffect(() => {
-    const data = isBlockWinnerValue.data;
-    if (data) {
+    if (isBlockWinnerValueData) {
       setIsBlockWinnerMap((prevMap) => {
         const newMap = new Map(prevMap);
-        newMap.set(blockHeight, data);
+        newMap.set(blockHeight, isBlockWinnerValueData);
         return newMap;
       });
     }
-  }, [isBlockWinnerValue.data, blockHeight, setIsBlockWinnerMap]);
+  }, [isBlockWinnerValueData, blockHeight, setIsBlockWinnerMap]);
 
   if (blockWinnerData) {
     return (
