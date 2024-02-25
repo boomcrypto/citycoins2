@@ -1,4 +1,4 @@
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   Button,
   Divider,
@@ -11,27 +11,26 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { useOpenContractCall } from "@micro-stacks/react";
-import { uintCV } from "micro-stacks/clarity";
 import { FaTimes } from "react-icons/fa";
 import { useIsBlockWinner } from "../../hooks/use-ccd006-v2";
+import { currentCityInfoAtom } from "../../store/citycoins";
 import {
-  currentCityConfigAtom,
-  currentCityInfoAtom,
-} from "../../store/citycoins";
-import { miningClaimListAtom } from "../../store/ccd006-v2";
+  miningClaimListAtom,
+  isBlockWinnerMapAtom,
+} from "../../store/ccd006-v2";
+import { useEffect } from "react";
 
 function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
   const toast = useToast();
   const { openContractCall, isRequestPending } = useOpenContractCall();
   const setMiningClaimList = useSetAtom(miningClaimListAtom);
   const currentCityInfo = useAtomValue(currentCityInfoAtom);
-  const currentCityConfig = useAtomValue(currentCityConfigAtom);
 
   if (!currentCityInfo) throw new Error("No current city info found");
 
   // const miningStats = useMiningStats(currentCityInfo.id, blockHeight);
   // const minerStats = useMinerStats(currentCityInfo.id, blockHeight);
-  const isBlockWinner = useIsBlockWinner(currentCityInfo.id, blockHeight);
+  // const isBlockWinnerValue = useIsBlockWinner(currentCityInfo.id, blockHeight);
 
   const handleRemoveBlock = () => {
     setMiningClaimList((prev) => prev.filter((b) => b !== blockHeight));
@@ -41,8 +40,6 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
   /*
   const handleMiningClaimTx = async (blockHeight: number) => {
     if (!currentCityConfig) return null;
-
-
     try {
       await openContractCall({
         contractAddress: currentCityConfig.contractAddress,
@@ -91,23 +88,6 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
       </GridItem>
       {/* Column Contents */}
       <MiningClaimResultData blockHeight={blockHeight} />
-      {/* Claim Button */}
-      <GridItem
-        colSpan={{ base: 1, md: 1 }}
-        order={{ base: 6, md: 4 }}
-        textAlign="right"
-      >
-        <Button
-          w="100%"
-          isDisabled={
-            !isBlockWinner.data ||
-            isBlockWinner.data?.claimed ||
-            !isBlockWinner.data?.winner
-          }
-        >
-          Claim
-        </Button>
-      </GridItem>
       <GridItem colSpan={{ base: 3, md: 5 }}>
         <Divider orientation="horizontal" />
       </GridItem>
@@ -117,11 +97,54 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
 
 function MiningClaimResultData({ blockHeight }: { blockHeight: number }) {
   const currentCityInfo = useAtomValue(currentCityInfoAtom);
-
   if (!currentCityInfo) throw new Error("No current city info found");
-  const isBlockWinner = useIsBlockWinner(currentCityInfo.id, blockHeight);
+  const isBlockWinnerValue = useIsBlockWinner(currentCityInfo.id, blockHeight);
+  const [isBlockWinnerMap, setIsBlockWinnerMap] = useAtom(isBlockWinnerMapAtom);
+  const blockWinnerData = isBlockWinnerMap.get(blockHeight);
 
-  if (isBlockWinner.isLoading) {
+  // do I need the hook at this point
+  // or do I just fetch and set the data?
+  // what about fetching a second time?
+  useEffect(() => {
+    const data = isBlockWinnerValue.data;
+    if (data) {
+      setIsBlockWinnerMap((prevMap) => {
+        const newMap = new Map(prevMap);
+        newMap.set(blockHeight, data);
+        return newMap;
+      });
+    }
+  }, [isBlockWinnerValue.data, blockHeight, setIsBlockWinnerMap]);
+
+  if (blockWinnerData) {
+    return (
+      <>
+        <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
+          <Heading size="sm">Claimed</Heading>
+          <Text>{blockWinnerData.claimed.toString()}</Text>
+        </GridItem>
+        <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
+          <Heading size="sm">Winner</Heading>
+          <Text>{blockWinnerData.winner.toString()}</Text>
+        </GridItem>
+        {/* Claim Button */}
+        <GridItem
+          colSpan={{ base: 1, md: 1 }}
+          order={{ base: 6, md: 4 }}
+          textAlign="right"
+        >
+          <Button
+            w="100%"
+            isDisabled={blockWinnerData.claimed || !blockWinnerData.winner}
+          >
+            Claim
+          </Button>
+        </GridItem>
+      </>
+    );
+  }
+
+  if (isBlockWinnerValue.isLoading) {
     return (
       <GridItem colSpan={2} order={{ base: 3, md: 2 }}>
         <Spinner label="Loading winner data..." />
@@ -129,30 +152,11 @@ function MiningClaimResultData({ blockHeight }: { blockHeight: number }) {
     );
   }
 
-  if (isBlockWinner.hasError) {
-    return (
-      <GridItem colSpan={2} order={{ base: 3, md: 2 }}>
-        Unable to fetch data...
-      </GridItem>
-    );
-  }
-
-  if (isBlockWinner.data) {
-    return (
-      <>
-        <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 3, md: 2 }}>
-          <Heading size="sm">Claimed</Heading>
-          <Text>{isBlockWinner.data.claimed.toString()}</Text>
-        </GridItem>
-        <GridItem colSpan={{ base: 3, md: 1 }} order={{ base: 4, md: 3 }}>
-          <Heading size="sm">Winner</Heading>
-          <Text>{isBlockWinner.data.winner.toString()}</Text>
-        </GridItem>
-      </>
-    );
-  }
-
-  return <Text>No data available</Text>;
+  return (
+    <GridItem colSpan={2} order={{ base: 3, md: 2 }}>
+      Unable to fetch data, please refresh.
+    </GridItem>
+  );
 }
 
 export default MiningClaimResult;

@@ -46,6 +46,44 @@ export const miningClaimListAtom = atomWithStorage<number[]>(
   []
 );
 
+function serializeMap(map: Map<number, BlockWinner>) {
+  return JSON.stringify(Array.from(map.entries()));
+}
+
+function deserializeMap(str: string): Map<number, BlockWinner> {
+  try {
+    const entries = JSON.parse(str);
+    if (!Array.isArray(entries)) {
+      // If entries is not an array, return an empty Map to avoid errors
+      return new Map<number, BlockWinner>();
+    }
+    return new Map(entries);
+  } catch (error) {
+    console.error("Error deserializing Map:", error);
+    return new Map<number, BlockWinner>(); // Return an empty Map in case of error
+  }
+}
+
+const storageForMaps = {
+  getItem: (key: string): Map<number, BlockWinner> => {
+    const item = localStorage.getItem(key);
+    return item ? deserializeMap(item) : new Map();
+  },
+  setItem: (key: string, value: Map<number, BlockWinner>) => {
+    const item = serializeMap(value);
+    localStorage.setItem(key, item);
+  },
+  removeItem: (key: string) => {
+    localStorage.removeItem(key);
+  },
+};
+
+export const isBlockWinnerMapAtom = atomWithStorage<Map<number, BlockWinner>>(
+  "citycoins-cc-blockWinnerMap",
+  new Map<number, BlockWinner>(),
+  storageForMaps
+);
+
 /////////////////////////
 // DERIVED ATOMS
 /////////////////////////
@@ -101,7 +139,12 @@ export const isBlockWinnerQueryAtomFamily = atomFamily(
     address: string;
   }) =>
     atom(async () => {
-      return await isBlockWinner(cityId, blockHeight, address);
+      const isBlockWinnerValue = await isBlockWinner(
+        cityId,
+        blockHeight,
+        address
+      );
+      return isBlockWinnerValue;
     })
 );
 
