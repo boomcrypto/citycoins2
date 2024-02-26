@@ -22,6 +22,16 @@ const fonts = {
   body: "Open Sans, sans-serif",
 };
 
+const globalStyles = {
+  ".spin": {
+    animation: "spin 1s linear infinite",
+  },
+  "@keyframes spin": {
+    "0%": { transform: "rotate(0deg)" },
+    "100%": { transform: "rotate(360deg)" },
+  },
+};
+
 const linkStyles = {
   baseStyle: (props: StyleFunctionProps) => ({
     color: mode("blue.600", "blue.300")(props),
@@ -52,6 +62,9 @@ const theme = extendTheme({
     Tabs: tabsTheme,
   },
   fonts,
+  styles: {
+    global: globalStyles,
+  },
 });
 
 export default theme;
