@@ -1,11 +1,10 @@
-import { useMemo } from "react";
-import { atom, useAtomValue } from "jotai";
+import { useEffect, useMemo } from "react";
+import { atom, useAtom, useAtomValue } from "jotai";
 import { loadable } from "jotai/utils";
 import { extractLoadableState } from "../store/common";
 import { stxAddressAtom } from "../store/stacks";
 import {
-  isBlockWinnerMapAtom,
-  isBlockWinnerQueryAtomFamily,
+  isBlockWinnerAtomFamily,
   minerStatsQueryAtomFamily,
   miningStatsQueryAtomFamily,
 } from "../store/ccd006-v2";
@@ -54,6 +53,7 @@ export const useMinerStats = (cityId: number, blockHeight: number) => {
   return extractLoadableState(minerStats);
 };
 
+/*
 // return if the user is the winner at the block
 export const useIsBlockWinner = (cityId: number, blockHeight: number) => {
   const address = useAtomValue(stxAddressAtom);
@@ -84,3 +84,19 @@ export const useIsBlockWinner = (cityId: number, blockHeight: number) => {
   // Use extractLoadableState to normalize the return structure
   return extractLoadableState(isBlockWinner);
 };
+*/
+
+/*
+export const useIsBlockWinnerFamily = (blockHeight: number) => {
+  // Directly use the atom from the atomFamily for the given blockHeight
+  const [isBlockwinnerAtom, setIsBlockWinnerAtom] = useAtom(
+    isBlockWinnerAtomFamily(blockHeight)
+  );
+
+  const loadableIsBlockWinnerAtom = loadable(isBlockwinnerAtom);
+
+  // Return the state and setState function for the consumer to use
+  // This allows components to read the block winner status and update it if necessary
+  return { isBlockWinner, setIsBlockWinner };
+};
+*/

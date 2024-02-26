@@ -4,7 +4,7 @@
 
 import { atom } from "jotai";
 import { CC_API, fetchJson } from "./common";
-import { atomFamily, atomWithStorage } from "jotai/utils";
+import { atomFamily, atomWithStorage, loadable } from "jotai/utils";
 
 type MiningStats = {
   miners: number;
@@ -46,50 +46,75 @@ export const miningClaimListAtom = atomWithStorage<number[]>(
   []
 );
 
-function serializeMap(map: Map<number, BlockWinner>) {
-  return JSON.stringify(Array.from(map.entries()));
-}
-
-function deserializeMap(str: string): Map<number, BlockWinner> {
-  try {
-    const entries = JSON.parse(str);
-    if (!Array.isArray(entries)) {
-      // If entries is not an array, return an empty Map to avoid errors
-      return new Map<number, BlockWinner>();
-    }
-    return new Map(entries);
-  } catch (error) {
-    console.error("Error deserializing Map:", error);
-    return new Map<number, BlockWinner>(); // Return an empty Map in case of error
-  }
-}
-
-const storageForMaps = {
-  getItem: (key: string): Map<number, BlockWinner> => {
-    const item = localStorage.getItem(key);
-    return item ? deserializeMap(item) : new Map();
-  },
-  setItem: (key: string, value: Map<number, BlockWinner>) => {
-    const item = serializeMap(value);
-    localStorage.setItem(key, item);
-  },
-  removeItem: (key: string) => {
-    localStorage.removeItem(key);
-  },
-};
-
-export const isBlockWinnerMapAtom = atomWithStorage<Map<number, BlockWinner>>(
-  "citycoins-cc-blockWinnerMap",
-  new Map<number, BlockWinner>(),
-  storageForMaps
+// create an atom family to create a storage entry per block
+export const isBlockWinnerAtomFamily = atomFamily((blockHeight: number) =>
+  atomWithStorage<BlockWinner | null>(
+    `citycoins-cc-isBlockWinner-${blockHeight}`,
+    null
+  )
 );
 
-// create an atom family with a default value of false
-export const isBlockWinnerAtomFamily = atomFamily((blockHeight: number) =>
-  atomWithStorage<BlockWinner>(`citycoins-cc-isBlockWinner-${blockHeight}`, {
-    winner: false,
-    claimed: false,
-  })
+export type ParamsAddressCityBlock = {
+  address: string;
+  cityId: number;
+  blockHeight: number;
+};
+
+// atom for locally stored value
+// returns null or set value
+export const localBlockWinnerAtomFamily = atomFamily(
+  // atom: read
+  ({ cityId, blockHeight, address }: ParamsAddressCityBlock) =>
+    atomWithStorage<BlockWinner | null>(
+      `citycoins-cc-isBlockWinner-${address}-${cityId}-${blockHeight}`,
+      null
+    )
+);
+
+// atom to fetch the related data
+// can be wrapped in loadable util
+// can be reacted to in components
+export const fetchIsBlockWinnerAtomFamily = atomFamily(
+  // atom: read
+  ({ address, cityId, blockHeight }: ParamsAddressCityBlock) =>
+    atom(async () => {
+      return await isBlockWinner(cityId, blockHeight, address);
+    })
+);
+
+export const derivedIsBlockWinnerAtomFamily = atomFamily(
+  ({ address, cityId, blockHeight }: ParamsAddressCityBlock) =>
+    atom(
+      // atom: read
+      (get) => {
+        // return local data if found
+        const localData = get(
+          localBlockWinnerAtomFamily({ cityId, blockHeight, address })
+        );
+        if (localData !== null) {
+          console.log("derivedIsBlockWinnerAtomFamily: localData found");
+          return Promise.resolve(localData);
+        }
+        // fetch and return the data if not found
+        console.log(
+          "derivedIsBlockWinnerAtomFamily: localData not found, fetching data"
+        );
+        const fetchAtom = fetchIsBlockWinnerAtomFamily({
+          address,
+          cityId,
+          blockHeight,
+        });
+        return get(fetchAtom);
+      },
+      // atom: write
+      (_, set, newValue: BlockWinner) => {
+        // set the local storage value
+        set(
+          localBlockWinnerAtomFamily({ cityId, blockHeight, address }),
+          newValue
+        );
+      }
+    )
 );
 
 /////////////////////////
@@ -133,26 +158,6 @@ export const blockWinnerQueryAtomFamily = atomFamily(
   ({ cityId, blockHeight }: { cityId: number; blockHeight: number }) =>
     atom(async () => {
       return await getBlockWinner(cityId, blockHeight);
-    })
-);
-
-export const isBlockWinnerQueryAtomFamily = atomFamily(
-  ({
-    cityId,
-    blockHeight,
-    address,
-  }: {
-    cityId: number;
-    blockHeight: number;
-    address: string;
-  }) =>
-    atom(async () => {
-      const isBlockWinnerValue = await isBlockWinner(
-        cityId,
-        blockHeight,
-        address
-      );
-      return isBlockWinnerValue;
     })
 );
 

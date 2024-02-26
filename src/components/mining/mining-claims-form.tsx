@@ -1,4 +1,4 @@
-import { atom, useAtom, useSetAtom } from "jotai";
+import { atom, useAtom } from "jotai";
 import { atomWithDefault } from "jotai/utils";
 import {
   Button,
@@ -11,10 +11,7 @@ import {
 import MiningClaimResult from "./mining-claims-result";
 import { blockHeightsAtom } from "../../store/stacks";
 import { REWARD_DELAY } from "../../store/citycoins";
-import {
-  isBlockWinnerMapAtom,
-  miningClaimListAtom,
-} from "../../store/ccd006-v2";
+import { miningClaimListAtom } from "../../store/ccd006-v2";
 
 type BlockSelection = "single" | "multiple";
 

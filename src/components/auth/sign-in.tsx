@@ -46,6 +46,7 @@ function SignIn(props: { variant?: string }) {
             }
           },
           onCancel: () => {
+            // TODO: add yummy toast
             // console.log("sign-in: user cancelled auth request");
           },
         })
