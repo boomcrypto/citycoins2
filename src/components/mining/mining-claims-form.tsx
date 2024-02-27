@@ -12,6 +12,7 @@ import MiningClaimResult from "./mining-claims-result";
 import { blockHeightsAtom } from "../../store/stacks";
 import { REWARD_DELAY } from "../../store/citycoins";
 import { miningClaimListAtom } from "../../store/ccd006-v2";
+import { memo, useEffect, useMemo } from "react";
 
 type BlockSelection = "single" | "multiple";
 
@@ -65,6 +66,17 @@ function MiningClaimsForm() {
     }
   }
 
+  const memoizedMiningClaimList = useMemo(
+    () => miningClaimList,
+    [miningClaimList]
+  );
+
+  const MemoizedMiningClaimResult = memo(MiningClaimResult);
+
+  useEffect(() => {
+    console.log("MiningClaimsForm: rendered");
+  });
+
   return (
     <Stack spacing={4}>
       <Stack spacing={4} direction="row" alignItems="center">
@@ -82,27 +94,24 @@ function MiningClaimsForm() {
             <Radio value="multiple">Multiple</Radio>
           </Stack>
         </RadioGroup>
-        {blockSelection === "single" && (
-          <Input
-            placeholder="block height"
-            value={startBlockHeight}
-            onChange={(e) => setStartBlockHeight(Number(e.target.value))}
-          />
-        )}
-        {blockSelection === "multiple" && (
-          <>
-            <Input
-              placeholder="start block height"
-              value={startBlockHeight}
-              onChange={(e) => setStartBlockHeight(Number(e.target.value))}
-            />
-            <Input
-              placeholder="end block height"
-              value={endBlockHeight}
-              onChange={(e) => setEndBlockHeight(Number(e.target.value))}
-            />
-          </>
-        )}
+        <Input
+          placeholder="start block height"
+          value={startBlockHeight}
+          onChange={(e) => setStartBlockHeight(Number(e.target.value))}
+        />
+        <Input
+          placeholder="end block height"
+          value={endBlockHeight}
+          onChange={(e) => setEndBlockHeight(Number(e.target.value))}
+        />
+      </Stack>
+      <Stack>
+        <RadioGroup name="test" defaultValue="test2">
+          <Stack direction="row">
+            <Radio value="test1">Test 1</Radio>
+            <Radio value="test2">Test 2</Radio>
+          </Stack>
+        </RadioGroup>
       </Stack>
       <Stack direction={["column", null, "row"]} flexGrow="1">
         <Button w="100%" mb={4} onClick={handleMiningClaimBlocks}>
@@ -112,12 +121,14 @@ function MiningClaimsForm() {
           Clear all blocks
         </Button>
       </Stack>
-      {miningClaimList.length === 0 && <Text>Mining claim list is empty.</Text>}
-      {miningClaimList
+      {memoizedMiningClaimList.length === 0 && (
+        <Text>Mining claim list is empty.</Text>
+      )}
+      {memoizedMiningClaimList
         .sort((a, b) => a - b)
         .map((blockHeight) => (
-          <MiningClaimResult
-            key={`block-${blockHeight}`}
+          <MemoizedMiningClaimResult
+            key={`miningclaim-block-${blockHeight}`}
             blockHeight={blockHeight}
           />
         ))}

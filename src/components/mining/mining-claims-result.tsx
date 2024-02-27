@@ -19,7 +19,7 @@ import {
   localBlockWinnerAtomFamily,
   miningClaimListAtom,
 } from "../../store/ccd006-v2";
-import { useEffect } from "react";
+import { memo, useEffect } from "react";
 import { stxAddressAtom } from "../../store/stacks";
 import { loadable } from "jotai/utils";
 import { extractLoadableState } from "../../store/common";
@@ -31,6 +31,10 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
   const setMiningClaimList = useSetAtom(miningClaimListAtom);
   const address = useAtomValue(stxAddressAtom);
   const currentCityInfo = useAtomValue(currentCityInfoAtom);
+
+  useEffect(() => {
+    console.log("MiningClaimResult: rendered");
+  });
 
   // should be unreachable
   if (!address) throw new Error("No address found");
@@ -62,6 +66,8 @@ function MiningClaimResult({ blockHeight }: { blockHeight: number }) {
       });
   };
   */
+
+  const MemoizedMiningClaimResultData = memo(MiningClaimResultData);
 
   return (
     <SimpleGrid
@@ -139,7 +145,7 @@ function MiningClaimResultData(props: ParamsAddressCityBlock) {
       console.log("MiningClaimResultData: setting value in localstorage");
       setIsBlockWinnerData(data);
     }
-  }, [localBlockWinnerData, data, setIsBlockWinnerData]);
+  }, [data, setIsBlockWinnerData]);
 
   if (isLoading) {
     return (

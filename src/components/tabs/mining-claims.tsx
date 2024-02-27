@@ -11,9 +11,22 @@ import { FaQuestion } from "react-icons/fa";
 import MiningClaimsForm from "../mining/mining-claims-form";
 
 import { isCitySelectedAtom } from "../../store/citycoins";
+import { stxAddressAtom } from "../../store/stacks";
+import { useEffect } from "react";
 
 function MiningClaims() {
+  const stxAddress = useAtomValue(stxAddressAtom);
   const isCitySelected = useAtomValue(isCitySelectedAtom);
+
+  // simple useEffect to tell if the component rerenders
+  useEffect(() => {
+    console.log("MiningClaims: rendered");
+  });
+
+  // prevent render if stxAddress is not selected
+  if (!stxAddress) {
+    return <Text>Please sign in with your wallet to continue.</Text>;
+  }
 
   // prevent render if city is not selected
   if (!isCitySelected) {
