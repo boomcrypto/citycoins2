@@ -105,14 +105,6 @@ function MiningClaimsForm() {
           onChange={(e) => setEndBlockHeight(Number(e.target.value))}
         />
       </Stack>
-      <Stack>
-        <RadioGroup name="test" defaultValue="test2">
-          <Stack direction="row">
-            <Radio value="test1">Test 1</Radio>
-            <Radio value="test2">Test 2</Radio>
-          </Stack>
-        </RadioGroup>
-      </Stack>
       <Stack direction={["column", null, "row"]} flexGrow="1">
         <Button w="100%" mb={4} onClick={handleMiningClaimBlocks}>
           Search for mining claims

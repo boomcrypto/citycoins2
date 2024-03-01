@@ -9,6 +9,7 @@ import Stacking from "../tabs/stacking";
 import StackingClaims from "../tabs/stacking-claims";
 import Voting from "../tabs/voting";
 import ConnectWallet from "../auth/connect-wallet";
+import MiningClaimsV2 from "../tabs/mining-claims-v2";
 
 function Content() {
   const stxAddress = useAtomValue(stxAddressAtom);
@@ -56,7 +57,7 @@ function Content() {
             <Mining />
           </TabPanel>
           <TabPanel>
-            <MiningClaims />
+            <MiningClaimsV2 />
           </TabPanel>
           <TabPanel>
             <Stacking />

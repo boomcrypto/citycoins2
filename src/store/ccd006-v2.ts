@@ -78,7 +78,7 @@ export const fetchIsBlockWinnerAtomFamily = atomFamily(
   // atom: read
   ({ address, cityId, blockHeight }: ParamsAddressCityBlock) =>
     atom(async () => {
-      return await isBlockWinner(cityId, blockHeight, address);
+      return await isBlockWinner(address, cityId, blockHeight);
     })
 );
 
@@ -276,14 +276,14 @@ export async function getBlockWinner(
 
 // is-block-winner
 export async function isBlockWinner(
+  address: string,
   cityId: number,
-  blockHeight: number,
-  address: string
+  blockHeight: number
 ): Promise<BlockWinner> {
   const url = new URL("ccd006-citycoin-mining-v2/is-block-winner", CC_API);
-  url.searchParams.set("claimHeight", String(blockHeight));
-  url.searchParams.set("cityId", String(cityId));
   url.searchParams.set("user", address);
+  url.searchParams.set("cityId", String(cityId));
+  url.searchParams.set("claimHeight", String(blockHeight));
   try {
     const isWinner = await fetchJson<BlockWinner>(url.toString());
     return isWinner;
