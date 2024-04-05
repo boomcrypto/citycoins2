@@ -4,6 +4,7 @@ import {
   Divider,
   Link,
   ListItem,
+  Spinner,
   Stack,
   Stat,
   StatLabel,
@@ -71,11 +72,10 @@ function VoteResult() {
 }
 
 function CCIP021() {
+  const isVoteActive = useCcip021VoteData("isVoteActive");
+  const voteTotals = useCcip021VoteData("voteTotals");
   const voterInfo = useCcip021VoteData("voterInfo");
-  const yesVotes = 41;
-  const noVotes = 0;
-  const yesTotal = 2_747_505_330_000_000;
-  const noTotal = 0;
+  const hasVoted = useAtomValue(hasVotedAtom);
 
   return (
     <Stack spacing={4}>
@@ -91,25 +91,28 @@ function CCIP021() {
         >
           <Stat>
             <StatLabel>MIA Cycles</StatLabel>
-            <StatNumber>64, 65</StatNumber>
+            <StatNumber>80, 81</StatNumber>
           </Stat>
           <Stat>
             <StatLabel>NYC Cycles</StatLabel>
-            <StatNumber>64, 65</StatNumber>
+            <StatNumber>80, 81</StatNumber>
           </Stat>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber>{yesVotes}</StatNumber>
+            <StatNumber>{voteTotals.data?.yesVotes ?? <Spinner />}</StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber>{noVotes}</StatNumber>
+            <StatNumber>{voteTotals.data?.noVotes ?? <Spinner />}</StatNumber>
           </Stat>
         </Stack>
       </Box>
-      <VoteProgressBar yesTotal={yesTotal} noTotal={noTotal} />
+      <VoteProgressBar
+        yesTotal={voteTotals.data?.yesTotal}
+        noTotal={voteTotals.data?.noTotal}
+      />
       <Divider />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
@@ -160,6 +163,15 @@ function CCIP021() {
           the new sunset period ending at Stacks block 173,748.
         </Text>
       </Stack>
+      {isVoteActive.data && hasVoted ? (
+        <>
+          <Divider />
+          <Text fontWeight="bold">Vote recorded, thank you!</Text>
+          <Text>Refresh to see stats once the tx confirms.</Text>
+        </>
+      ) : (
+        <VoteButtons />
+      )}
       {voterInfo.data && <VoteResult />}
     </Stack>
   );
