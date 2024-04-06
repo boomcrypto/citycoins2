@@ -85,7 +85,7 @@ function Voting() {
             <AccordionButton>
               <VoteTitle
                 title="Vote 6: Extend sunset period 2"
-                status="pending"
+                status="active"
               />
             </AccordionButton>
           </h2>
