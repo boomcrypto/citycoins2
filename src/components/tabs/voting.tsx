@@ -12,6 +12,7 @@ import CityCoinsVoteV2 from "../votes/citycoins-vote-v2";
 import CityCoinsVoteV3 from "../votes/citycoins-vote-v3";
 import CCIP014 from "../votes/ccip-014";
 import CCIP017 from "../votes/ccip-017";
+import CCIP021 from "../votes/ccip-021";
 import VoteTitle from "../votes/vote-title";
 
 function Voting() {
@@ -77,6 +78,19 @@ function Voting() {
           </h2>
           <AccordionPanel pb={4}>
             <CCIP017 />
+          </AccordionPanel>
+        </AccordionItem>
+        <AccordionItem>
+          <h2>
+            <AccordionButton>
+              <VoteTitle
+                title="Vote 6: Extend sunset period 2"
+                status="active"
+              />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel pb={4}>
+            <CCIP021 />
           </AccordionPanel>
         </AccordionItem>
       </Accordion>
