@@ -20,6 +20,7 @@ import { formatMicroAmount } from "../../store/common";
 import { hasVotedAtom } from "../../store/ccip-021";
 import VoteProgressBar from "./vote-progress-bar";
 
+/*
 function VoteButtons() {
   const { voteYes, voteNo, isRequestPending } = useCcip021VoteActions();
   const hasVoted = useAtomValue(hasVotedAtom);
@@ -48,6 +49,7 @@ function VoteButtons() {
     </>
   );
 }
+*/
 
 function VoteResult() {
   const voterInfo = useCcip021VoteData("voterInfo");
@@ -77,6 +79,11 @@ function CCIP021() {
   const voterInfo = useCcip021VoteData("voterInfo");
   const hasVoted = useAtomValue(hasVotedAtom);
 
+  const yesVotes = 65;
+  const noVotes = 0;
+  const yesTotal = 3952952766000000;
+  const noTotal = 0;
+
   return (
     <Stack spacing={4}>
       <Box
@@ -101,24 +108,21 @@ function CCIP021() {
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber>{voteTotals.data?.yesVotes ?? <Spinner />}</StatNumber>
+            <StatNumber>{yesVotes}</StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber>{voteTotals.data?.noVotes ?? <Spinner />}</StatNumber>
+            <StatNumber>{noVotes}</StatNumber>
           </Stat>
         </Stack>
       </Box>
-      <VoteProgressBar
-        yesTotal={voteTotals.data?.yesTotal}
-        noTotal={voteTotals.data?.noTotal}
-      />
+      <VoteProgressBar yesTotal={yesTotal} noTotal={noTotal} />
       <Divider />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
         <Box>
           <Link
-            href="https://github.com/citycoins/governance/blob/feat/ccip-21/ccips/ccip-021/ccip-021-extend-direct-execute-sunset-period-2.md"
+            href="https://github.com/citycoins/governance/blob/main/ccips/ccip-021/ccip-021-extend-direct-execute-sunset-period-2.md"
             isExternal
           >
             CCIP-021
@@ -137,7 +141,7 @@ function CCIP021() {
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Voting Method:</Text>
         <Link
-          href="https://github.com/citycoins/governance/blob/feat/add-ccip-015/ccips/ccip-015/ccip-015-community-proposal-voting-process.md"
+          href="https://github.com/citycoins/governance/blob/main/ccips/ccip-015/ccip-015-community-proposal-voting-process.md"
           isExternal
         >
           CCIP-015
@@ -163,15 +167,6 @@ function CCIP021() {
           the new sunset period ending at Stacks block 173,748.
         </Text>
       </Stack>
-      {isVoteActive.data && hasVoted ? (
-        <>
-          <Divider />
-          <Text fontWeight="bold">Vote recorded, thank you!</Text>
-          <Text>Refresh to see stats once the tx confirms.</Text>
-        </>
-      ) : (
-        <VoteButtons />
-      )}
       {voterInfo.data && <VoteResult />}
     </Stack>
   );
