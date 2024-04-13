@@ -81,7 +81,7 @@ function CCIP021() {
 
   const yesVotes = 65;
   const noVotes = 0;
-  const yesTotal = 3952952766;
+  const yesTotal = 3952952766000000;
   const noTotal = 0;
 
   return (
