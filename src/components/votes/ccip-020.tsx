@@ -147,13 +147,18 @@ function CCIP020() {
       <Stack spacing={2}>
         <Text fontWeight="bold">Details:</Text>
         <Text>
-          As the CityCoins Protocol prepares for the upcoming Nakamoto release
-          on the Stacks blockchain[^1], the accumulation of technical debt with
-          each change has made it increasingly challenging for core contributors
-          and volunteers to keep up with the necessary updates. In light of
-          these challenges and after careful consideration of community
-          feedback, this CCIP proposes a graceful shutdown of the CityCoins
-          Protocol.
+          As the CityCoins Protocol prepares for the{" "}
+          <Link
+            href="https://docs.stacks.co/nakamoto-upgrade/nakamoto-rollout-plan"
+            isExternal
+          >
+            upcoming Nakamoto release on the Stacks blockchain
+          </Link>
+          , the accumulation of technical debt with each change has made it
+          increasingly challenging for core contributors and volunteers to keep
+          up with the necessary updates. In light of these challenges and after
+          careful consideration of community feedback, this CCIP proposes a
+          graceful shutdown of the CityCoins Protocol.
         </Text>
         <Text>
           <Link
