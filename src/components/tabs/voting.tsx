@@ -99,7 +99,7 @@ function Voting() {
             <AccordionButton>
               <VoteTitle
                 title="Vote 7: Graceful Protocol Shutdown"
-                status="pending"
+                status="active"
               />
             </AccordionButton>
           </h2>
