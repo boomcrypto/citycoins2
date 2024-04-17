@@ -17,8 +17,8 @@ import { useAtomValue } from "jotai";
 import { useCcip020VoteData } from "../../hooks/use-ccip-020-vote-data";
 import { useCcip020VoteActions } from "../../hooks/use-ccip-020-vote-actions";
 import { formatMicroAmount } from "../../store/common";
-import { hasVotedAtom } from "../../store/ccip-020";
-import VoteProgressBar from "./vote-progress-bar";
+import { Ccip020VoteTotals, hasVotedAtom } from "../../store/ccip-020";
+import VoteProgressBarV2 from "./vote-progress-bar-v2";
 
 function VoteButtons() {
   const { voteYes, voteNo, isRequestPending } = useCcip020VoteActions();
@@ -98,22 +98,25 @@ function CCIP020() {
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber>
+            <StatNumber
+              title={`MIA ${voteTotals.data?.mia.totalVotesYes} / NYC ${voteTotals.data?.nyc.totalVotesYes}`}
+            >
               {voteTotals.data?.totals.totalVotesYes ?? <Spinner />}
             </StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber>
+            <StatNumber
+              title={`MIA ${voteTotals.data?.mia.totalVotesNo} / NYC ${voteTotals.data?.nyc.totalVotesNo}`}
+            >
               {voteTotals.data?.totals.totalVotesNo ?? <Spinner />}
             </StatNumber>
           </Stat>
         </Stack>
       </Box>
-      <VoteProgressBar
-        yesTotal={voteTotals.data?.totals.totalAmountYes}
-        noTotal={voteTotals.data?.totals.totalAmountNo}
-      />
+      {voteTotals.data && (
+        <VoteProgressBarV2 props={voteTotals.data as Ccip020VoteTotals} />
+      )}
       <Divider />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
