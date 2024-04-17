@@ -14,6 +14,7 @@ import CCIP014 from "../votes/ccip-014";
 import CCIP017 from "../votes/ccip-017";
 import CCIP021 from "../votes/ccip-021";
 import VoteTitle from "../votes/vote-title";
+import CCIP020 from "../votes/ccip-020";
 
 function Voting() {
   return (
@@ -91,6 +92,19 @@ function Voting() {
           </h2>
           <AccordionPanel pb={4}>
             <CCIP021 />
+          </AccordionPanel>
+        </AccordionItem>
+        <AccordionItem>
+          <h2>
+            <AccordionButton>
+              <VoteTitle
+                title="Vote 7: Graceful Protocol Shutdown"
+                status="active"
+              />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel pb={4}>
+            <CCIP020 />
           </AccordionPanel>
         </AccordionItem>
       </Accordion>
