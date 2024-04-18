@@ -25,7 +25,7 @@ export type CityVoteRecord = {
 export type Ccip020VoteTotals = {
   mia: CityVoteRecord;
   nyc: CityVoteRecord;
-  total: CityVoteRecord;
+  totals: CityVoteRecord;
 };
 
 export type Ccip020VoterInfo = {
