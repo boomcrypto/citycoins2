@@ -27,7 +27,7 @@ export type LoadableDataset<T> = {
 
 export const activeTabAtom = atomWithStorage<number>(
   "citycoins-ui-activeTab",
-  5 // temporarily set to voting tab, default: 0
+  3 // temporarily set to voting tab, default: 0
 );
 
 // HELPER FUNCTIONS

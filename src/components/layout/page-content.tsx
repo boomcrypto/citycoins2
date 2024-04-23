@@ -3,9 +3,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { activeTabAtom } from "../../store/common";
 import { stxAddressAtom } from "../../store/stacks";
 import Dashboard from "../tabs/dashboard";
-import Mining from "../tabs/mining";
 import MiningClaims from "../tabs/mining-claims";
-import Stacking from "../tabs/stacking";
 import StackingClaims from "../tabs/stacking-claims";
 import Voting from "../tabs/voting";
 import ConnectWallet from "../auth/connect-wallet";
@@ -42,9 +40,7 @@ function Content() {
           }}
         >
           <Tab>Dashboard</Tab>
-          <Tab>Mining</Tab>
           <Tab>Mining Claims</Tab>
-          <Tab>Stacking</Tab>
           <Tab>Stacking Claims</Tab>
           <Tab>Voting</Tab>
         </TabList>
@@ -53,13 +49,7 @@ function Content() {
             <Dashboard />
           </TabPanel>
           <TabPanel>
-            <Mining />
-          </TabPanel>
-          <TabPanel>
             <MiningClaims />
-          </TabPanel>
-          <TabPanel>
-            <Stacking />
           </TabPanel>
           <TabPanel>
             <StackingClaims />
