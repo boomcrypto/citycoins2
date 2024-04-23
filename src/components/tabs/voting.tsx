@@ -21,7 +21,7 @@ function Voting() {
     <Stack spacing={4}>
       <Heading>CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
-      <Accordion allowToggle>
+      <Accordion allowMultiple allowToggle>
         <AccordionItem>
           <h2>
             <AccordionButton>
