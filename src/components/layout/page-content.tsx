@@ -1,24 +1,13 @@
 import { Box, Tab, TabList, TabPanel, TabPanels, Tabs } from "@chakra-ui/react";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom } from "jotai";
 import { activeTabAtom } from "../../store/common";
-import { stxAddressAtom } from "../../store/stacks";
 import Dashboard from "../tabs/dashboard";
 import MiningClaims from "../tabs/mining-claims";
 import StackingClaims from "../tabs/stacking-claims";
 import Voting from "../tabs/voting";
-import ConnectWallet from "../auth/connect-wallet";
 
 function Content() {
-  const stxAddress = useAtomValue(stxAddressAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
-
-  if (!stxAddress) {
-    return (
-      <Box width="100%" maxW="1200px">
-        <ConnectWallet />
-      </Box>
-    );
-  }
 
   return (
     <Box width="100%" maxW="1200px">
