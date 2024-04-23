@@ -19,10 +19,17 @@ import { useCcip020VoteActions } from "../../hooks/use-ccip-020-vote-actions";
 import { formatMicroAmount } from "../../store/common";
 import { Ccip020VoteTotals, hasVotedAtom } from "../../store/ccip-020";
 import VoteProgressBarV2 from "./vote-progress-bar-v2";
+import { stxAddressAtom } from "../../store/stacks";
+import SignIn from "../auth/sign-in";
 
 function VoteButtons() {
+  const stxAddress = useAtomValue(stxAddressAtom);
   const { voteYes, voteNo, isRequestPending } = useCcip020VoteActions();
   const hasVoted = useAtomValue(hasVotedAtom);
+
+  if (!stxAddress) {
+    return <SignIn />;
+  }
 
   return (
     <>

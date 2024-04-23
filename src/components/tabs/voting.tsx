@@ -21,18 +21,64 @@ function Voting() {
     <Stack spacing={4}>
       <Heading>CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
-      <Accordion allowToggle>
+      <Accordion allowMultiple allowToggle>
         <AccordionItem>
           <h2>
             <AccordionButton>
               <VoteTitle
-                title="Vote 1: Update emissions schedule"
+                title="Vote 7: Graceful Protocol Shutdown"
+                status="active"
+              />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel pb={4}>
+            <CCIP020 />
+          </AccordionPanel>
+        </AccordionItem>
+        <AccordionItem>
+          <h2>
+            <AccordionButton>
+              <VoteTitle
+                title="Vote 6: Extend sunset period 2"
                 status="passed"
               />
             </AccordionButton>
           </h2>
           <AccordionPanel pb={4}>
-            <CityCoinsVoteV1 />
+            <CCIP021 />
+          </AccordionPanel>
+        </AccordionItem>
+        <AccordionItem>
+          <h2>
+            <AccordionButton>
+              <VoteTitle title="Vote 5: Extend sunset period" status="passed" />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel pb={4}>
+            <CCIP017 />
+          </AccordionPanel>
+        </AccordionItem>
+        <AccordionItem>
+          <h2>
+            <AccordionButton>
+              <VoteTitle title="Vote 4: Upgrade to pox-3" status="passed" />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel pb={4}>
+            <CCIP014 />
+          </AccordionPanel>
+        </AccordionItem>
+        <AccordionItem>
+          <h2>
+            <AccordionButton>
+              <VoteTitle
+                title="Vote 3: Stabilize protocol part 2"
+                status="passed"
+              />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel pb={4}>
+            <CityCoinsVoteV3 />
           </AccordionPanel>
         </AccordionItem>
         <AccordionItem>
@@ -52,59 +98,13 @@ function Voting() {
           <h2>
             <AccordionButton>
               <VoteTitle
-                title="Vote 3: Stabilize protocol part 2"
+                title="Vote 1: Update emissions schedule"
                 status="passed"
               />
             </AccordionButton>
           </h2>
           <AccordionPanel pb={4}>
-            <CityCoinsVoteV3 />
-          </AccordionPanel>
-        </AccordionItem>
-        <AccordionItem>
-          <h2>
-            <AccordionButton>
-              <VoteTitle title="Vote 4: Upgrade to pox-3" status="passed" />
-            </AccordionButton>
-          </h2>
-          <AccordionPanel pb={4}>
-            <CCIP014 />
-          </AccordionPanel>
-        </AccordionItem>
-        <AccordionItem>
-          <h2>
-            <AccordionButton>
-              <VoteTitle title="Vote 5: Extend sunset period" status="passed" />
-            </AccordionButton>
-          </h2>
-          <AccordionPanel pb={4}>
-            <CCIP017 />
-          </AccordionPanel>
-        </AccordionItem>
-        <AccordionItem>
-          <h2>
-            <AccordionButton>
-              <VoteTitle
-                title="Vote 6: Extend sunset period 2"
-                status="passed"
-              />
-            </AccordionButton>
-          </h2>
-          <AccordionPanel pb={4}>
-            <CCIP021 />
-          </AccordionPanel>
-        </AccordionItem>
-        <AccordionItem>
-          <h2>
-            <AccordionButton>
-              <VoteTitle
-                title="Vote 7: Graceful Protocol Shutdown"
-                status="active"
-              />
-            </AccordionButton>
-          </h2>
-          <AccordionPanel pb={4}>
-            <CCIP020 />
+            <CityCoinsVoteV1 />
           </AccordionPanel>
         </AccordionItem>
       </Accordion>
