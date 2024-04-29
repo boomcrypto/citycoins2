@@ -1,10 +1,8 @@
 import {
   Box,
-  Button,
   Divider,
   Link,
   ListItem,
-  Spinner,
   Stack,
   Stat,
   StatLabel,
@@ -15,7 +13,6 @@ import {
 } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
 import { useCcip021VoteData } from "../../hooks/use-ccip-021-vote-data";
-import { useCcip021VoteActions } from "../../hooks/use-ccip-021-vote-actions";
 import { formatMicroAmount } from "../../store/common";
 import { hasVotedAtom } from "../../store/ccip-021";
 import VoteProgressBar from "./vote-progress-bar";
@@ -74,10 +71,7 @@ function VoteResult() {
 }
 
 function CCIP021() {
-  const isVoteActive = useCcip021VoteData("isVoteActive");
-  const voteTotals = useCcip021VoteData("voteTotals");
   const voterInfo = useCcip021VoteData("voterInfo");
-  const hasVoted = useAtomValue(hasVotedAtom);
 
   const yesVotes = 65;
   const noVotes = 0;
