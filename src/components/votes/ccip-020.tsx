@@ -1,10 +1,8 @@
 import {
   Box,
-  Button,
   Divider,
   Link,
   ListItem,
-  Spinner,
   Stack,
   Stat,
   StatLabel,
@@ -13,15 +11,12 @@ import {
   UnorderedList,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { useAtomValue } from "jotai";
 import { useCcip020VoteData } from "../../hooks/use-ccip-020-vote-data";
-import { useCcip020VoteActions } from "../../hooks/use-ccip-020-vote-actions";
 import { formatMicroAmount } from "../../store/common";
-import { Ccip020VoteTotals, hasVotedAtom } from "../../store/ccip-020";
+import { Ccip020VoteTotals } from "../../store/ccip-020";
 import VoteProgressBarV2 from "./vote-progress-bar-v2";
-import { stxAddressAtom } from "../../store/stacks";
-import SignIn from "../auth/sign-in";
 
+/*
 function VoteButtons() {
   const stxAddress = useAtomValue(stxAddressAtom);
   const { voteYes, voteNo, isRequestPending } = useCcip020VoteActions();
@@ -55,6 +50,7 @@ function VoteButtons() {
     </>
   );
 }
+*/
 
 function VoteResult() {
   const voterInfo = useCcip020VoteData("voterInfo");
@@ -76,10 +72,44 @@ function VoteResult() {
 }
 
 function CCIP020() {
-  const isVoteActive = useCcip020VoteData("isVoteActive");
-  const voteTotals = useCcip020VoteData("voteTotals");
   const voterInfo = useCcip020VoteData("voterInfo");
-  const hasVoted = useAtomValue(hasVotedAtom);
+
+  const yesVotesMia = 53;
+  const yesVotesNyc = 65;
+  const yesVotesTotal = yesVotesMia + yesVotesNyc;
+
+  const yesVoteAmountMia = 1716065533000000;
+  const yesVoteAmountNyc = 2282041983000000;
+  const yesVoteAmountTotal = yesVoteAmountMia + yesVoteAmountNyc;
+
+  const noVotesMia = 3;
+  const noVotesNyc = 3;
+  const noVotesTotal = noVotesMia + noVotesNyc;
+
+  const noVoteAmountMia = 66417390000000;
+  const noVoteAmountNyc = 9370136000000;
+  const noVoteAmountTotal = noVoteAmountMia + noVoteAmountNyc;
+
+  const voteTotalsObj: Ccip020VoteTotals = {
+    mia: {
+      totalAmountYes: yesVoteAmountMia,
+      totalAmountNo: noVoteAmountMia,
+      totalVotesYes: yesVotesMia,
+      totalVotesNo: noVotesMia,
+    },
+    nyc: {
+      totalAmountYes: yesVoteAmountNyc,
+      totalAmountNo: noVoteAmountNyc,
+      totalVotesYes: yesVotesNyc,
+      totalVotesNo: noVotesNyc,
+    },
+    totals: {
+      totalAmountYes: yesVoteAmountTotal,
+      totalAmountNo: noVoteAmountTotal,
+      totalVotesYes: yesVotesTotal,
+      totalVotesNo: noVotesTotal,
+    },
+  };
 
   return (
     <Stack spacing={4}>
@@ -105,25 +135,19 @@ function CCIP020() {
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber
-              title={`MIA ${voteTotals.data?.mia.totalVotesYes} / NYC ${voteTotals.data?.nyc.totalVotesYes}`}
-            >
-              {voteTotals.data?.totals.totalVotesYes ?? <Spinner />}
+            <StatNumber title={`MIA ${yesVotesMia} / NYC ${yesVotesNyc}`}>
+              {yesVotesTotal}
             </StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber
-              title={`MIA ${voteTotals.data?.mia.totalVotesNo} / NYC ${voteTotals.data?.nyc.totalVotesNo}`}
-            >
-              {voteTotals.data?.totals.totalVotesNo ?? <Spinner />}
+            <StatNumber title={`MIA ${noVotesMia} / NYC ${noVotesNyc}`}>
+              {noVotesTotal}
             </StatNumber>
           </Stat>
         </Stack>
       </Box>
-      {voteTotals.data && (
-        <VoteProgressBarV2 props={voteTotals.data as Ccip020VoteTotals} />
-      )}
+      <VoteProgressBarV2 props={voteTotalsObj} />
       <Divider />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
@@ -182,15 +206,6 @@ function CCIP020() {
           total supply and unlocking any stacked CityCoins to claim.
         </Text>
       </Stack>
-      {isVoteActive.data && hasVoted ? (
-        <>
-          <Divider />
-          <Text fontWeight="bold">Vote recorded, thank you!</Text>
-          <Text>Refresh to see stats once the tx confirms.</Text>
-        </>
-      ) : (
-        <VoteButtons />
-      )}
       {voterInfo.data && <VoteResult />}
     </Stack>
   );
