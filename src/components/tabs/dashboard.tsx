@@ -9,6 +9,7 @@ import {
 import { stxAddressAtom } from "../../store/stacks";
 import { useAtomValue } from "jotai";
 import SignIn from "../auth/sign-in";
+import TransactionList from "../transaction-list";
 
 function Dashboard() {
   const stxAddress = useAtomValue(stxAddressAtom);
@@ -40,6 +41,10 @@ function Dashboard() {
               <StatLabel>Total Stacking Claim TXs</StatLabel>
               <StatNumber>XXX</StatNumber>
             </Stat>
+          </Stack>
+          <Stack>
+            <Text>Recent Transactions:</Text>
+            <TransactionList />
           </Stack>
         </>
       ) : (

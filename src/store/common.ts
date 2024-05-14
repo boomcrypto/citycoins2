@@ -56,6 +56,16 @@ export function formatMicroAmount(
 }
 
 /**
+ * Formats an ISO string into a human-readable date string.
+ * @param isoString The ISO string to format.
+ * @returns The formatted date string.
+ */
+export function formatDate(isoString: string) {
+  const date = new Date(isoString);
+  return date.toLocaleString();
+}
+
+/**
  * Asynchronous sleep function.
  * @param ms The number of milliseconds to sleep.
  */

@@ -48,7 +48,7 @@ export function useFetchTransactions() {
         }
 
         // get and store unique transactions from initial response
-        const uniqueTransactions = [
+        let uniqueTransactions = [
           ...existingTransactionsRef.current,
           ...initialResponse.results
             .filter(
@@ -73,15 +73,6 @@ export function useFetchTransactions() {
         const fetchRemainingTransactions = async () => {
           while (existingTransactionsRef.current.length < totalTransactions) {
             offset += limit;
-            // break if offset > total
-            if (offset > totalTransactions) {
-              setFetchStatus({
-                progress: 0,
-                isLoading: false,
-                error: "Failed to load transactions, offset exceeded total",
-              });
-              break;
-            }
             url.searchParams.set("offset", offset.toString());
             const response =
               await fancyFetch<AddressTransactionsWithTransfersListResponse>(
@@ -89,12 +80,12 @@ export function useFetchTransactions() {
               );
 
             // get and store unique transactions from response
-            const newTransactions = [
+            uniqueTransactions = [
               ...existingTransactionsRef.current,
               ...response.results
                 .filter(
                   (apiTx) =>
-                    !existingTransactions.some(
+                    !existingTransactionsRef.current.some(
                       (knownTx) => knownTx.tx_id === apiTx.tx.tx_id
                     )
                 )
@@ -102,8 +93,8 @@ export function useFetchTransactions() {
             ];
 
             // set transactions and fetch status
-            setExistingTransactions(newTransactions);
-            existingTransactionsRef.current = newTransactions;
+            setExistingTransactions(uniqueTransactions);
+            existingTransactionsRef.current = uniqueTransactions;
             setFetchStatus({
               progress:
                 (existingTransactionsRef.current.length / totalTransactions) *
@@ -137,7 +128,7 @@ export function useFetchTransactions() {
     if (address) {
       fetchTransactions();
     }
-  }, [address, existingTransactions, setExistingTransactions, setFetchStatus]);
+  }, [address, setExistingTransactions, setFetchStatus]);
 
   return fetchStatus;
 }
