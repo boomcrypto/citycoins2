@@ -54,3 +54,47 @@ export function formatMicroAmount(
     maximumFractionDigits: decimalsToDisplay,
   });
 }
+
+/**
+ * Asynchronous sleep function.
+ * @param ms The number of milliseconds to sleep.
+ */
+async function sleep(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fancy fetch function that retries on failure.
+ * @param url The URL to fetch from.
+ * @param json Whether to parse the response as JSON or text.
+ * @param retries (default: 3) The maximum number of retries to attempt.
+ * @param attempts (default: 1) The current attempt number.
+ * @returns The response data with the provided type T.
+ */
+export async function fancyFetch<T>(
+  url: string,
+  json = true,
+  retries = 3,
+  attempts = 1
+): Promise<T> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch from ${url}: ${response.status}, ${response.statusText}`
+      );
+    }
+    const responseData: T = json
+      ? await response.json()
+      : await response.text();
+    return responseData;
+  } catch (error) {
+    if (attempts < retries) {
+      console.log(`(${attempts}) Retrying fetch in 5 seconds... (${error})`);
+      await sleep(5000);
+      return fancyFetch(url, json, retries, attempts + 1);
+    } else {
+      throw error;
+    }
+  }
+}
