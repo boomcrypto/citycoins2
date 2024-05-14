@@ -1,5 +1,6 @@
 import { atomWithStorage } from "jotai/utils";
 import { fetchCoreApiInfo } from "micro-stacks/api";
+import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { HIRO_API } from "./common";
 import { atom } from "jotai";
 
@@ -31,11 +32,14 @@ export const bnsNameAtom = atomWithStorage<string | null>(
   null
 );
 
-export const acctTxsAtom = atomWithStorage("citycoins-stacks-acctTxs", null);
+export const acctTxsAtom = atomWithStorage<Transaction[]>(
+  "citycoins-stacks-acctTxs",
+  []
+);
 
-export const acctMempoolTxsAtom = atomWithStorage(
+export const acctMempoolTxsAtom = atomWithStorage<Transaction[]>(
   "citycoins-stacks-acctMempoolTxs",
-  null
+  []
 );
 
 export const acctBalancesAtom = atomWithStorage(
