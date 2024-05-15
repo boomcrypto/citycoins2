@@ -1,4 +1,14 @@
-import { Stack, Text, List, ListItem, Spinner, Box } from "@chakra-ui/react";
+import {
+  Stack,
+  Text,
+  List,
+  ListItem,
+  Spinner,
+  Box,
+  Button,
+  IconButton,
+} from "@chakra-ui/react";
+import { IoMdRefresh } from "react-icons/io";
 import { useAtomValue } from "jotai";
 import { acctTxsAtom } from "../store/stacks";
 import { useFetchTransactions } from "../hooks/use-fetch-transactions";
@@ -6,7 +16,8 @@ import { formatDate } from "../store/common";
 
 function TransactionList() {
   const transactions = useAtomValue(acctTxsAtom);
-  const { progress, isLoading, error } = useFetchTransactions();
+  const { progress, isLoading, error, refreshTransactions } =
+    useFetchTransactions();
 
   return (
     <Box borderWidth="1px" borderRadius="lg" p={4}>
@@ -26,7 +37,16 @@ function TransactionList() {
           )}
           {error && <Text color="red.500">Error: {error}</Text>}
           {!isLoading && !error && (
-            <Text>Transactions loaded successfully.</Text>
+            <Stack direction="row" align="center">
+              <Text>Transactions loaded successfully.</Text>
+              <IconButton
+                icon={<IoMdRefresh />}
+                aria-label="Refresh Transactions"
+                title="Refresh Transactions"
+                size="sm"
+                onClick={refreshTransactions}
+              />
+            </Stack>
           )}
         </Stack>
         <Stack>
