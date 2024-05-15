@@ -48,63 +48,61 @@ function TransactionList({ transactions }: TransactionListProps) {
   };
 
   return (
-    <Box borderWidth="1px" borderRadius="lg" p={4}>
-      <Stack spacing={4}>
-        <Stack direction="row" alignItems="center" minH="2em">
-          <Box
-            w={3}
-            h={3}
-            borderRadius="50%"
-            bg={isLoading ? "yellow.500" : error ? "red.500" : "green.500"}
-          />
-          {isLoading && (
-            <Stack
-              direction="row"
-              align="center"
-              justifyContent="space-between"
-              w="100%"
-            >
-              <Text>Loading transactions... {progress}%</Text>
-              <Spinner size="sm" />
-            </Stack>
-          )}
+    <Stack spacing={4}>
+      <Stack direction="row" alignItems="center" minH="2em">
+        <Box
+          w={3}
+          h={3}
+          borderRadius="50%"
+          bg={isLoading ? "yellow.500" : error ? "red.500" : "green.500"}
+        />
+        {isLoading && (
+          <Stack
+            direction="row"
+            align="center"
+            justifyContent="space-between"
+            w="100%"
+          >
+            <Text>Loading transactions... {progress}%</Text>
+            <Spinner size="sm" />
+          </Stack>
+        )}
 
-          {error && <Text color="red.500">Error: {error}</Text>}
+        {error && <Text color="red.500">Error: {error}</Text>}
 
-          {!isLoading && !error && (
-            <Stack
-              direction="row"
-              align="center"
-              justifyContent="space-between"
-              w="100%"
-            >
-              <Text>
-                {transactions?.length > 0
-                  ? `Transactions loaded successfully (${selectedTransactions.length})`
-                  : "No transactions loaded yet"}
-              </Text>
-              <IconButton
-                icon={<IoMdRefresh />}
-                aria-label="Refresh Transactions"
-                title="Refresh Transactions"
-                size="sm"
-                onClick={fetchTransactions}
-              />
-            </Stack>
-          )}
-        </Stack>
-        <Stack>
-          {transactions?.length === 0 && <Text>No transactions found.</Text>}
-          {transactions?.length > 0 && (
-            <List>
-              {transactions.map((tx) => (
-                <TransactionItem key={tx.tx_id} tx={tx} />
-              ))}
-            </List>
-          )}
-        </Stack>
+        {!isLoading && !error && (
+          <Stack
+            direction="row"
+            align="center"
+            justifyContent="space-between"
+            w="100%"
+          >
+            <Text>
+              {transactions?.length > 0
+                ? `Transactions loaded successfully (${selectedTransactions.length})`
+                : "No transactions loaded yet"}
+            </Text>
+            <IconButton
+              icon={<IoMdRefresh />}
+              aria-label="Refresh Transactions"
+              title="Refresh Transactions"
+              size="sm"
+              onClick={fetchTransactions}
+            />
+          </Stack>
+        )}
       </Stack>
-    </Box>
+      <Stack>
+        {transactions?.length === 0 && <Text>No transactions found.</Text>}
+        {transactions?.length > 0 && (
+          <List>
+            {transactions.map((tx) => (
+              <TransactionItem key={tx.tx_id} tx={tx} />
+            ))}
+          </List>
+        )}
+      </Stack>
+    </Stack>
   );
 }
 

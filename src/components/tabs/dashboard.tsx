@@ -1,4 +1,6 @@
 import {
+  Button,
+  Divider,
   Heading,
   IconButton,
   Stack,
@@ -13,12 +15,14 @@ import { useAtom, useAtomValue } from "jotai";
 import SignIn from "../auth/sign-in";
 import TransactionList from "../transaction-list";
 import {
+  TransactionTypes,
   miningClaimTransactionsAtom,
   miningTransactionsAtom,
   selectedTransactionTypeAtom,
   selectedTransactionsAtom,
   stackingClaimTransactionsAtom,
   stackingTransactionsAtom,
+  votingTransactionsAtom,
 } from "../../store/citycoins";
 
 function Dashboard() {
@@ -28,17 +32,36 @@ function Dashboard() {
   const miningClaimTransactions = useAtomValue(miningClaimTransactionsAtom);
   const stackingTransactions = useAtomValue(stackingTransactionsAtom);
   const stackingClaimTransactions = useAtomValue(stackingClaimTransactionsAtom);
+  const votingTransactions = useAtomValue(votingTransactionsAtom);
   const [selectedTransactionType, setSelectedTransactionType] = useAtom(
     selectedTransactionTypeAtom
   );
   const selectedTransactions = useAtomValue(selectedTransactionsAtom);
+
+  const selectTransactions = (type: TransactionTypes) => {
+    if (type === selectedTransactionType) {
+      setSelectedTransactionType("all");
+    } else {
+      setSelectedTransactionType(type);
+    }
+  };
 
   return (
     <Stack spacing={4}>
       <Heading>CityCoins Dashboard</Heading>
       {stxAddress ? (
         <>
-          <Text fontWeight="bold">{stxAddress}</Text>
+          <Stack
+            direction={["column", null, "row"]}
+            alignItems="center"
+            justifyContent="space-between"
+            spacing={2}
+          >
+            <Text fontWeight="bold">{stxAddress}</Text>
+            <Text size="sm">{`${transactions.length} transactions detected`}</Text>
+            <Button onClick={() => selectTransactions("all")}>Show All</Button>
+          </Stack>
+          <Divider />
           {/* Transaction Stats and Filters */}
           <Stack
             direction={["column", null, "row"]}
@@ -51,27 +74,7 @@ function Dashboard() {
               justifyContent="space-between"
             >
               <Stat>
-                <StatLabel>Total Transactions</StatLabel>
-                <StatNumber>{transactions.length}</StatNumber>
-              </Stat>
-              <IconButton
-                colorScheme={
-                  selectedTransactionType === "all" ? "blue" : "gray"
-                }
-                icon={<MdFilterList />}
-                aria-label="Filter transactions"
-                title="Filter Transactions"
-                size="xs"
-                onClick={() => setSelectedTransactionType("all")}
-              />
-            </Stack>
-            <Stack
-              direction="row"
-              alignContent="center"
-              justifyContent="space-between"
-            >
-              <Stat>
-                <StatLabel>Total Mining TXs</StatLabel>
+                <StatLabel>Mining TXs</StatLabel>
                 <StatNumber>{miningTransactions.length}</StatNumber>
               </Stat>
               <IconButton
@@ -82,7 +85,7 @@ function Dashboard() {
                 aria-label="Filter transactions"
                 title="Filter Transactions"
                 size="xs"
-                onClick={() => setSelectedTransactionType("mining")}
+                onClick={() => selectTransactions("mining")}
               />
             </Stack>
             <Stack
@@ -91,7 +94,7 @@ function Dashboard() {
               justifyContent="space-between"
             >
               <Stat>
-                <StatLabel>Total Mining Claim TXs</StatLabel>
+                <StatLabel>Mining Claim TXs</StatLabel>
                 <StatNumber>{miningClaimTransactions.length}</StatNumber>
               </Stat>
               <IconButton
@@ -102,7 +105,7 @@ function Dashboard() {
                 aria-label="Filter transactions"
                 title="Filter Transactions"
                 size="xs"
-                onClick={() => setSelectedTransactionType("mining-claims")}
+                onClick={() => selectTransactions("mining-claims")}
               />
             </Stack>
             <Stack
@@ -111,7 +114,7 @@ function Dashboard() {
               justifyContent="space-between"
             >
               <Stat>
-                <StatLabel>Total Stacking TXs</StatLabel>
+                <StatLabel>Stacking TXs</StatLabel>
                 <StatNumber>{stackingTransactions.length}</StatNumber>
               </Stat>
               <IconButton
@@ -122,7 +125,7 @@ function Dashboard() {
                 aria-label="Filter transactions"
                 title="Filter Transactions"
                 size="xs"
-                onClick={() => setSelectedTransactionType("stacking")}
+                onClick={() => selectTransactions("stacking")}
               />
             </Stack>
             <Stack
@@ -131,7 +134,7 @@ function Dashboard() {
               justifyContent="space-between"
             >
               <Stat>
-                <StatLabel>Total Stacking Claim TXs</StatLabel>
+                <StatLabel>Stacking Claim TXs</StatLabel>
                 <StatNumber>{stackingClaimTransactions.length}</StatNumber>
               </Stat>
               <IconButton
@@ -144,10 +147,31 @@ function Dashboard() {
                 aria-label="Filter transactions"
                 title="Filter Transactions"
                 size="xs"
-                onClick={() => setSelectedTransactionType("stacking-claims")}
+                onClick={() => selectTransactions("stacking-claims")}
+              />
+            </Stack>
+            <Stack
+              direction="row"
+              alignContent="center"
+              justifyContent="space-between"
+            >
+              <Stat>
+                <StatLabel>Voting TXs</StatLabel>
+                <StatNumber>{votingTransactions.length}</StatNumber>
+              </Stat>
+              <IconButton
+                colorScheme={
+                  selectedTransactionType === "voting" ? "blue" : "gray"
+                }
+                icon={<MdFilterList />}
+                aria-label="Filter transactions"
+                title="Filter Transactions"
+                size="xs"
+                onClick={() => selectTransactions("voting")}
               />
             </Stack>
           </Stack>
+          <Divider />
           <TransactionList transactions={selectedTransactions} />
         </>
       ) : (
