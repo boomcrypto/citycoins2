@@ -55,15 +55,26 @@ export const acctBalancesAtom = atomWithStorage(
 // DERIVED ATOMS
 /////////////////////////
 
-export const transactionsAtom = atom(
-  // read from localstorage
-  (get) => {
-    const acctTxs = get(acctTxsAtom);
-    if (!acctTxs) return [];
+export const decompressedAcctTxsAtom = atom((get) => {
+  const acctTxs = get(acctTxsAtom);
+  if (!acctTxs) return [];
+  try {
     const decompressedTxs: Transaction[] = JSON.parse(
       LZString.decompress(acctTxs)
     );
     return decompressedTxs;
+  } catch (error) {
+    console.error("Failed to decompress transactions", error);
+    return [];
+  }
+});
+
+export const transactionsAtom = atom(
+  // read from localstorage
+  (get) => {
+    const acctTxs = get(decompressedAcctTxsAtom);
+    if (!acctTxs) return [];
+    return acctTxs;
   },
   // update by writing to localstorage
   async (get, set, update: Transaction[]) => {

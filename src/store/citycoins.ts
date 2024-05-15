@@ -16,23 +16,23 @@ type TransactionTypes =
 export const selectedTransactionTypeAtom = atom<TransactionTypes>("all");
 export const selectedTransactionsAtom = atom<Transaction[]>((get) => {
   const selectedTransactionType = get(selectedTransactionTypeAtom);
-  const existingTransactions = get(transactionsAtom);
-  const miningTransactions = get(miningTransactionsAtom);
-  const miningClaimTransactions = get(miningClaimTransactionsAtom);
-  const stackingTransactions = get(stackingTransactionsAtom);
-  const stackingClaimTransactions = get(stackingClaimTransactionsAtom);
 
   switch (selectedTransactionType) {
     case "mining":
+      const miningTransactions = get(miningTransactionsAtom);
       return miningTransactions;
     case "mining-claims":
+      const miningClaimTransactions = get(miningClaimTransactionsAtom);
       return miningClaimTransactions;
     case "stacking":
+      const stackingTransactions = get(stackingTransactionsAtom);
       return stackingTransactions;
     case "stacking-claims":
+      const stackingClaimTransactions = get(stackingClaimTransactionsAtom);
       return stackingClaimTransactions;
     case "all":
     default:
+      const existingTransactions = get(transactionsAtom);
       return existingTransactions;
   }
 });
