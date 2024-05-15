@@ -8,12 +8,30 @@ import {
   IconButton,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
 import { formatDate } from "../store/common";
+import { Transaction } from "@stacks/stacks-blockchain-api-types";
 
-function TransactionList() {
-  const [transactions, updateTransactions] = useAtom(transactionsAtom);
+interface TransactionListProps {
+  transactions: Transaction[];
+}
+
+interface TransactionItemProps {
+  tx: Transaction;
+}
+
+interface TransactionFunctionArgsProps {
+  functionArgs: {
+    hex: string;
+    repr: string;
+    name: string;
+    type: string;
+  }[];
+}
+
+function TransactionList({ transactions }: TransactionListProps) {
+  const [allTransactions, updateTransactions] = useAtom(transactionsAtom);
   const { isLoading, error, progress } = useAtomValue(
     transactionFetchStatusAtom
   );
@@ -21,7 +39,7 @@ function TransactionList() {
   const fetchTransactions = async () => {
     if (isLoading) return;
     try {
-      await updateTransactions(transactions);
+      await updateTransactions(allTransactions);
     } catch (error) {
       console.error("Failed to fetch transactions:", error);
     }
@@ -30,7 +48,7 @@ function TransactionList() {
   return (
     <Box borderWidth="1px" borderRadius="lg" p={4}>
       <Stack spacing={4}>
-        <Stack direction="row" alignItems="center">
+        <Stack direction="row" alignItems="center" minH="2em">
           <Box
             w={3}
             h={3}
@@ -38,9 +56,9 @@ function TransactionList() {
             bg={isLoading ? "yellow.500" : error ? "red.500" : "green.500"}
           />
           {isLoading && (
-            <Stack direction="row" align="center">
-              <Spinner />
+            <Stack direction="row" align="center" w="100%">
               <Text>Loading transactions... {progress.toFixed(2)}%</Text>
+              <Spinner size="sm" />
             </Stack>
           )}
 
@@ -69,19 +87,64 @@ function TransactionList() {
           {transactions?.length > 0 && (
             <List>
               {transactions.map((tx) => (
-                <ListItem key={tx.tx_id}>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Text>{formatDate(tx.burn_block_time_iso)}</Text>
-                    <Text>{tx.tx_id}</Text>
-                    <Text>{tx.sender_address}</Text>
-                  </Stack>
-                </ListItem>
+                <TransactionItem key={tx.tx_id} tx={tx} />
               ))}
             </List>
           )}
         </Stack>
       </Stack>
     </Box>
+  );
+}
+
+function TransactionItem({ tx }: TransactionItemProps) {
+  return (
+    <Box borderWidth="1px" borderRadius="lg" p={4} mb={4}>
+      <Stack spacing={2}>
+        <Text fontSize="xl" fontWeight="bold">
+          Transaction ID: {tx.tx_id}
+        </Text>
+        <Text>
+          Status: {tx.tx_status === "success" ? "✅ Success" : "❌ Failed"}
+        </Text>
+        <Text>Block Height: {tx.block_height}</Text>
+        <Text>Block Time: {tx.block_time_iso}</Text>
+        <Text>Sender Address: {tx.sender_address}</Text>
+        <Text>Fee Rate: {tx.fee_rate}</Text>
+        {tx.tx_type === "contract_call" && (
+          <>
+            <Text fontWeight="bold">Contract Call Details</Text>
+            <Text>Contract ID: {tx.contract_call.contract_id}</Text>
+            <Text>Function Name: {tx.contract_call.function_name}</Text>
+
+            {tx.contract_call.function_args && (
+              <TransactionFunctionArgs
+                functionArgs={tx.contract_call.function_args}
+              />
+            )}
+          </>
+        )}
+      </Stack>
+    </Box>
+  );
+}
+
+function TransactionFunctionArgs({
+  functionArgs,
+}: TransactionFunctionArgsProps) {
+  return (
+    <Stack>
+      <Text fontWeight="bold">Function Arguments</Text>
+      <List>
+        {functionArgs.map((arg) => (
+          <ListItem key={arg.hex}>
+            <Text>Name: {arg.name}</Text>
+            <Text>Type: {arg.type}</Text>
+            <Text>Repr: {arg.repr}</Text>
+          </ListItem>
+        ))}
+      </List>
+    </Stack>
   );
 }
 
