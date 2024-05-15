@@ -6,13 +6,16 @@ import {
   StatNumber,
   Text,
 } from "@chakra-ui/react";
-import { stxAddressAtom } from "../../store/stacks";
+import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
 import { useAtomValue } from "jotai";
 import SignIn from "../auth/sign-in";
 import TransactionList from "../transaction-list";
+import { miningTransactionsAtom } from "../../store/citycoins";
 
 function Dashboard() {
   const stxAddress = useAtomValue(stxAddressAtom);
+  const transactions = useAtomValue(transactionsAtom);
+  const miningTransactions = useAtomValue(miningTransactionsAtom);
 
   return (
     <Stack spacing={4}>
@@ -23,11 +26,11 @@ function Dashboard() {
           <Stack direction={["column", null, "row"]}>
             <Stat>
               <StatLabel>Total Transactions</StatLabel>
-              <StatNumber>XXX</StatNumber>
+              <StatNumber>{transactions.length}</StatNumber>
             </Stat>
             <Stat>
               <StatLabel>Total Mining TXs</StatLabel>
-              <StatNumber>XXX</StatNumber>
+              <StatNumber>{miningTransactions.length}</StatNumber>
             </Stat>
             <Stat>
               <StatLabel>Total Mining Claim TXs</StatLabel>
