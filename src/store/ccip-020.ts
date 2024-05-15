@@ -177,7 +177,7 @@ async function getVoterInfo(voterAddress: string): Promise<Ccip020VoterInfo> {
   if (!validateStacksAddress(voterAddress)) {
     throw new Error("Invalid STX address");
   }
-  console.log("Voter Address", voterAddress);
+  // console.log("Voter Address", voterAddress);
   const voterIdQuery = await fetchReadOnlyFunction<number>(
     {
       contractAddress: CONTRACT_ADDRESS,
@@ -187,7 +187,7 @@ async function getVoterInfo(voterAddress: string): Promise<Ccip020VoterInfo> {
     },
     true
   );
-  console.log("Voter ID", voterIdQuery);
+  // console.log("Voter ID", voterIdQuery);
   const voterInfoQuery = await fetchReadOnlyFunction<Ccip020VoterInfo>(
     {
       contractAddress: CONTRACT_ADDRESS,
@@ -197,6 +197,6 @@ async function getVoterInfo(voterAddress: string): Promise<Ccip020VoterInfo> {
     },
     true
   );
-  console.log("Voter Info", voterInfoQuery);
+  // console.log("Voter Info", voterInfoQuery);
   return voterInfoQuery;
 }
