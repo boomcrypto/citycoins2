@@ -145,12 +145,12 @@ async function getAllTxs(address: string, existingTxs: Transaction[]) {
       return existingTxs;
     }
     // create array of new transactions
-    console.log("initialResponse", initialResponse);
+    // console.log("initialResponse", initialResponse);
     const newTransactions = initialResponse.results.map(
       (txRecord) => txRecord.tx
     );
     console.log(newTransactions.length, "new transactions");
-    console.log(newTransactions);
+    // console.log(newTransactions);
     // create array of unique transactions
     const uniqueTransactions = [
       ...existingTxs,
