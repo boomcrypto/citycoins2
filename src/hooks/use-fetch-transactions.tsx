@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import { atom, useAtom, useAtomValue } from "jotai";
-import { AddressTransactionsWithTransfersListResponse } from "@stacks/stacks-blockchain-api-types";
+import {
+  AddressTransactionsWithTransfersListResponse,
+  Transaction,
+} from "@stacks/stacks-blockchain-api-types";
 import { HIRO_API } from "../store/common";
 import { fancyFetch } from "../store/common";
 import { stxAddressAtom, acctTxsAtom } from "../store/stacks";
@@ -33,6 +36,7 @@ export function useFetchTransactions() {
         let totalTransactions = 0;
 
         // fetch once to get total count
+        console.log("fetch once to get total count");
         let url = new URL(endpoint);
         url.searchParams.set("limit", limit.toString());
         const initialResponse =
@@ -42,12 +46,19 @@ export function useFetchTransactions() {
         totalTransactions = initialResponse.total;
 
         // check if we already have all transactions
+        console.log("check if we already have all transactions");
+        console.log("existing: ", existingTransactionsRef.current.length);
+        console.log("total: ", totalTransactions);
         if (existingTransactionsRef.current.length === totalTransactions) {
+          console.log("already have all transactions, done");
           setFetchStatus({ progress: 100, isLoading: false, error: null });
           return;
         }
 
         // get and store unique transactions from initial response
+        console.log("get and store unique transactions from initial response");
+        console.log("initial response: ", initialResponse.results);
+        console.log("existing transactions: ", existingTransactionsRef.current);
         const uniqueTransactions = [
           ...existingTransactionsRef.current,
           ...initialResponse.results
@@ -57,10 +68,14 @@ export function useFetchTransactions() {
                   (knownTx) => knownTx.tx_id === apiTx.tx.tx_id
                 )
             )
-            .map((txRecord) => txRecord.tx),
+            .map((txRecord) => txRecord.tx)
+            .filter((tx): tx is Transaction => tx !== null && tx !== undefined),
         ];
+        console.log(uniqueTransactions.length, "unique transactions");
+        console.log("unique transactions: ", uniqueTransactions);
 
         // set transactions, update ref and fetch status
+        console.log("set transactions, update ref and fetch status");
         setExistingTransactions(uniqueTransactions);
         existingTransactionsRef.current = uniqueTransactions;
         setFetchStatus({
@@ -68,13 +83,26 @@ export function useFetchTransactions() {
           isLoading: true,
           error: null,
         });
+        console.log(
+          "existingTransactionsRef.current: ",
+          existingTransactionsRef.current
+        );
 
         // function to fetch remaining transactions
         const fetchRemainingTransactions = async () => {
+          console.log("fetching remaining transactions");
           while (existingTransactionsRef.current.length < totalTransactions) {
+            console.log(
+              existingTransactionsRef.current.length,
+              "existing transactions"
+            );
+            console.log(totalTransactions, "total transactions");
             offset += limit;
             // break if offset > total
             if (offset > totalTransactions) {
+              console.log("breaking because offset > totalTransactions");
+              console.log("offset: ", offset);
+              console.log("totalTransactions: ", totalTransactions);
               setFetchStatus({
                 progress: 0,
                 isLoading: false,
@@ -89,19 +117,25 @@ export function useFetchTransactions() {
               );
 
             // get and store unique transactions from response
+            console.log("get and store unique transactions from response");
             const newTransactions = [
               ...existingTransactionsRef.current,
               ...response.results
                 .filter(
                   (apiTx) =>
-                    !existingTransactions.some(
+                    !existingTransactionsRef.current.some(
                       (knownTx) => knownTx.tx_id === apiTx.tx.tx_id
                     )
                 )
-                .map((txRecord) => txRecord.tx),
+                .map((txRecord) => txRecord.tx)
+                .filter(
+                  (tx): tx is Transaction => tx !== null && tx !== undefined
+                ),
             ];
+            console.log(newTransactions.length, "new transactions");
 
             // set transactions and fetch status
+            console.log("set transactions and fetch status");
             setExistingTransactions(newTransactions);
             existingTransactionsRef.current = newTransactions;
             setFetchStatus({
@@ -111,13 +145,20 @@ export function useFetchTransactions() {
               isLoading: true,
               error: null,
             });
+            console.log(
+              "existingTransactionsRef.current: ",
+              existingTransactionsRef.current
+            );
           }
         };
         // fetch remaining transactions in chunks
+        console.log("fetch remaining transactions in chunks");
         await fetchRemainingTransactions();
         // update status when complete
+        console.log("update status when complete");
         setFetchStatus({ progress: 100, isLoading: false, error: null });
       } catch (error) {
+        console.log("caught an error: ", error);
         if (error instanceof Error) {
           setFetchStatus({
             progress: 0,
@@ -135,6 +176,7 @@ export function useFetchTransactions() {
     }
 
     if (address) {
+      console.log("address exists, fetching transactions");
       fetchTransactions();
     }
   }, [address, existingTransactions, setExistingTransactions, setFetchStatus]);
