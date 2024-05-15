@@ -1,6 +1,5 @@
 // DERIVED ATOMS FOR TRANSACTIONS
 
-import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { transactionsAtom } from "./stacks";
 import { atom } from "jotai";
 
