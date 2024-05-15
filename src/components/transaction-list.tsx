@@ -8,7 +8,7 @@ import {
   IconButton,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
 import { formatDate } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
@@ -101,14 +101,14 @@ function TransactionItem({ tx }: TransactionItemProps) {
   return (
     <Box borderWidth="1px" borderRadius="lg" p={4} mb={4}>
       <Stack spacing={2}>
-        <Text fontSize="xl" fontWeight="bold">
-          Transaction ID: {tx.tx_id}
+        <Text fontWeight="bold" fontSize="lg">
+          TXID: {tx.tx_id}
         </Text>
         <Text>
           Status: {tx.tx_status === "success" ? "✅ Success" : "❌ Failed"}
         </Text>
         <Text>Block Height: {tx.block_height}</Text>
-        <Text>Block Time: {tx.block_time_iso}</Text>
+        <Text>Block Time: {formatDate(tx.block_time_iso)}</Text>
         <Text>Sender Address: {tx.sender_address}</Text>
         <Text>Fee Rate: {tx.fee_rate}</Text>
         {tx.tx_type === "contract_call" && (
@@ -135,7 +135,7 @@ function TransactionFunctionArgs({
   return (
     <Stack>
       <Text fontWeight="bold">Function Arguments</Text>
-      <List>
+      <List spacing={2}>
         {functionArgs.map((arg) => (
           <ListItem key={arg.hex}>
             <Text>Name: {arg.name}</Text>

@@ -63,10 +63,7 @@ export const transactionsAtom = atom(
   },
   // update by writing to localstorage
   async (get, set, update: Transaction[]) => {
-    console.log("set transactionsAtom");
-    console.log("update", update);
     const address = get(stxAddressAtom);
-    console.log("address", address);
     if (!address) return;
     console.log("starting fetch of all txs");
     set(transactionFetchStatusAtom, {
