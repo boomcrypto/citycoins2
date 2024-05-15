@@ -12,6 +12,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
 import { formatDate } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
+import { selectedTransactionsAtom } from "../store/citycoins";
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -32,6 +33,7 @@ interface TransactionFunctionArgsProps {
 
 function TransactionList({ transactions }: TransactionListProps) {
   const [allTransactions, updateTransactions] = useAtom(transactionsAtom);
+  const selectedTransactions = useAtomValue(selectedTransactionsAtom);
   const { isLoading, error, progress } = useAtomValue(
     transactionFetchStatusAtom
   );
@@ -62,7 +64,7 @@ function TransactionList({ transactions }: TransactionListProps) {
               justifyContent="space-between"
               w="100%"
             >
-              <Text>Loading transactions... {progress.toFixed(2)}%</Text>
+              <Text>Loading transactions... {progress}%</Text>
               <Spinner size="sm" />
             </Stack>
           )}
@@ -76,7 +78,11 @@ function TransactionList({ transactions }: TransactionListProps) {
               justifyContent="space-between"
               w="100%"
             >
-              <Text>Transactions loaded successfully</Text>
+              <Text>
+                {transactions?.length > 0
+                  ? `Transactions loaded successfully (${selectedTransactions.length})`
+                  : "No transactions loaded yet"}
+              </Text>
               <IconButton
                 icon={<IoMdRefresh />}
                 aria-label="Refresh Transactions"

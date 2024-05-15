@@ -5,7 +5,7 @@ import {
   Transaction,
 } from "@stacks/stacks-blockchain-api-types";
 import { HIRO_API, fancyFetch, sleep } from "./common";
-import { atom } from "jotai";
+import { Setter, atom } from "jotai";
 
 /////////////////////////
 // TYPES
@@ -72,7 +72,7 @@ export const transactionsAtom = atom(
       progress: 0,
     });
     try {
-      const newTxs = await getAllTxs(address, update);
+      const newTxs = await getAllTxs(address, update, set);
       console.log("fetch complete, setting acctTxsAtom");
       set(transactionFetchStatusAtom, {
         isLoading: false,
@@ -125,7 +125,11 @@ async function getBlockHeights(): Promise<BlockHeights | undefined> {
   }
 }
 
-async function getAllTxs(address: string, existingTxs: Transaction[]) {
+async function getAllTxs(
+  address: string,
+  existingTxs: Transaction[],
+  atomSetter: Setter
+) {
   try {
     // set fetch parameters and vars
     const endpoint = `${HIRO_API}/extended/v2/addresses/${address}/transactions`;
@@ -173,10 +177,12 @@ async function getAllTxs(address: string, existingTxs: Transaction[]) {
         await fancyFetch<AddressTransactionsWithTransfersListResponse>(
           `${endpoint}?limit=${limit}&offset=${offset}`
         );
+      // get transactions from response
       const additionalTransactions = response.results.map(
         (txRecord) => txRecord.tx
       );
       console.log(additionalTransactions.length, "additional transactions");
+      // filter out transactions already known
       const uniqueAdditionalTransactions = additionalTransactions.filter(
         (tx) =>
           !uniqueTransactions.some((knownTx) => knownTx?.tx_id === tx.tx_id)
@@ -185,8 +191,17 @@ async function getAllTxs(address: string, existingTxs: Transaction[]) {
         uniqueAdditionalTransactions.length,
         "unique additional transactions"
       );
+      // add new transactions to uniqueTransactions
       uniqueTransactions.push(...uniqueAdditionalTransactions);
       console.log(uniqueTransactions.length, "total unique transactions");
+      // update progress for front-end
+      const progress = Math.round(
+        (uniqueTransactions.length / totalTransactions) * 100
+      );
+      atomSetter(transactionFetchStatusAtom, (prev) => ({
+        ...prev,
+        progress,
+      }));
     }
     // return all transactions
     return uniqueTransactions;

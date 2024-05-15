@@ -1,7 +1,43 @@
 // DERIVED ATOMS FOR TRANSACTIONS
 
+import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { transactionsAtom } from "./stacks";
 import { atom } from "jotai";
+
+// helpers for selecting specific transaction types
+
+type TransactionTypes =
+  | "all"
+  | "mining"
+  | "mining-claims"
+  | "stacking"
+  | "stacking-claims";
+
+export const selectedTransactionTypeAtom = atom<TransactionTypes>("all");
+export const selectedTransactionsAtom = atom<Transaction[]>((get) => {
+  const selectedTransactionType = get(selectedTransactionTypeAtom);
+  const existingTransactions = get(transactionsAtom);
+  const miningTransactions = get(miningTransactionsAtom);
+  const miningClaimTransactions = get(miningClaimTransactionsAtom);
+  const stackingTransactions = get(stackingTransactionsAtom);
+  const stackingClaimTransactions = get(stackingClaimTransactionsAtom);
+
+  switch (selectedTransactionType) {
+    case "mining":
+      return miningTransactions;
+    case "mining-claims":
+      return miningClaimTransactions;
+    case "stacking":
+      return stackingTransactions;
+    case "stacking-claims":
+      return stackingClaimTransactions;
+    case "all":
+    default:
+      return existingTransactions;
+  }
+});
+
+// helpers for identifying specific contract calls
 
 type ContractFunctionMap = {
   [contract: string]: string;

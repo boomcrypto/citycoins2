@@ -9,51 +9,17 @@ import {
 } from "@chakra-ui/react";
 import { MdFilterList } from "react-icons/md";
 import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
-import { atom, useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import SignIn from "../auth/sign-in";
 import TransactionList from "../transaction-list";
 import {
   miningClaimTransactionsAtom,
   miningTransactionsAtom,
+  selectedTransactionTypeAtom,
+  selectedTransactionsAtom,
   stackingClaimTransactionsAtom,
   stackingTransactionsAtom,
 } from "../../store/citycoins";
-import { Transaction } from "@stacks/stacks-blockchain-api-types";
-
-type TransactionTypes =
-  | "all"
-  | "mining"
-  | "mining-claims"
-  | "stacking"
-  | "stacking-claims";
-
-const selectedTransactionTypeAtom = atom<TransactionTypes>("all");
-const selectedTransactionsAtom = atom<Transaction[]>((get) => {
-  const selectedTransactionType = get(selectedTransactionTypeAtom);
-  const miningTransactions = get(miningTransactionsAtom);
-  const miningClaimTransactions = get(miningClaimTransactionsAtom);
-  const stackingTransactions = get(stackingTransactionsAtom);
-  const stackingClaimTransactions = get(stackingClaimTransactionsAtom);
-
-  switch (selectedTransactionType) {
-    case "mining":
-      return miningTransactions;
-    case "mining-claims":
-      return miningClaimTransactions;
-    case "stacking":
-      return stackingTransactions;
-    case "stacking-claims":
-      return stackingClaimTransactions;
-    case "all":
-    default:
-      return [
-        ...miningTransactions,
-        ...miningClaimTransactions,
-        ...stackingTransactions,
-        ...stackingClaimTransactions,
-      ];
-  }
-});
 
 function Dashboard() {
   const stxAddress = useAtomValue(stxAddressAtom);
