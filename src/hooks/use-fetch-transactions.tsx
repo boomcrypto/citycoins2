@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import { atom, useAtom, useAtomValue } from "jotai";
 import {
   AddressTransactionsWithTransfersListResponse,
@@ -9,217 +9,130 @@ import { fancyFetch } from "../store/common";
 import { stxAddressAtom, acctTxsAtom } from "../store/stacks";
 
 type FetchStatus = {
-  progress: number;
   isLoading: boolean;
   error: string | null;
+  progress: number;
 };
 
 const fetchStatusAtom = atom<FetchStatus>({
-  progress: 0,
-  isLoading: true,
+  isLoading: false,
   error: null,
+  progress: 0,
 });
-
-const isFetchingTransactionsAtom = atom(false);
 
 export function useFetchTransactions() {
   const address = useAtomValue(stxAddressAtom);
   const [fetchStatus, setFetchStatus] = useAtom(fetchStatusAtom);
   const [existingTransactions, setExistingTransactions] = useAtom(acctTxsAtom);
-  const existingTransactionsRef = useRef(existingTransactions);
-  const [isFetchingTransactions, setIsFetchingTransactions] = useAtom(
-    isFetchingTransactionsAtom
-  );
 
   const fetchTransactions = useCallback(async () => {
-    // check if we're already fetching
-    if (isFetchingTransactions) {
-      return;
-    } else {
-      setIsFetchingTransactions(true);
-    }
+    if (fetchStatus.isLoading || !address) return;
+
+    setFetchStatus({ isLoading: true, error: null, progress: 0 });
+
     try {
-      // setup info for fetching transactions
       const endpoint = `${HIRO_API}/extended/v1/address/${address}/transactions`;
       const limit = 50;
       let offset = 0;
       let totalTransactions = 0;
 
-      // fetch once to get total count
-      console.log("fetch once to get total count");
-      let url = new URL(endpoint);
-      url.searchParams.set("limit", limit.toString());
       const initialResponse =
         await fancyFetch<AddressTransactionsWithTransfersListResponse>(
-          url.toString()
+          `${endpoint}?limit=${limit}`
         );
       totalTransactions = initialResponse.total;
 
-      // check if we already have all transactions
-      console.log("check if we already have all transactions");
-      console.log("existing: ", existingTransactionsRef.current.length);
-      console.log("total: ", totalTransactions);
-      if (existingTransactionsRef.current.length === totalTransactions) {
-        console.log("already have all transactions, done");
-        setIsFetchingTransactions(false);
-        setFetchStatus({ progress: 100, isLoading: false, error: null });
+      if (existingTransactions.length === totalTransactions) {
+        setFetchStatus({ isLoading: false, error: null, progress: 100 });
         return;
       }
 
-      // get and store unique transactions from initial response
-      console.log("get and store unique transactions from initial response");
-      console.log("initial response: ", initialResponse.results);
-      console.log("existing transactions: ", existingTransactionsRef.current);
-      const uniqueTransactions = [
-        ...existingTransactionsRef.current,
-        ...initialResponse.results
-          .filter(
-            (apiTx) =>
-              !existingTransactionsRef.current.some(
-                (knownTx) => knownTx.tx_id === apiTx.tx.tx_id
-              )
-          )
-          .map((txRecord) => txRecord.tx)
-          .filter((tx): tx is Transaction => tx !== null && tx !== undefined),
-      ];
-      console.log(uniqueTransactions.length, "unique transactions");
-      console.log("unique transactions: ", uniqueTransactions);
+      const newTransactions = initialResponse.results
+        .filter(
+          (apiTx) =>
+            !existingTransactions.some(
+              (knownTx) => knownTx.tx_id === apiTx.tx.tx_id
+            )
+        )
+        .map((txRecord) => txRecord.tx)
+        .filter((tx): tx is Transaction => tx !== null && tx !== undefined);
 
-      // set transactions, update ref and fetch status
-      console.log("set transactions, update ref and fetch status");
-      setExistingTransactions(uniqueTransactions);
-      existingTransactionsRef.current = uniqueTransactions;
+      setExistingTransactions([...existingTransactions, ...newTransactions]);
       setFetchStatus({
-        progress: (uniqueTransactions.length / totalTransactions) * 100,
         isLoading: true,
         error: null,
+        progress: Math.min(
+          ((existingTransactions.length + newTransactions.length) /
+            totalTransactions) *
+            100,
+          100
+        ),
       });
-      console.log(
-        "existingTransactionsRef.current: ",
-        existingTransactionsRef.current
-      );
 
-      // function to fetch remaining transactions
-      const fetchRemainingTransactions = async () => {
-        console.log("fetching remaining transactions");
-        while (existingTransactionsRef.current.length < totalTransactions) {
-          console.log(
-            existingTransactionsRef.current.length,
-            "existing transactions"
+      while (
+        existingTransactions.length + newTransactions.length <
+        totalTransactions
+      ) {
+        offset += limit;
+        const response =
+          await fancyFetch<AddressTransactionsWithTransfersListResponse>(
+            `${endpoint}?limit=${limit}&offset=${offset}`
           );
-          console.log(totalTransactions, "total transactions");
-          offset += limit;
-          // break if offset > total
-          if (offset > totalTransactions) {
-            console.log("breaking because offset > totalTransactions");
-            console.log("offset: ", offset);
-            console.log("totalTransactions: ", totalTransactions);
-            setFetchStatus({
-              progress: 0,
-              isLoading: false,
-              error: "Failed to load transactions, offset exceeded total",
-            });
-            break;
-          }
-          url.searchParams.set("offset", offset.toString());
-          const response =
-            await fancyFetch<AddressTransactionsWithTransfersListResponse>(
-              url.toString()
-            );
 
-          // get and store unique transactions from response
-          console.log("get and store unique transactions from response");
-          const newTransactions = [
-            ...existingTransactionsRef.current,
-            ...response.results
-              .filter(
-                (apiTx) =>
-                  !existingTransactionsRef.current.some(
-                    (knownTx) => knownTx.tx_id === apiTx.tx.tx_id
-                  )
-              )
-              .map((txRecord) => txRecord.tx)
-              .filter(
-                (tx): tx is Transaction => tx !== null && tx !== undefined
-              ),
-          ];
-          console.log(newTransactions.length, "new transactions");
+        const additionalTransactions = response.results
+          .filter(
+            (apiTx) =>
+              !existingTransactions.some(
+                (knownTx) => knownTx.tx_id === apiTx.tx.tx_id
+              ) &&
+              !newTransactions.some((newTx) => newTx.tx_id === apiTx.tx.tx_id)
+          )
+          .map((txRecord) => txRecord.tx)
+          .filter((tx): tx is Transaction => tx !== null && tx !== undefined);
 
-          // set transactions and fetch status
-          console.log("set transactions and fetch status");
-          setExistingTransactions(newTransactions);
-          existingTransactionsRef.current = newTransactions;
-          setFetchStatus({
-            progress:
-              (existingTransactionsRef.current.length / totalTransactions) *
-              100,
-            isLoading: true,
-            error: null,
-          });
-          console.log(
-            "existingTransactionsRef.current: ",
-            existingTransactionsRef.current
-          );
-        }
-      };
-      // fetch remaining transactions in chunks
-      console.log("fetch remaining transactions in chunks");
-      await fetchRemainingTransactions();
-
-      // update status when complete
-      console.log("update status when complete");
-      setFetchStatus({ progress: 100, isLoading: false, error: null });
-    } catch (error) {
-      console.log("caught an error: ", error);
-      setIsFetchingTransactions(false);
-      if (error instanceof Error) {
+        setExistingTransactions([
+          ...existingTransactions,
+          ...newTransactions,
+          ...additionalTransactions,
+        ]);
+        newTransactions.push(...additionalTransactions);
         setFetchStatus({
-          progress: 0,
-          isLoading: false,
-          error: error.message,
+          isLoading: true,
+          error: null,
+          progress: Math.min(
+            ((existingTransactions.length +
+              newTransactions.length +
+              additionalTransactions.length) /
+              totalTransactions) *
+              100,
+            100
+          ),
         });
+      }
+
+      setFetchStatus({ isLoading: false, error: null, progress: 100 });
+    } catch (error) {
+      if (error instanceof Error) {
+        setFetchStatus({ isLoading: false, error: error.message, progress: 0 });
       } else {
         setFetchStatus({
-          progress: 0,
           isLoading: false,
           error: `Unknown error: ${String(error)}`,
+          progress: 0,
         });
       }
     }
   }, [
     address,
-    isFetchingTransactions,
+    existingTransactions,
+    fetchStatus.isLoading,
     setExistingTransactions,
     setFetchStatus,
-    setIsFetchingTransactions,
   ]);
-  const refreshTransactions = async () => {
-    if (address && existingTransactionsRef.current.length > 0) {
-      const endpoint = `${HIRO_API}/extended/v1/address/${address}/transactions`;
-      const response =
-        await fancyFetch<AddressTransactionsWithTransfersListResponse>(
-          endpoint
-        );
-      const totalTransactions = response.total;
-
-      if (
-        existingTransactionsRef.current.length < totalTransactions &&
-        !isFetchingTransactions
-      ) {
-        fetchTransactions();
-      }
-    }
-  };
 
   useEffect(() => {
-    if (address && existingTransactionsRef.current.length === 0) {
-      fetchTransactions();
-    }
-  }, [address, fetchTransactions]);
+    fetchTransactions();
+  }, [fetchTransactions]);
 
-  return {
-    ...fetchStatus,
-    isLoading: isFetchingTransactions,
-    refreshTransactions,
-  };
+  return { ...fetchStatus, refreshTransactions: fetchTransactions };
 }
