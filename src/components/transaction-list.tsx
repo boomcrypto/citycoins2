@@ -56,7 +56,12 @@ function TransactionList({ transactions }: TransactionListProps) {
             bg={isLoading ? "yellow.500" : error ? "red.500" : "green.500"}
           />
           {isLoading && (
-            <Stack direction="row" align="center" w="100%">
+            <Stack
+              direction="row"
+              align="center"
+              justifyContent="space-between"
+              w="100%"
+            >
               <Text>Loading transactions... {progress.toFixed(2)}%</Text>
               <Spinner size="sm" />
             </Stack>
@@ -149,11 +154,3 @@ function TransactionFunctionArgs({
 }
 
 export default TransactionList;
-
-/*
-
-
-)}
-
-
-*/

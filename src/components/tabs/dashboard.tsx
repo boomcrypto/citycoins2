@@ -73,10 +73,21 @@ function Dashboard() {
       {stxAddress ? (
         <>
           <Text fontWeight="bold">{stxAddress}</Text>
-          <Stack direction={["column", null, "row"]}>
-            <Stat>
-              <StatLabel>Total Transactions</StatLabel>
-              <StatNumber>{transactions.length}</StatNumber>
+          {/* Transaction Stats and Filters */}
+          <Stack
+            direction={["column", null, "row"]}
+            justifyContent="space-between"
+            spacing={2}
+          >
+            <Stack
+              direction="row"
+              alignContent="center"
+              justifyContent="space-between"
+            >
+              <Stat>
+                <StatLabel>Total Transactions</StatLabel>
+                <StatNumber>{transactions.length}</StatNumber>
+              </Stat>
               <IconButton
                 colorScheme={
                   selectedTransactionType === "all" ? "blue" : "gray"
@@ -84,13 +95,19 @@ function Dashboard() {
                 icon={<MdFilterList />}
                 aria-label="Filter transactions"
                 title="Filter Transactions"
-                size="sm"
+                size="xs"
                 onClick={() => setSelectedTransactionType("all")}
               />
-            </Stat>
-            <Stat>
-              <StatLabel>Total Mining TXs</StatLabel>
-              <StatNumber>{miningTransactions.length}</StatNumber>
+            </Stack>
+            <Stack
+              direction="row"
+              alignContent="center"
+              justifyContent="space-between"
+            >
+              <Stat>
+                <StatLabel>Total Mining TXs</StatLabel>
+                <StatNumber>{miningTransactions.length}</StatNumber>
+              </Stat>
               <IconButton
                 colorScheme={
                   selectedTransactionType === "mining" ? "blue" : "gray"
@@ -98,13 +115,19 @@ function Dashboard() {
                 icon={<MdFilterList />}
                 aria-label="Filter transactions"
                 title="Filter Transactions"
-                size="sm"
+                size="xs"
                 onClick={() => setSelectedTransactionType("mining")}
               />
-            </Stat>
-            <Stat>
-              <StatLabel>Total Mining Claim TXs</StatLabel>
-              <StatNumber>{miningClaimTransactions.length}</StatNumber>
+            </Stack>
+            <Stack
+              direction="row"
+              alignContent="center"
+              justifyContent="space-between"
+            >
+              <Stat>
+                <StatLabel>Total Mining Claim TXs</StatLabel>
+                <StatNumber>{miningClaimTransactions.length}</StatNumber>
+              </Stat>
               <IconButton
                 colorScheme={
                   selectedTransactionType === "mining-claims" ? "blue" : "gray"
@@ -112,13 +135,19 @@ function Dashboard() {
                 icon={<MdFilterList />}
                 aria-label="Filter transactions"
                 title="Filter Transactions"
-                size="sm"
+                size="xs"
                 onClick={() => setSelectedTransactionType("mining-claims")}
               />
-            </Stat>
-            <Stat>
-              <StatLabel>Total Stacking TXs</StatLabel>
-              <StatNumber>{stackingTransactions.length}</StatNumber>
+            </Stack>
+            <Stack
+              direction="row"
+              alignContent="center"
+              justifyContent="space-between"
+            >
+              <Stat>
+                <StatLabel>Total Stacking TXs</StatLabel>
+                <StatNumber>{stackingTransactions.length}</StatNumber>
+              </Stat>
               <IconButton
                 colorScheme={
                   selectedTransactionType === "stacking" ? "blue" : "gray"
@@ -126,13 +155,19 @@ function Dashboard() {
                 icon={<MdFilterList />}
                 aria-label="Filter transactions"
                 title="Filter Transactions"
-                size="sm"
+                size="xs"
                 onClick={() => setSelectedTransactionType("stacking")}
               />
-            </Stat>
-            <Stat>
-              <StatLabel>Total Stacking Claim TXs</StatLabel>
-              <StatNumber>{stackingClaimTransactions.length}</StatNumber>
+            </Stack>
+            <Stack
+              direction="row"
+              alignContent="center"
+              justifyContent="space-between"
+            >
+              <Stat>
+                <StatLabel>Total Stacking Claim TXs</StatLabel>
+                <StatNumber>{stackingClaimTransactions.length}</StatNumber>
+              </Stat>
               <IconButton
                 colorScheme={
                   selectedTransactionType === "stacking-claims"
@@ -142,15 +177,12 @@ function Dashboard() {
                 icon={<MdFilterList />}
                 aria-label="Filter transactions"
                 title="Filter Transactions"
-                size="sm"
+                size="xs"
                 onClick={() => setSelectedTransactionType("stacking-claims")}
               />
-            </Stat>
+            </Stack>
           </Stack>
-          <Stack>
-            <Text>Recent Transactions:</Text>
-            <TransactionList transactions={selectedTransactions} />
-          </Stack>
+          <TransactionList transactions={selectedTransactions} />
         </>
       ) : (
         <>
