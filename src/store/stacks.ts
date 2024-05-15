@@ -6,6 +6,7 @@ import {
 } from "@stacks/stacks-blockchain-api-types";
 import { HIRO_API, fancyFetch, sleep } from "./common";
 import { Setter, atom } from "jotai";
+import LZString from "lz-string";
 
 /////////////////////////
 // TYPES
@@ -35,9 +36,9 @@ export const bnsNameAtom = atomWithStorage<string | null>(
   null
 );
 
-export const acctTxsAtom = atomWithStorage<Transaction[]>(
+export const acctTxsAtom = atomWithStorage<string>(
   "citycoins-stacks-acctTxs",
-  []
+  ""
 );
 
 export const acctMempoolTxsAtom = atomWithStorage<Transaction[]>(
@@ -59,7 +60,10 @@ export const transactionsAtom = atom(
   (get) => {
     const acctTxs = get(acctTxsAtom);
     if (!acctTxs) return [];
-    return acctTxs;
+    const decompressedTxs: Transaction[] = JSON.parse(
+      LZString.decompress(acctTxs)
+    );
+    return decompressedTxs;
   },
   // update by writing to localstorage
   async (get, set, update: Transaction[]) => {
@@ -79,7 +83,8 @@ export const transactionsAtom = atom(
         error: null,
         progress: 100,
       });
-      set(acctTxsAtom, newTxs);
+      const compressedTxs = LZString.compress(JSON.stringify(newTxs));
+      set(acctTxsAtom, compressedTxs);
     } catch (error) {
       throw error;
     }
