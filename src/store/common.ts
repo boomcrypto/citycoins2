@@ -69,7 +69,7 @@ export function formatDate(isoString: string) {
  * Asynchronous sleep function.
  * @param ms The number of milliseconds to sleep.
  */
-async function sleep(ms: number) {
+export async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
