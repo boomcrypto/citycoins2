@@ -5,17 +5,11 @@ import {
   ListItem,
   Spinner,
   Box,
-  Button,
   IconButton,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
 import { useAtom, useAtomValue } from "jotai";
-import {
-  acctTxsAtom,
-  transactionFetchStatusAtom,
-  transactionsAtom,
-} from "../store/stacks";
-import { useFetchTransactions } from "../hooks/use-fetch-transactions";
+import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
 import { formatDate } from "../store/common";
 
 function TransactionList() {
