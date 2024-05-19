@@ -1,10 +1,16 @@
 // DERIVED ATOMS FOR TRANSACTIONS
 
-import { Transaction } from "@stacks/stacks-blockchain-api-types";
+import {
+  ContractCallTransaction,
+  Transaction,
+} from "@stacks/stacks-blockchain-api-types";
+import { hexToCV, cvToJSON, cvToValue } from "@stacks/transactions";
 import { transactionsAtom } from "./stacks";
 import { atom } from "jotai";
 
 // helpers for selecting specific transaction types
+
+export type CityNames = "mia" | "nyc";
 
 export type TransactionTypes =
   | "all"
@@ -67,6 +73,92 @@ function checkFunctionName(
   }
 }
 
+function getTransactionsPerCity(
+  city: CityNames,
+  transactions: ContractCallTransaction[]
+) {
+  console.log("getting txs per city", city, transactions.length);
+  const transactionsPerCity: ContractCallTransaction[] = [];
+  // check for legacy calls
+  transactions.forEach((tx) => {
+    console.log("evaluating a tx for city", tx.contract_call.contract_id);
+    // match legacy calls to core contracts
+    if (tx.contract_call.contract_id.includes(city)) {
+      console.log("legacy call to core contract", city);
+      transactionsPerCity.push(tx);
+    }
+    // handle ccd006 calls
+    if (
+      tx.contract_call.function_name === "mine" &&
+      tx.contract_call.function_args
+    ) {
+      console.log("ccd006 mining call", tx.contract_call.function_args[0].repr);
+      const cityName = cvToValue(
+        hexToCV(tx.contract_call.function_args[0].hex)
+      );
+      if (cityName === city) {
+        transactionsPerCity.push(tx);
+      }
+    }
+  });
+  return transactionsPerCity;
+}
+
+function getBlockHeightsFromTransactions(
+  transactions: ContractCallTransaction[]
+): number[] {
+  const blockHeights: number[] = [];
+  transactions.forEach((tx) => {
+    console.log("evaluating a tx for block heights");
+    // handle single mining call
+    if (
+      tx.contract_call.function_name === "mine-tokens" &&
+      tx.contract_call.function_args
+    ) {
+      console.log("single mining call", tx.contract_call.function_args[0].repr);
+      const blockHeight = cvToValue(
+        hexToCV(tx.contract_call.function_args[0].hex)
+      );
+      blockHeight && blockHeights.push(Number(blockHeight));
+    }
+    // handle legacy mine-many calls
+    if (
+      tx.contract_call.function_name === "mine-many" &&
+      tx.contract_call.function_args
+    ) {
+      console.log(
+        "legacy mine-many call",
+        tx.contract_call.function_args[0].repr
+      );
+      const blockHeightsJson = cvToJSON(
+        hexToCV(tx.contract_call.function_args[0].hex)
+      );
+      blockHeightsJson.value.forEach((blockHeight: number) => {
+        blockHeights.push(blockHeight);
+      });
+    }
+    // handle ccd006 mining calls
+    if (
+      tx.contract_call.function_name === "mine" &&
+      tx.contract_call.function_args
+    ) {
+      console.log("ccd006 mining call", tx.contract_call.function_args[1].repr);
+      const blockHeightsJson = cvToJSON(
+        hexToCV(tx.contract_call.function_args[1].hex)
+      );
+      blockHeightsJson.value.forEach((blockHeight: number) => {
+        blockHeights.push(blockHeight);
+      });
+    }
+    console.log(
+      "unhandled mining tx",
+      tx.contract_call.function_name,
+      tx.contract_call.function_args
+    );
+  });
+  return blockHeights;
+}
+
 // MINING TRANSACTIONS
 
 const miningTransactionCalls: ContractFunctionMap = {
@@ -103,9 +195,41 @@ export const miningTransactionsAtom = atom(
           tx.contract_call.function_name,
           miningTransactionCalls
         )
-    );
+    ) as ContractCallTransaction[];
   }
 );
+
+export const miningTransactionsPerCityAtom = atom((get) => {
+  const miningTransactions = get(miningTransactionsAtom);
+  console.log("mining transactions", miningTransactions.length);
+  const miaMiningTransactions = getTransactionsPerCity(
+    "mia",
+    miningTransactions
+  );
+  const nycMiningTransactions = getTransactionsPerCity(
+    "nyc",
+    miningTransactions
+  );
+  console.log(
+    "mining txs per city",
+    miaMiningTransactions.length,
+    nycMiningTransactions.length
+  );
+  return { miaMiningTransactions, nycMiningTransactions };
+});
+
+export const miningBlocksToClaimPerCityAtom = atom((get) => {
+  const { miaMiningTransactions, nycMiningTransactions } = get(
+    miningTransactionsPerCityAtom
+  );
+  const miaBlockHeights = getBlockHeightsFromTransactions(
+    miaMiningTransactions
+  );
+  const nycBlockHeights = getBlockHeightsFromTransactions(
+    nycMiningTransactions
+  );
+  return { miaBlockHeights, nycBlockHeights };
+});
 
 // MINING CLAIM TRANSACTIONS
 
