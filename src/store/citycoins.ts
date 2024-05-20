@@ -98,57 +98,41 @@ function getBlockHeightsFromMiningTransactions(
 ): number[] {
   const blockHeights: number[] = [];
   transactions.forEach((tx) => {
-    // handle single mining call
-    if (
-      tx.contract_call.function_name === "mine-tokens" &&
-      tx.contract_call.function_args
-    ) {
-      console.log("single mining call", tx.contract_call.function_args);
-      const blockHeight = cvToValue(
-        hexToCV(tx.contract_call.function_args[0].hex)
-      );
-      // block height to claim is the block height of the tx
-      blockHeight && blockHeights.push(Number(tx.block_height));
-    }
-    // handle legacy mine-many calls
-    if (
-      tx.contract_call.function_name === "mine-many" &&
-      tx.contract_call.function_args
-    ) {
-      console.log(
-        "legacy mine-many call",
-        tx.contract_call.function_args[0].repr
-      );
-      const blockHeightsJson = cvToJSON(
-        hexToCV(tx.contract_call.function_args[0].hex)
-      );
-      // block height to claim is the block height of the tx
-      // plus the number of blocks mined
-      for (let i = 0; i < blockHeightsJson.value.length; i++) {
-        blockHeights.push(Number(tx.block_height) + i);
+    if (tx.contract_call.function_args) {
+      switch (tx.contract_call.function_name) {
+        case "mine-tokens":
+          // block height to claim is the block height of the tx
+          blockHeights.push(Number(tx.block_height));
+          break;
+        case "mine-many":
+          // block height to claim is the block height of the tx
+          // plus the number of blocks mined (length of args list)
+          const blockHeightsJson = cvToJSON(
+            hexToCV(tx.contract_call.function_args[0].hex)
+          );
+          for (let i = 0; i < blockHeightsJson.value.length; i++) {
+            blockHeights.push(Number(tx.block_height) + i);
+          }
+          break;
+        case "mine":
+          // block height to claim is the block height of the tx
+          // plus the number of blocks mined (length of args list)
+          const blockHeightsJson2 = cvToJSON(
+            hexToCV(tx.contract_call.function_args[1].hex)
+          );
+          for (let i = 0; i < blockHeightsJson2.value.length; i++) {
+            blockHeights.push(Number(tx.block_height) + i);
+          }
+          break;
+        default:
+          console.log(
+            "unhandled mining tx",
+            tx.contract_call.contract_id,
+            tx.contract_call.function_name,
+            tx.contract_call.function_args
+          );
       }
     }
-    // handle ccd006 mining calls
-    if (
-      tx.contract_call.function_name === "mine" &&
-      tx.contract_call.function_args
-    ) {
-      console.log("ccd006 mining call", tx.contract_call.function_args[1].repr);
-      const blockHeightsJson = cvToJSON(
-        hexToCV(tx.contract_call.function_args[1].hex)
-      );
-      // block height to claim is the block height of the tx
-      // plus the number of blocks mined
-      for (let i = 0; i < blockHeightsJson.value.length; i++) {
-        blockHeights.push(Number(tx.block_height) + i);
-      }
-    }
-    console.log(
-      "unhandled mining tx",
-      tx.contract_call.contract_id,
-      tx.contract_call.function_name,
-      tx.contract_call.function_args
-    );
   });
   return blockHeights;
 }
@@ -156,7 +140,20 @@ function getBlockHeightsFromMiningTransactions(
 function getBlockHeightsFromMiningClaimTransactions(
   transactions: ContractCallTransaction[]
 ): number[] {
-  return [];
+  const blockHeights: number[] = [];
+  transactions.forEach((tx) => {
+    if (
+      tx.contract_call.function_name === "claim-mining-reward" &&
+      tx.contract_call.function_args
+    ) {
+      console.log(tx.contract_call.function_args);
+      const blockHeight = cvToValue(
+        hexToCV(tx.contract_call.function_args[0].hex)
+      );
+      blockHeight && blockHeights.push(Number(blockHeight));
+    }
+  });
+  return blockHeights;
 }
 
 // MINING TRANSACTIONS
@@ -220,6 +217,9 @@ export const miningBlocksToClaimPerCityAtom = atom((get) => {
   const { miaMiningTransactions, nycMiningTransactions } = get(
     miningTransactionsPerCityAtom
   );
+  const { miaMiningClaimTransactions, nycMiningClaimTransactions } = get(
+    miningClaimTransactionsPerCityAtom
+  );
   const miaBlockHeightsFromMining = getBlockHeightsFromMiningTransactions(
     miaMiningTransactions
   );
@@ -227,9 +227,19 @@ export const miningBlocksToClaimPerCityAtom = atom((get) => {
     nycMiningTransactions
   );
   const miaBlockHeightsFromMiningClaims =
-    getBlockHeightsFromMiningClaimTransactions(miaMiningTransactions);
+    getBlockHeightsFromMiningClaimTransactions(miaMiningClaimTransactions);
   const nycBlockHeightsFromMiningClaims =
-    getBlockHeightsFromMiningClaimTransactions(nycMiningTransactions);
+    getBlockHeightsFromMiningClaimTransactions(nycMiningClaimTransactions);
+  console.log(
+    "MIA block heights: ",
+    miaBlockHeightsFromMining.length,
+    miaBlockHeightsFromMiningClaims.length
+  );
+  console.log(
+    "NYC block heights: ",
+    nycBlockHeightsFromMining.length,
+    nycBlockHeightsFromMiningClaims.length
+  );
   // create an object with any block heights in mining that are not in mining claims
   const miaBlockHeights = miaBlockHeightsFromMining.filter(
     (height) => !miaBlockHeightsFromMiningClaims.includes(height)
@@ -276,6 +286,23 @@ export const miningClaimTransactionsAtom = atom(
     ) as ContractCallTransaction[];
   }
 );
+
+export const miningClaimTransactionsPerCityAtom = atom((get) => {
+  const miningClaimTransactions = get(miningClaimTransactionsAtom);
+  console.log("mining claim transactions", miningClaimTransactions.length);
+  const miaMiningClaimTransactions = miningClaimTransactions.filter((tx) =>
+    checkTransactionForCity("mia", tx)
+  );
+  const nycMiningClaimTransactions = miningClaimTransactions.filter((tx) =>
+    checkTransactionForCity("nyc", tx)
+  );
+  console.log(
+    "mining claim txs per city",
+    miaMiningClaimTransactions.length,
+    nycMiningClaimTransactions.length
+  );
+  return { miaMiningClaimTransactions, nycMiningClaimTransactions };
+});
 
 // STACKING TRANSACTIONS
 
