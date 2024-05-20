@@ -73,35 +73,24 @@ function checkFunctionName(
   }
 }
 
-function getTransactionsPerCity(
+function checkTransactionForCity(
   city: CityNames,
-  transactions: ContractCallTransaction[]
+  transaction: ContractCallTransaction
 ) {
-  console.log("getting txs per city", city, transactions.length);
-  const transactionsPerCity: ContractCallTransaction[] = [];
-  // check for legacy calls
-  transactions.forEach((tx) => {
-    console.log("evaluating a tx for city", tx.contract_call.contract_id);
-    // match legacy calls to core contracts
-    if (tx.contract_call.contract_id.includes(city)) {
-      console.log("legacy call to core contract", city);
-      transactionsPerCity.push(tx);
-    }
-    // handle ccd006 calls
-    if (
-      tx.contract_call.function_name === "mine" &&
-      tx.contract_call.function_args
-    ) {
-      console.log("ccd006 mining call", tx.contract_call.function_args[0].repr);
-      const cityName = cvToValue(
-        hexToCV(tx.contract_call.function_args[0].hex)
-      );
-      if (cityName === city) {
-        transactionsPerCity.push(tx);
-      }
-    }
-  });
-  return transactionsPerCity;
+  // handle legacy calls
+  if (transaction.contract_call.contract_id.includes(city)) {
+    return true;
+  }
+  // handle ccd006 calls
+  if (
+    transaction.contract_call.function_name === "mine" &&
+    transaction.contract_call.function_args
+  ) {
+    const cityName = cvToValue(
+      hexToCV(transaction.contract_call.function_args[0].hex)
+    );
+    return cityName === city;
+  }
 }
 
 function getBlockHeightsFromTransactions(
@@ -115,11 +104,12 @@ function getBlockHeightsFromTransactions(
       tx.contract_call.function_name === "mine-tokens" &&
       tx.contract_call.function_args
     ) {
-      console.log("single mining call", tx.contract_call.function_args[0].repr);
+      console.log("single mining call", tx.contract_call.function_args);
       const blockHeight = cvToValue(
         hexToCV(tx.contract_call.function_args[0].hex)
       );
-      blockHeight && blockHeights.push(Number(blockHeight));
+      // block height to claim is the block height of the tx
+      blockHeight && blockHeights.push(Number(tx.block_height));
     }
     // handle legacy mine-many calls
     if (
@@ -133,9 +123,11 @@ function getBlockHeightsFromTransactions(
       const blockHeightsJson = cvToJSON(
         hexToCV(tx.contract_call.function_args[0].hex)
       );
-      blockHeightsJson.value.forEach((blockHeight: number) => {
-        blockHeights.push(blockHeight);
-      });
+      // block height to claim is the block height of the tx
+      // plus the number of blocks mined
+      for (let i = 0; i < blockHeightsJson.value.length; i++) {
+        blockHeights.push(Number(tx.block_height) + i);
+      }
     }
     // handle ccd006 mining calls
     if (
@@ -146,9 +138,11 @@ function getBlockHeightsFromTransactions(
       const blockHeightsJson = cvToJSON(
         hexToCV(tx.contract_call.function_args[1].hex)
       );
-      blockHeightsJson.value.forEach((blockHeight: number) => {
-        blockHeights.push(blockHeight);
-      });
+      // block height to claim is the block height of the tx
+      // plus the number of blocks mined
+      for (let i = 0; i < blockHeightsJson.value.length; i++) {
+        blockHeights.push(Number(tx.block_height) + i);
+      }
     }
     console.log(
       "unhandled mining tx",
@@ -202,13 +196,11 @@ export const miningTransactionsAtom = atom(
 export const miningTransactionsPerCityAtom = atom((get) => {
   const miningTransactions = get(miningTransactionsAtom);
   console.log("mining transactions", miningTransactions.length);
-  const miaMiningTransactions = getTransactionsPerCity(
-    "mia",
-    miningTransactions
+  const miaMiningTransactions = miningTransactions.filter((tx) =>
+    checkTransactionForCity("mia", tx)
   );
-  const nycMiningTransactions = getTransactionsPerCity(
-    "nyc",
-    miningTransactions
+  const nycMiningTransactions = miningTransactions.filter((tx) =>
+    checkTransactionForCity("nyc", tx)
   );
   console.log(
     "mining txs per city",
