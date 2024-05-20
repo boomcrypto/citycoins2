@@ -93,12 +93,11 @@ function checkTransactionForCity(
   }
 }
 
-function getBlockHeightsFromTransactions(
+function getBlockHeightsFromMiningTransactions(
   transactions: ContractCallTransaction[]
 ): number[] {
   const blockHeights: number[] = [];
   transactions.forEach((tx) => {
-    console.log("evaluating a tx for block heights");
     // handle single mining call
     if (
       tx.contract_call.function_name === "mine-tokens" &&
@@ -146,11 +145,18 @@ function getBlockHeightsFromTransactions(
     }
     console.log(
       "unhandled mining tx",
+      tx.contract_call.contract_id,
       tx.contract_call.function_name,
       tx.contract_call.function_args
     );
   });
   return blockHeights;
+}
+
+function getBlockHeightsFromMiningClaimTransactions(
+  transactions: ContractCallTransaction[]
+): number[] {
+  return [];
 }
 
 // MINING TRANSACTIONS
@@ -214,11 +220,22 @@ export const miningBlocksToClaimPerCityAtom = atom((get) => {
   const { miaMiningTransactions, nycMiningTransactions } = get(
     miningTransactionsPerCityAtom
   );
-  const miaBlockHeights = getBlockHeightsFromTransactions(
+  const miaBlockHeightsFromMining = getBlockHeightsFromMiningTransactions(
     miaMiningTransactions
   );
-  const nycBlockHeights = getBlockHeightsFromTransactions(
+  const nycBlockHeightsFromMining = getBlockHeightsFromMiningTransactions(
     nycMiningTransactions
+  );
+  const miaBlockHeightsFromMiningClaims =
+    getBlockHeightsFromMiningClaimTransactions(miaMiningTransactions);
+  const nycBlockHeightsFromMiningClaims =
+    getBlockHeightsFromMiningClaimTransactions(nycMiningTransactions);
+  // create an object with any block heights in mining that are not in mining claims
+  const miaBlockHeights = miaBlockHeightsFromMining.filter(
+    (height) => !miaBlockHeightsFromMiningClaims.includes(height)
+  );
+  const nycBlockHeights = nycBlockHeightsFromMining.filter(
+    (height) => !nycBlockHeightsFromMiningClaims.includes(height)
   );
   return { miaBlockHeights, nycBlockHeights };
 });
