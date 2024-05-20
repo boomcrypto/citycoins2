@@ -273,7 +273,7 @@ export const miningClaimTransactionsAtom = atom(
           tx.contract_call.function_name,
           miningClaimTransactionCalls
         )
-    );
+    ) as ContractCallTransaction[];
   }
 );
 
@@ -302,7 +302,7 @@ export const stackingTransactionsAtom = atom(
           tx.contract_call.function_name,
           stackingTransactionCalls
         )
-    );
+    ) as ContractCallTransaction[];
   }
 );
 
@@ -337,7 +337,7 @@ export const stackingClaimTransactionsAtom = atom(
           tx.contract_call.function_name,
           stackingClaimTransactionCalls
         )
-    );
+    ) as ContractCallTransaction[];
   }
 );
 
@@ -372,6 +372,6 @@ export const votingTransactionsAtom = atom(
           tx.contract_call.function_name,
           votingTransactionCalls
         )
-    );
+    ) as ContractCallTransaction[];
   }
 );
