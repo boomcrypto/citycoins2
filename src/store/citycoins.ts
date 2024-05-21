@@ -49,6 +49,35 @@ export const selectedTransactionsAtom = atom<Transaction[]>((get) => {
 
 // helpers for identifying specific contract calls
 
+// legacy contracts
+const miaCoreV1 = "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1";
+const miaCoreV2 = "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2";
+const nycCoreV1 =
+  "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1";
+const nycCoreV2 =
+  "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2";
+
+// protocol contracts
+const ccd006Mining =
+  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining";
+const ccd006MiningV2 =
+  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining-v2";
+const ccd007Stacking =
+  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking";
+
+// voting contracts
+const ccip008 = "SP34FHX44NK9KZ8KJC08WR2NHP8NEGFTTT7MTH7XD.citycoins-vote-v1";
+const ccip012 = "SP119FQPVQ39AKVMC0CN3Q1ZN3ZMCGMBR52ZS5K6E.citycoins-vote-v2";
+const ccip013 = "SP5X6BFPYXTZ8C63EYYPA02X2VQTG4V43XNPGAPF.citycoins-vote-v3";
+const ccip014 = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip014-pox-3";
+const ccip014V2 = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd014-pox-3-v2";
+const ccip017 =
+  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip017-extend-sunset-period";
+const ccip021 =
+  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip021-extend-sunset-period-2";
+const ccip020 =
+  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip020-graceful-protocol-shutdown";
+
 type ContractFunctionMap = {
   [contract: string]: string | string[];
 };
@@ -144,17 +173,17 @@ function getBlockHeightsFromMiningClaimTransactions(
   transactions.forEach((tx) => {
     if (tx.contract_call.function_args) {
       switch (tx.contract_call.contract_id) {
-        case "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1":
-        case "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1":
-        case "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2":
-        case "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2":
+        case miaCoreV1:
+        case nycCoreV1:
+        case miaCoreV2:
+        case nycCoreV2:
           // claimed block height is first parameter
           const blockHeightLegacy = cvToValue(
             hexToCV(tx.contract_call.function_args[0].hex)
           );
           blockHeightLegacy && blockHeights.push(Number(blockHeightLegacy));
           break;
-        case "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking":
+        case ccd006Mining:
           // claimed block height is second parameter
           const blockHeight = cvToValue(
             hexToCV(tx.contract_call.function_args[1].hex)
@@ -169,24 +198,12 @@ function getBlockHeightsFromMiningClaimTransactions(
 // MINING TRANSACTIONS
 
 const miningTransactionCalls: ContractFunctionMap = {
-  "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1": [
-    "mine-tokens",
-    "mine-many",
-  ],
-  "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2": [
-    "mine-tokens",
-    "mine-many",
-  ],
-  "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1": [
-    "mine-tokens",
-    "mine-many",
-  ],
-  "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2": [
-    "mine-tokens",
-    "mine-many",
-  ],
-  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining": "mine",
-  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining-v2": "mine",
+  [miaCoreV1]: ["mine-tokens", "mine-many"],
+  [miaCoreV2]: ["mine-tokens", "mine-many"],
+  [nycCoreV1]: ["mine-tokens", "mine-many"],
+  [nycCoreV2]: ["mine-tokens", "mine-many"],
+  [ccd006Mining]: "mine",
+  [ccd006MiningV2]: "mine",
 };
 
 export const miningTransactionsAtom = atom(
@@ -263,18 +280,12 @@ export const miningBlocksToClaimPerCityAtom = atom((get) => {
 // MINING CLAIM TRANSACTIONS
 
 const miningClaimTransactionCalls: ContractFunctionMap = {
-  "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1":
-    "claim-mining-reward",
-  "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2":
-    "claim-mining-reward",
-  "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1":
-    "claim-mining-reward",
-  "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2":
-    "claim-mining-reward",
-  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining":
-    "claim-mining-reward",
-  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining-v2":
-    "claim-mining-reward",
+  [miaCoreV1]: "claim-mining-reward",
+  [miaCoreV2]: "claim-mining-reward",
+  [nycCoreV1]: "claim-mining-reward",
+  [nycCoreV2]: "claim-mining-reward",
+  [ccd006Mining]: "claim-mining-reward",
+  [ccd006MiningV2]: "claim-mining-reward",
 };
 
 export const miningClaimTransactionsAtom = atom(
@@ -317,13 +328,11 @@ export const miningClaimTransactionsPerCityAtom = atom((get) => {
 // STACKING TRANSACTIONS
 
 const stackingTransactionCalls: ContractFunctionMap = {
-  "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1": "stack-tokens",
-  "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2": "stack-tokens",
-  "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1":
-    "stack-tokens",
-  "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2":
-    "stack-tokens",
-  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking": "stack",
+  [miaCoreV1]: "stack-tokens",
+  [miaCoreV2]: "stack-tokens",
+  [nycCoreV1]: "stack-tokens",
+  [nycCoreV2]: "stack-tokens",
+  [ccd007Stacking]: "stack",
 };
 
 export const stackingTransactionsAtom = atom(
@@ -346,16 +355,11 @@ export const stackingTransactionsAtom = atom(
 // STACKING CLAIM TRANSACTIONS
 
 const stackingClaimTransactionCalls: ContractFunctionMap = {
-  "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1":
-    "claim-stacking-reward",
-  "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2":
-    "claim-stacking-reward",
-  "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1":
-    "claim-stacking-reward",
-  "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2":
-    "claim-stacking-reward",
-  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking":
-    "claim-stacking-reward",
+  [miaCoreV1]: "claim-stacking-reward",
+  [miaCoreV2]: "claim-stacking-reward",
+  [nycCoreV1]: "claim-stacking-reward",
+  [nycCoreV2]: "claim-stacking-reward",
+  [ccd007Stacking]: "claim-stacking-reward",
 };
 
 export const stackingClaimTransactionsAtom = atom(
@@ -380,21 +384,21 @@ export const stackingClaimTransactionsAtom = atom(
 
 // VOTING TRANSACTIONS
 
-const votingTransactionCalls: ContractFunctionMap = {
-  "SP34FHX44NK9KZ8KJC08WR2NHP8NEGFTTT7MTH7XD.citycoins-vote-v1":
-    "vote-on-proposal",
-  "SP119FQPVQ39AKVMC0CN3Q1ZN3ZMCGMBR52ZS5K6E.citycoins-vote-v2":
-    "vote-on-proposal",
-  "SP5X6BFPYXTZ8C63EYYPA02X2VQTG4V43XNPGAPF.citycoins-vote-v3":
-    "vote-on-proposal",
-  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip014-pox-3": "vote-on-proposal",
-  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip017-extend-sunset-period":
-    "vote-on-proposal",
-  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip021-extend-sunset-period-2":
-    "vote-on-proposal",
-  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip020-graceful-protocol-shutdown":
-    "vote-on-proposal",
-};
+// combine all to iterate since they use same function name
+const votingContracts = [
+  ccip008,
+  ccip012,
+  ccip013,
+  ccip014,
+  ccip014V2,
+  ccip017,
+  ccip021,
+  ccip020,
+];
+
+const votingTransactionCalls: ContractFunctionMap = Object.fromEntries(
+  votingContracts.map((contract) => [contract, "vote-on-proposal"])
+);
 
 export const votingTransactionsAtom = atom(
   // read from current known txs
