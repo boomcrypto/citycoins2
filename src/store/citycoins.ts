@@ -142,15 +142,25 @@ function getBlockHeightsFromMiningClaimTransactions(
 ): number[] {
   const blockHeights: number[] = [];
   transactions.forEach((tx) => {
-    if (
-      tx.contract_call.function_name === "claim-mining-reward" &&
-      tx.contract_call.function_args
-    ) {
-      console.log(tx.contract_call.function_args);
-      const blockHeight = cvToValue(
-        hexToCV(tx.contract_call.function_args[0].hex)
-      );
-      blockHeight && blockHeights.push(Number(blockHeight));
+    if (tx.contract_call.function_args) {
+      switch (tx.contract_call.contract_id) {
+        case "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1":
+        case "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1":
+        case "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2":
+        case "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2":
+          // claimed block height is first parameter
+          const blockHeightLegacy = cvToValue(
+            hexToCV(tx.contract_call.function_args[0].hex)
+          );
+          blockHeightLegacy && blockHeights.push(Number(blockHeightLegacy));
+          break;
+        case "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking":
+          // claimed block height is second parameter
+          const blockHeight = cvToValue(
+            hexToCV(tx.contract_call.function_args[1].hex)
+          );
+          blockHeight && blockHeights.push(Number(blockHeight));
+      }
     }
   });
   return blockHeights;
