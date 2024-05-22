@@ -145,8 +145,8 @@ function TransactionFunctionArgs({
     <Stack>
       <Text fontWeight="bold">Function Arguments</Text>
       <List spacing={2}>
-        {functionArgs.map((arg) => (
-          <ListItem key={arg.hex}>
+        {functionArgs.map((arg, idx) => (
+          <ListItem key={idx}>
             <Text>Name: {arg.name}</Text>
             <Text>Type: {arg.type}</Text>
             <Text>Repr: {arg.repr}</Text>
