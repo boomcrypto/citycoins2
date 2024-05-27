@@ -102,17 +102,13 @@ function CCIP022() {
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber
-              title={`MIA ${voteTotals.data?.mia.totalVotesYes} / NYC ${voteTotals.data?.nyc.totalVotesYes}`}
-            >
+            <StatNumber title={`NYC ${voteTotals.data?.nyc.totalVotesYes}`}>
               {voteTotals.data?.totals.totalVotesYes ?? <Spinner />}
             </StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber
-              title={`MIA ${voteTotals.data?.mia.totalVotesNo} / NYC ${voteTotals.data?.nyc.totalVotesNo}`}
-            >
+            <StatNumber title={`NYC ${voteTotals.data?.nyc.totalVotesNo}`}>
               {voteTotals.data?.totals.totalVotesNo ?? <Spinner />}
             </StatNumber>
           </Stat>
@@ -132,9 +128,21 @@ function CCIP022() {
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related Contracts:</Text>
-        <Link href="" isExternal>
-          ccip-022-treasury-redemption-nyc
-        </Link>
+        <Box textAlign="end">
+          <Link
+            href="https://github.com/citycoins/protocol/blob/fix/implement-ccip-022/contracts/proposals/ccip022-citycoins-treasury-redemption-nyc.clar"
+            isExternal
+          >
+            ccip-022-treasury-redemption-nyc
+          </Link>
+          <br />
+          <Link
+            href="https://github.com/citycoins/protocol/blob/fix/implement-ccip-022/contracts/extensions/ccd012-redemption-nyc.clar"
+            isExternal
+          >
+            ccd012-redemption-nyc
+          </Link>
+        </Box>
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Voting Method:</Text>
@@ -147,8 +155,31 @@ function CCIP022() {
       </Stack>
       <Stack spacing={2}>
         <Text fontWeight="bold">Details:</Text>
-        <Text>TBD</Text>
-        <Text>TBD</Text>
+        <Text>
+          With the execution of{" "}
+          <Link
+            href="https://github.com/citycoins/governance/blob/main/ccips/ccip-020/ccip-020-graceful-protocol-shutdown.md"
+            isExternal
+          >
+            CCIP-020 Graceful Protocol Shutdown
+          </Link>{" "}
+          (Vote 7) the functions for mining and stacking CityCoins are disabled.
+          Following that change this CCIP proposes a redemption mechanism for
+          NYC token holders to be fairly compensated by redeeming their
+          CityCoins for a portion of the STX held in the city treasury.
+        </Text>
+        <Text>
+          A new redemption extension will be created{" "}
+          <Link
+            href="https://github.com/citycoins/protocol/blob/fix/implement-ccip-022/contracts/extensions/ccd012-redemption-nyc.clar"
+            isExternal
+          >
+            (ccd012-redemption-nyc)
+          </Link>{" "}
+          that will hold the treasury balance, calculate the redemption ratio
+          based on the total supply, and track claims for users based on the
+          balance of NYC in their wallet. Both V1 and V2 are supported.
+        </Text>
       </Stack>
       {isVoteActive.data && hasVoted ? (
         <>
