@@ -28,7 +28,7 @@ function Voting() {
             <AccordionButton>
               <VoteTitle
                 title="Vote 8: Treasury Redemption NYC"
-                status="pending"
+                status="active"
               />
             </AccordionButton>
           </h2>

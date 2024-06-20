@@ -15,15 +15,19 @@ export type Ccip022Atoms =
   | "voteTotals"
   | "voterInfo";
 
+export type CityVoteRecord = {
+  totalAmountYes: number;
+  totalAmountNo: number;
+  totalVotesYes: number;
+  totalVotesNo: number;
+};
+
 export type Ccip022VoteTotals = {
-  noTotal: number;
-  yesTotal: number;
-  noVotes: number;
-  yesVotes: number;
+  nyc: CityVoteRecord;
+  totals: CityVoteRecord;
 };
 
 export type Ccip022VoterInfo = {
-  mia: number;
   nyc: number;
   total: number;
   vote: boolean;
