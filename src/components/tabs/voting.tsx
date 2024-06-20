@@ -15,6 +15,7 @@ import CCIP017 from "../votes/ccip-017";
 import CCIP021 from "../votes/ccip-021";
 import VoteTitle from "../votes/vote-title";
 import CCIP020 from "../votes/ccip-020";
+import CCIP022 from "../votes/ccip-022";
 
 function Voting() {
   return (
@@ -22,6 +23,19 @@ function Voting() {
       <Heading>CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
       <Accordion allowMultiple allowToggle>
+        <AccordionItem>
+          <h2>
+            <AccordionButton>
+              <VoteTitle
+                title="Vote 8: Treasury Redemption NYC"
+                status="pending"
+              />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel pb={4}>
+            <CCIP022 />
+          </AccordionPanel>
+        </AccordionItem>
         <AccordionItem>
           <h2>
             <AccordionButton>
