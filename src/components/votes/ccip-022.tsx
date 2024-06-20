@@ -18,8 +18,8 @@ import { useCcip022VoteData } from "../../hooks/use-ccip-022-vote-data";
 import { useCcip022VoteActions } from "../../hooks/use-ccip-022-vote-actions";
 import { formatMicroAmount } from "../../store/common";
 import { hasVotedAtom } from "../../store/ccip-022";
-import { Ccip020VoteTotals } from "../../store/ccip-020";
-import VoteProgressBarV2 from "./vote-progress-bar-v2";
+import { Ccip022VoteTotals } from "../../store/ccip-022";
+import VoteProgressBarCCIP022 from "./vote-progress-bar-ccip022";
 
 function VoteButtons() {
   const { voteYes, voteNo, isRequestPending } = useCcip022VoteActions();
@@ -110,7 +110,7 @@ function CCIP022() {
         </Stack>
       </Box>
       {voteTotals.data && (
-        <VoteProgressBarV2 props={voteTotals.data as Ccip020VoteTotals} />
+        <VoteProgressBarCCIP022 props={voteTotals.data as Ccip022VoteTotals} />
       )}
       <Divider />
       <Stack direction={["column", "row"]} justifyContent="space-between">
