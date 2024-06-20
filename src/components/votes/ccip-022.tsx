@@ -64,7 +64,6 @@ function VoteResult() {
           Total Votes: {formatMicroAmount(voterInfo.data?.total)} CityCoins
         </ListItem>
         <UnorderedList>
-          <ListItem>MIA: {formatMicroAmount(voterInfo.data?.mia)}</ListItem>
           <ListItem>NYC: {formatMicroAmount(voterInfo.data?.nyc)}</ListItem>
         </UnorderedList>
       </UnorderedList>
@@ -90,10 +89,6 @@ function CCIP022() {
           justifyContent="space-between"
           mb={[2, 4]}
         >
-          <Stat>
-            <StatLabel>MIA Cycles</StatLabel>
-            <StatNumber>82, 83</StatNumber>
-          </Stat>
           <Stat>
             <StatLabel>NYC Cycles</StatLabel>
             <StatNumber>82, 83</StatNumber>
@@ -121,7 +116,10 @@ function CCIP022() {
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
         <Box>
-          <Link href="" isExternal>
+          <Link
+            href="https://github.com/citycoins/governance/blob/main/ccips/ccip-022/ccip-022-citycoins-treasury-redemption-nyc.md"
+            isExternal
+          >
             CCIP-022
           </Link>
         </Box>
@@ -130,14 +128,14 @@ function CCIP022() {
         <Text fontWeight="bold">Related Contracts:</Text>
         <Box textAlign="end">
           <Link
-            href="https://github.com/citycoins/protocol/blob/fix/implement-ccip-022/contracts/proposals/ccip022-citycoins-treasury-redemption-nyc.clar"
+            href="https://github.com/citycoins/protocol/blob/main/contracts/proposals/ccip022-treasury-redemption-nyc.clar"
             isExternal
           >
-            ccip-022-treasury-redemption-nyc
+            ccip022-treasury-redemption-nyc
           </Link>
           <br />
           <Link
-            href="https://github.com/citycoins/protocol/blob/fix/implement-ccip-022/contracts/extensions/ccd012-redemption-nyc.clar"
+            href="https://github.com/citycoins/protocol/blob/main/contracts/extensions/ccd012-redemption-nyc.clar"
             isExternal
           >
             ccd012-redemption-nyc
@@ -171,7 +169,7 @@ function CCIP022() {
         <Text>
           A new redemption extension will be created{" "}
           <Link
-            href="https://github.com/citycoins/protocol/blob/fix/implement-ccip-022/contracts/extensions/ccd012-redemption-nyc.clar"
+            href="https://github.com/citycoins/protocol/blob/main/contracts/extensions/ccd012-redemption-nyc.clar"
             isExternal
           >
             (ccd012-redemption-nyc)
