@@ -8,7 +8,7 @@ interface VoteProgressBarV2Props {
 
 function VoteProgressBarV2({ props }: VoteProgressBarV2Props) {
   // console.log(JSON.stringify(props, null, 2));
-  const totalVotes = props.totals.totalVotesYes + props.totals.totalVotesNo;
+  const totalVotes = props.totals.totalAmountYes + props.totals.totalAmountNo;
   const yesVotePercentage = (props.totals.totalAmountYes / totalVotes) * 100;
 
   return (
