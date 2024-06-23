@@ -16,10 +16,10 @@ export type Ccip022Atoms =
   | "voterInfo";
 
 export type CityVoteRecord = {
-  totalAmountYes: number;
-  totalAmountNo: number;
-  totalVotesYes: number;
-  totalVotesNo: number;
+  totalAmountYes: string;
+  totalAmountNo: string;
+  totalVotesYes: string;
+  totalVotesNo: string;
 };
 
 export type Ccip022VoteTotals = {

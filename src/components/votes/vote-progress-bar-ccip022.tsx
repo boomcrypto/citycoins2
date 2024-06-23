@@ -7,9 +7,14 @@ interface VoteProgressBarCCIP022Props {
 }
 
 function VoteProgressBarCCIP022({ props }: VoteProgressBarCCIP022Props) {
-  console.log(JSON.stringify(props, null, 2));
-  const totalVotes = props.totals.totalVotesYes + props.totals.totalVotesNo;
-  const yesVotePercentage = (props.totals.totalAmountYes / totalVotes) * 100;
+  // console.log(JSON.stringify(props, null, 2));
+  // const totalVotesYes = parseInt(props.totals.totalVotesYes);
+  // const totalVotesNo = parseInt(props.totals.totalVotesNo);
+  const totalAmountYes = parseInt(props.totals.totalAmountYes);
+  const totalAmountNo = parseInt(props.totals.totalAmountNo);
+  // const totalVotes = totalVotesYes + totalVotesNo;
+  const totalVotesAmount = totalAmountYes + totalAmountNo;
+  const yesVotePercentage = (totalAmountYes / totalVotesAmount) * 100;
 
   return (
     <Box width="100%">
@@ -21,17 +26,13 @@ function VoteProgressBarCCIP022({ props }: VoteProgressBarCCIP022Props) {
       />
       <Box display="flex" flexWrap="wrap" justifyContent="space-between" mt={2}>
         <Text
-          title={`NYC ${formatMicroAmount(props.nyc.totalAmountYes)}`}
+          title={`NYC ${formatMicroAmount(totalAmountYes)}`}
           color={useColorModeValue("green.500", "green.200")}
-        >{`Yes: ${formatMicroAmount(
-          props.totals.totalAmountYes
-        )} CityCoins`}</Text>
+        >{`Yes: ${formatMicroAmount(totalAmountYes)} CityCoins`}</Text>
         <Text
-          title={`NYC ${formatMicroAmount(props.nyc.totalAmountNo)}`}
+          title={`NYC ${formatMicroAmount(totalAmountNo)}`}
           color={useColorModeValue("red.500", "red.200")}
-        >{`No: ${formatMicroAmount(
-          props.totals.totalAmountNo
-        )} CityCoins`}</Text>
+        >{`No: ${formatMicroAmount(totalAmountNo)} CityCoins`}</Text>
       </Box>
     </Box>
   );

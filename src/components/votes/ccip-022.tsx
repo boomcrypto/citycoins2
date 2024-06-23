@@ -76,6 +76,9 @@ function CCIP022() {
   const isVoteActive = useCcip022VoteData("isVoteActive");
   const voteTotals = useCcip022VoteData("voteTotals");
   const hasVoted = useAtomValue(hasVotedAtom);
+  const totalVotes =
+    parseInt(voteTotals.data?.totals.totalVotesNo) +
+    parseInt(voteTotals.data?.totals.totalVotesYes);
 
   return (
     <Stack spacing={4}>
@@ -92,6 +95,12 @@ function CCIP022() {
           <Stat>
             <StatLabel>NYC Cycles</StatLabel>
             <StatNumber>82, 83</StatNumber>
+          </Stat>
+          <Stat>
+            <StatLabel>Total Votes</StatLabel>
+            <StatNumber title={totalVotes.toString()}>
+              {totalVotes ?? <Spinner />}
+            </StatNumber>
           </Stat>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
