@@ -7,6 +7,7 @@ import {
   StatGroup,
   VStack,
   HStack,
+  Stack,
   Text,
   useDisclosure,
   Modal,
@@ -17,6 +18,7 @@ import {
   ModalBody,
   ModalCloseButton,
   Link,
+  Divider,
 } from "@chakra-ui/react";
 import { atom, useAtomValue } from "jotai";
 import { LuExternalLink, LuRepeat } from "react-icons/lu";
@@ -90,14 +92,14 @@ function RedeemNYC() {
         </Stat>
       </StatGroup>
 
-      <VStack spacing={4}>
-        <Button colorScheme="blue" onClick={redeemNYC} width="full">
-          Redeem NYC for STX
+      <Stack spacing={4} direction={["column", null, "row"]}>
+        <Button onClick={redeemNYC} width="full">
+          Redeem for STX
         </Button>
-        <Button colorScheme="green" onClick={onOpen} width="full">
-          Redeem NYC for stSTX / liSTX
+        <Button onClick={onOpen} width="full">
+          Redeem for stSTX / liSTX
         </Button>
-      </VStack>
+      </Stack>
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
@@ -106,23 +108,42 @@ function RedeemNYC() {
           <ModalCloseButton />
           <ModalBody>
             <Text mb={4}>
-              Please be aware of the risks associated with redeeming for stSTX
-              or liSTX. Make sure to understand the implications before
-              proceeding.
-            </Text>
-            <VStack align="start" spacing={2}>
-              <Text fontWeight="bold">Official Resources:</Text>
+              If you would like to claim and stack in the same transaction,{" "}
               <Link href="https://www.stackingdao.com/" isExternal>
-                StackingDAO Website <LuExternalLink mx="2px" />
+                StackingDAO
+              </Link>{" "}
+              and{" "}
+              <Link href="https://www.lisalab.io/" isExternal>
+                LISA
+              </Link>{" "}
+              have partnered to offer stSTX and liSTX.
+            </Text>
+            <Text mb={4}>
+              Please review the resources below before proceeding to fully
+              understand the process through their platform.
+            </Text>
+            <Text mb={4}>
+              Please be aware of the risks associated with redeeming for stSTX
+              or liSTX. StackingDAO and LISA are not affiliated with CityCoins.
+            </Text>
+            <Divider my={4} />
+            <VStack align="stretch" spacing={2} textAlign="center">
+              <Text fontWeight="bold">Official Resources:</Text>
+              <Link
+                noOfLines={1}
+                href="https://www.stackingdao.com/"
+                isExternal
+              >
+                StackingDAO Website <LuExternalLink />
               </Link>
               <Link href="https://discord.gg/stackingdao" isExternal>
-                StackingDAO Discord <LuExternalLink mx="2px" />
+                StackingDAO Discord <LuExternalLink />
               </Link>
               <Link href="https://lidofinance.io/" isExternal>
-                Lido Finance Website <LuExternalLink mx="2px" />
+                Lido Finance Website <LuExternalLink />
               </Link>
               <Link href="https://discord.gg/lido" isExternal>
-                Lido Finance Discord <LuExternalLink mx="2px" />
+                Lido Finance Discord <LuExternalLink />
               </Link>
             </VStack>
           </ModalBody>
