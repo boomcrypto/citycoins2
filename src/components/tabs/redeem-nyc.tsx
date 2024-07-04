@@ -1,5 +1,25 @@
-import { Heading, Stack } from "@chakra-ui/react";
+import {
+  Heading,
+  Button,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatGroup,
+  VStack,
+  HStack,
+  Text,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  Link,
+} from "@chakra-ui/react";
 import { atom, useAtomValue } from "jotai";
+import { LuExternalLink, LuRepeat } from "react-icons/lu";
 
 const v1BalanceNYCAtom = atom(0);
 const v2BalanceNYCAtom = atom(0);
@@ -16,41 +36,110 @@ function RedeemNYC() {
   const totalBalanceNYC = useAtomValue(totalBalanceNYCAtom);
   const amountForBalance = useAtomValue(amountForBalanceAtom);
 
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  const refreshBalances = () => {
+    // Implement the logic to refresh balances here
+    console.log("Refreshing balances...");
+  };
+
+  const redeemNYC = () => {
+    // Implement the logic to redeem NYC here
+    console.log("Redeeming NYC...");
+  };
+
+  const redeemForStSTX = () => {
+    // Implement the logic to redeem for stSTX here
+    console.log("Redeeming for stSTX...");
+    onClose();
+  };
+
+  const redeemForLiSTX = () => {
+    // Implement the logic to redeem for liSTX here
+    console.log("Redeeming for liSTX...");
+    onClose();
+  };
+
   return (
-    <Stack spacing={4}>
+    <VStack spacing={8} align="stretch">
       <Heading>CityCoins NYC Redemption</Heading>
-    </Stack>
+
+      <Button leftIcon={<LuRepeat />} onClick={refreshBalances}>
+        Refresh Balances
+      </Button>
+
+      <StatGroup>
+        <Stat>
+          <StatLabel>V1 NYC Balance</StatLabel>
+          <StatNumber>{v1BalanceNYC}</StatNumber>
+        </Stat>
+        <Stat>
+          <StatLabel>V2 NYC Balance</StatLabel>
+          <StatNumber>{v2BalanceNYC}</StatNumber>
+        </Stat>
+      </StatGroup>
+
+      <StatGroup>
+        <Stat>
+          <StatLabel>Total NYC Balance</StatLabel>
+          <StatNumber>{totalBalanceNYC}</StatNumber>
+        </Stat>
+        <Stat>
+          <StatLabel>Amount for Balance</StatLabel>
+          <StatNumber>{amountForBalance}</StatNumber>
+        </Stat>
+      </StatGroup>
+
+      <VStack spacing={4}>
+        <Button colorScheme="blue" onClick={redeemNYC} width="full">
+          Redeem NYC for STX
+        </Button>
+        <Button colorScheme="green" onClick={onOpen} width="full">
+          Redeem NYC for stSTX / liSTX
+        </Button>
+      </VStack>
+
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Redeem NYC for stSTX / liSTX</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text mb={4}>
+              Please be aware of the risks associated with redeeming for stSTX
+              or liSTX. Make sure to understand the implications before
+              proceeding.
+            </Text>
+            <VStack align="start" spacing={2}>
+              <Text fontWeight="bold">Official Resources:</Text>
+              <Link href="https://www.stackingdao.com/" isExternal>
+                StackingDAO Website <LuExternalLink mx="2px" />
+              </Link>
+              <Link href="https://discord.gg/stackingdao" isExternal>
+                StackingDAO Discord <LuExternalLink mx="2px" />
+              </Link>
+              <Link href="https://lidofinance.io/" isExternal>
+                Lido Finance Website <LuExternalLink mx="2px" />
+              </Link>
+              <Link href="https://discord.gg/lido" isExternal>
+                Lido Finance Discord <LuExternalLink mx="2px" />
+              </Link>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <HStack spacing={4}>
+              <Button colorScheme="blue" onClick={redeemForStSTX}>
+                Redeem for stSTX
+              </Button>
+              <Button colorScheme="green" onClick={redeemForLiSTX}>
+                Redeem for liSTX
+              </Button>
+            </HStack>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </VStack>
   );
 }
 
 export default RedeemNYC;
-
-/*
-
-Need a button to refresh the information
-- get V1 NYC balance
-- get V2 NYC balance
-- derive total balance w/ micro adaptation
-- get amount for balance from contract
-
-Need a button to redeem NYC
-- post condition burn balances
-- post condition receive STX
-
-Need a button to redeem NYC for stSTX / liSTX.
-- disclaimer/pop-up for the user to understand the risks
-- link to their official websites, documentation, chat rooms
-- post condition depends on which asset
-  - stSTX has a function we can call to get amount
-  - liSTX mints an NFT so no need for post condition
-
-stSTX calculation:
-
-> To get the ststx/stx ratio you can call `get-stx-per-ststx` on `SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.data-core-v1`. The param `reserve-contract` should be `SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.reserve-v1`.
-> 
-> It will currently return `u1015555`. Meaning for 1.015555 STX you will get 1 stSTX.
-
-stackingDAO wrapper:
-https://explorer.hiro.so/txid/SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.cc-redemption-v1?chain=mainnet
-
-*/
