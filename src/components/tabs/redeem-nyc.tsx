@@ -32,9 +32,12 @@ import {
   v2BalanceNYCAtom,
 } from "../../store/ccd-012";
 import { formatMicroAmount } from "../../store/common";
+import { useCcd012RedeemNyc } from "../../hooks/use-ccd-012";
 
 function RedeemNYC() {
   const toast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
   const stxAddress = useAtomValue(stxAddressAtom);
   const [v1BalanceNYC, setV1BalanceNyc] = useAtom(v1BalanceNYCAtom);
   const [v2BalanceNYC, setV2BalanceNyc] = useAtom(v2BalanceNYCAtom);
@@ -43,7 +46,7 @@ function RedeemNYC() {
     redemptionForBalanceAtom
   );
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { redeemNycCall, isRequestPending } = useCcd012RedeemNyc();
 
   const refreshBalances = () => {
     toast({
@@ -66,6 +69,7 @@ function RedeemNYC() {
       isClosable: true,
     });
     console.log("Redeeming NYC...");
+    redeemNycCall();
   };
 
   const redeemForStSTX = () => {
@@ -149,7 +153,7 @@ function RedeemNYC() {
       </StatGroup>
 
       <Stack spacing={4} direction={["column", null, "row"]}>
-        <Button onClick={redeemNYC} width="full">
+        <Button isLoading={isRequestPending} onClick={redeemNYC} width="full">
           Redeem for STX
         </Button>
         <Button onClick={onOpen} width="full">
