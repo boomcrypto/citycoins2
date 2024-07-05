@@ -19,6 +19,7 @@ import {
   ModalCloseButton,
   Link,
   Divider,
+  useToast,
 } from "@chakra-ui/react";
 import { useAtom, useAtomValue } from "jotai";
 import { LuExternalLink, LuRepeat } from "react-icons/lu";
@@ -32,6 +33,7 @@ import {
 import { formatMicroAmount } from "../../store/common";
 
 function RedeemNYC() {
+  const toast = useToast();
   const stxAddress = useAtomValue(stxAddressAtom);
   const [v1BalanceNYC, setV1BalanceNyc] = useAtom(v1BalanceNYCAtom);
   const [v2BalanceNYC, setV2BalanceNyc] = useAtom(v2BalanceNYCAtom);
@@ -41,26 +43,46 @@ function RedeemNYC() {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const refreshBalances = () => {
-    // Implement the logic to refresh balances here
+    toast({
+      title: "Refreshing balances...",
+      status: "info",
+      duration: 2000,
+      isClosable: true,
+    });
     console.log("Refreshing balances...");
     setV1BalanceNyc();
     setV2BalanceNyc();
   };
 
   const redeemNYC = () => {
-    // Implement the logic to redeem NYC here
+    toast({
+      title: "Redeeming NYC...",
+      status: "info",
+      duration: 2000,
+      isClosable: true,
+    });
     console.log("Redeeming NYC...");
   };
 
   const redeemForStSTX = () => {
-    // Implement the logic to redeem for stSTX here
-    console.log("Redeeming for stSTX...");
+    toast({
+      title: "Redeeming NYC for stSTX...",
+      status: "info",
+      duration: 2000,
+      isClosable: true,
+    });
+    console.log("Redeeming NYC for stSTX...");
     onClose();
   };
 
   const redeemForLiSTX = () => {
-    // Implement the logic to redeem for liSTX here
-    console.log("Redeeming for liSTX...");
+    toast({
+      title: "Redeeming NYC for liSTX...",
+      status: "info",
+      duration: 2000,
+      isClosable: true,
+    });
+    console.log("Redeeming NYC for liSTX...");
     onClose();
   };
 
