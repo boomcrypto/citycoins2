@@ -134,6 +134,26 @@ export const totalBalanceNYCAtom = atom((get) => {
   return v1Balance + v2Balance;
 });
 
+export const isRedemptionEnabledAtom = atom(
+  // getter
+  (get) => get(ccd012IsRedemptionEnabledAtom),
+  // setter
+  async (get, set) => {
+    const isRedemptionEnabled = await get(isRedemptionEnabledQueryAtom);
+    set(ccd012IsRedemptionEnabledAtom, isRedemptionEnabled);
+  }
+);
+
+export const redemptionForBalanceAtom = atom(
+  // getter
+  (get) => get(ccd012RedemptionForBalanceAtom),
+  // setter
+  async (get, set) => {
+    const redemptionForBalance = await get(redemptionForBalanceQueryAtom);
+    set(ccd012RedemptionForBalanceAtom, redemptionForBalance);
+  }
+);
+
 /////////////////////////
 // LOADABLE ASYNC ATOMS
 /////////////////////////

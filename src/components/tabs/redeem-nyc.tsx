@@ -26,6 +26,7 @@ import { LuExternalLink, LuRepeat } from "react-icons/lu";
 import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import {
+  redemptionForBalanceAtom,
   totalBalanceNYCAtom,
   v1BalanceNYCAtom,
   v2BalanceNYCAtom,
@@ -38,7 +39,9 @@ function RedeemNYC() {
   const [v1BalanceNYC, setV1BalanceNyc] = useAtom(v1BalanceNYCAtom);
   const [v2BalanceNYC, setV2BalanceNyc] = useAtom(v2BalanceNYCAtom);
   const totalBalanceNYC = useAtomValue(totalBalanceNYCAtom);
-  const amountForBalance = 0; // useAtomValue(amountForBalanceAtom);
+  const [redemptionForBalance, setRedemptionForBalance] = useAtom(
+    redemptionForBalanceAtom
+  );
 
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -52,6 +55,7 @@ function RedeemNYC() {
     console.log("Refreshing balances...");
     setV1BalanceNyc();
     setV2BalanceNyc();
+    setRedemptionForBalance();
   };
 
   const redeemNYC = () => {
@@ -134,7 +138,13 @@ function RedeemNYC() {
         </Stat>
         <Stat>
           <StatLabel>Amount for Balance</StatLabel>
-          <StatNumber>{amountForBalance}</StatNumber>
+          {redemptionForBalance ? (
+            <StatNumber>{formatMicroAmount(redemptionForBalance)}</StatNumber>
+          ) : (
+            <Text mt={2} fontSize="small">
+              (none detected)
+            </Text>
+          )}
         </Stat>
       </StatGroup>
 
