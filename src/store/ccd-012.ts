@@ -38,6 +38,16 @@ export const CONTRACT_ADDRESS = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH";
 export const CONTRACT_NAME = "ccd012-redemption-nyc";
 export const CONTRACT_FQ_NAME = `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`;
 
+export const NYC_ASSET_NAME = "newyorkcitycoin";
+
+export const NYC_V1_CONTRACT_ADDRESS =
+  "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5";
+export const NYC_V1_CONTRACT_NAME = "newyorkcitycoin-token";
+
+export const NYC_V2_CONTRACT_ADDRESS =
+  "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11";
+export const NYC_V2_CONTRACT_NAME = "newyorkcitycoin-token-v2";
+
 export const MICRO = (decimals: number) => Math.pow(10, decimals);
 
 /////////////////////////
@@ -318,11 +328,9 @@ function getBalanceFromBigint(balance: bigint): number {
 }
 
 async function getV1Balance(address: string): Promise<number> {
-  const v1TokenContractAddress = "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5";
-  const v1TokenContractName = "newyorkcitycoin-token";
   const v1Balance = await fetchReadOnlyFunction<number>({
-    contractAddress: v1TokenContractAddress,
-    contractName: v1TokenContractName,
+    contractAddress: NYC_V1_CONTRACT_ADDRESS,
+    contractName: NYC_V1_CONTRACT_NAME,
     functionName: "get-balance",
     functionArgs: [principalCV(address)],
   });
@@ -330,11 +338,9 @@ async function getV1Balance(address: string): Promise<number> {
 }
 
 async function getV2Balance(address: string): Promise<number> {
-  const v2TokenContractAddress = "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11";
-  const v2TokenContractName = "newyorkcitycoin-token-v2";
   const v2Balance = await fetchReadOnlyFunction<number>({
-    contractAddress: v2TokenContractAddress,
-    contractName: v2TokenContractName,
+    contractAddress: NYC_V2_CONTRACT_ADDRESS,
+    contractName: NYC_V2_CONTRACT_NAME,
     functionName: "get-balance",
     functionArgs: [principalCV(address)],
   });
