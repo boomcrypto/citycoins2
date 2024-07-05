@@ -97,7 +97,15 @@ export const v1BalanceNYCAtom = atom(
   async (get, set) => {
     const balance = await get(v1BalanceNYCQueryAtom);
     if (balance === undefined) return;
-    set(ccd012V1BalanceNYCLocalAtom, balance);
+    if (typeof balance === "bigint") {
+      try {
+        set(ccd012V1BalanceNYCLocalAtom, getBalanceFromBigint(balance));
+      } catch (error) {
+        console.error(`Failed to set v1BalanceAtom with bigint: ${error}`);
+      }
+    } else if (typeof balance === "number") {
+      set(ccd012V1BalanceNYCLocalAtom, balance);
+    }
   }
 );
 
@@ -108,7 +116,15 @@ export const v2BalanceNYCAtom = atom(
   async (get, set) => {
     const balance = await get(v2BalanceNYCQueryAtom);
     if (balance === undefined) return;
-    set(ccd012V2BalanceNYCLocalAtom, balance);
+    if (typeof balance === "bigint") {
+      try {
+        set(ccd012V2BalanceNYCLocalAtom, getBalanceFromBigint(balance));
+      } catch (error) {
+        console.error(`Failed to set v2BalanceAtom with bigint: ${error}`);
+      }
+    } else if (typeof balance === "number") {
+      set(ccd012V2BalanceNYCLocalAtom, balance);
+    }
   }
 );
 
@@ -227,6 +243,17 @@ const userRedemptionInfoQueryAtom = atom(async (get) => {
 // HELPER FUNCTIONS
 /////////////////////////
 
+function getBalanceFromBigint(balance: bigint): number {
+  const numberBalance = Number(balance);
+  if (Number.isSafeInteger(numberBalance)) {
+    return numberBalance;
+  } else {
+    throw new Error(
+      "BigInt value is too large to be safely converted to number"
+    );
+  }
+}
+
 async function getV1Balance(address: string): Promise<number> {
   const v1TokenContractAddress = "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5";
   const v1TokenContractName = "newyorkcitycoin-token";
@@ -241,7 +268,7 @@ async function getV1Balance(address: string): Promise<number> {
 
 async function getV2Balance(address: string): Promise<number> {
   const v2TokenContractAddress = "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11";
-  const v2TokenContractName = "newyorkcitycoin-v2";
+  const v2TokenContractName = "newyorkcitycoin-token-v2";
   const v2Balance = await fetchReadOnlyFunction<number>({
     contractAddress: v2TokenContractAddress,
     contractName: v2TokenContractName,

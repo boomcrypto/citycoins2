@@ -20,32 +20,31 @@ import {
   Link,
   Divider,
 } from "@chakra-ui/react";
-import { atom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { LuExternalLink, LuRepeat } from "react-icons/lu";
 import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
-
-const v1BalanceNYCAtom = atom(0);
-const v2BalanceNYCAtom = atom(0);
-
-const totalBalanceNYCAtom = atom(
-  (get) => get(v1BalanceNYCAtom) + get(v2BalanceNYCAtom)
-);
-
-const amountForBalanceAtom = atom(0);
+import {
+  totalBalanceNYCAtom,
+  v1BalanceNYCAtom,
+  v2BalanceNYCAtom,
+} from "../../store/ccd-012";
+import { formatMicroAmount } from "../../store/common";
 
 function RedeemNYC() {
   const stxAddress = useAtomValue(stxAddressAtom);
-  const v1BalanceNYC = useAtomValue(v1BalanceNYCAtom);
-  const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
+  const [v1BalanceNYC, setV1BalanceNyc] = useAtom(v1BalanceNYCAtom);
+  const [v2BalanceNYC, setV2BalanceNyc] = useAtom(v2BalanceNYCAtom);
   const totalBalanceNYC = useAtomValue(totalBalanceNYCAtom);
-  const amountForBalance = useAtomValue(amountForBalanceAtom);
+  const amountForBalance = 0; // useAtomValue(amountForBalanceAtom);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const refreshBalances = () => {
     // Implement the logic to refresh balances here
     console.log("Refreshing balances...");
+    setV1BalanceNyc();
+    setV2BalanceNyc();
   };
 
   const redeemNYC = () => {
@@ -86,18 +85,30 @@ function RedeemNYC() {
       <StatGroup>
         <Stat>
           <StatLabel>V1 NYC Balance</StatLabel>
-          <StatNumber>{v1BalanceNYC}</StatNumber>
+          {v1BalanceNYC ? (
+            <StatNumber>{formatMicroAmount(v1BalanceNYC)}</StatNumber>
+          ) : (
+            <Text mt={2} fontSize="small">
+              (none detected)
+            </Text>
+          )}
         </Stat>
         <Stat>
           <StatLabel>V2 NYC Balance</StatLabel>
-          <StatNumber>{v2BalanceNYC}</StatNumber>
+          {v2BalanceNYC ? (
+            <StatNumber>{formatMicroAmount(v2BalanceNYC)}</StatNumber>
+          ) : (
+            <Text mt={2} fontSize="small">
+              (none detected)
+            </Text>
+          )}
         </Stat>
       </StatGroup>
 
       <StatGroup>
         <Stat>
           <StatLabel>Total NYC Balance</StatLabel>
-          <StatNumber>{totalBalanceNYC}</StatNumber>
+          <StatNumber>{formatMicroAmount(totalBalanceNYC)}</StatNumber>
         </Stat>
         <Stat>
           <StatLabel>Amount for Balance</StatLabel>
