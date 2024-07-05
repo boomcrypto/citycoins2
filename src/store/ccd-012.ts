@@ -144,6 +144,27 @@ export const isRedemptionEnabledAtom = atom(
   }
 );
 
+export const redemptionInfoAtom = atom(
+  // getter
+  (get) => get(ccd012RedemptionInfoAtom),
+  // setter
+  async (get, set) => {
+    const redemptionInfo = await get(redemptionInfoQueryAtom);
+    set(ccd012RedemptionInfoAtom, redemptionInfo);
+  }
+);
+
+export const nycBalancesAtom = atom(
+  // getter
+  (get) => get(ccd012NycBalancesAtom),
+  // setter
+  async (get, set) => {
+    const nycBalances = await get(nycBalancesQueryAtom);
+    if (!nycBalances) return;
+    set(ccd012NycBalancesAtom, nycBalances);
+  }
+);
+
 export const redemptionForBalanceAtom = atom(
   // getter
   (get) => get(ccd012RedemptionForBalanceAtom),
@@ -151,6 +172,28 @@ export const redemptionForBalanceAtom = atom(
   async (get, set) => {
     const redemptionForBalance = await get(redemptionForBalanceQueryAtom);
     set(ccd012RedemptionForBalanceAtom, redemptionForBalance);
+  }
+);
+
+export const redemptionAmountClaimed = atom(
+  // getter
+  (get) => get(ccd012RedemptionAmountClaimedAtom),
+  // setter
+  async (get, set) => {
+    const redemptionAmountClaimed = await get(redemptionAmountClaimedQueryAtom);
+    if (!redemptionAmountClaimed) return;
+    set(ccd012RedemptionAmountClaimedAtom, redemptionAmountClaimed);
+  }
+);
+
+export const userRedemptionInfoAtom = atom(
+  // getter
+  (get) => get(ccd012UserRedemptionInfoAtom),
+  // setter
+  async (get, set) => {
+    const userRedemptionInfo = await get(userRedemptionInfoQueryAtom);
+    if (!userRedemptionInfo) return;
+    set(ccd012UserRedemptionInfoAtom, userRedemptionInfo);
   }
 );
 
