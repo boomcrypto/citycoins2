@@ -22,6 +22,8 @@ import {
 } from "@chakra-ui/react";
 import { atom, useAtomValue } from "jotai";
 import { LuExternalLink, LuRepeat } from "react-icons/lu";
+import { stxAddressAtom } from "../../store/stacks";
+import SignIn from "../auth/sign-in";
 
 const v1BalanceNYCAtom = atom(0);
 const v2BalanceNYCAtom = atom(0);
@@ -33,6 +35,7 @@ const totalBalanceNYCAtom = atom(
 const amountForBalanceAtom = atom(0);
 
 function RedeemNYC() {
+  const stxAddress = useAtomValue(stxAddressAtom);
   const v1BalanceNYC = useAtomValue(v1BalanceNYCAtom);
   const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
   const totalBalanceNYC = useAtomValue(totalBalanceNYCAtom);
@@ -61,6 +64,16 @@ function RedeemNYC() {
     console.log("Redeeming for liSTX...");
     onClose();
   };
+
+  if (!stxAddress) {
+    return (
+      <Stack spacing={4}>
+        <Heading>CityCoins NYC Redemption</Heading>
+        <Text>Wallet connection required to access redemption.</Text>
+        <SignIn />
+      </Stack>
+    );
+  }
 
   return (
     <VStack spacing={8} align="stretch">
