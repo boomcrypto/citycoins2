@@ -4,6 +4,7 @@ import {
   createAssetInfo,
   createFungiblePostCondition,
   FungibleConditionCode,
+  makeContractSTXPostCondition,
 } from "micro-stacks/transactions";
 import {
   CONTRACT_ADDRESS,
@@ -13,6 +14,7 @@ import {
   NYC_V1_CONTRACT_NAME,
   NYC_V2_CONTRACT_ADDRESS,
   NYC_V2_CONTRACT_NAME,
+  redemptionForBalanceAtom,
   v1BalanceNYCAtom,
   v2BalanceNYCAtom,
 } from "../store/ccd-012";
@@ -24,6 +26,7 @@ export const useCcd012RedeemNyc = () => {
   const stxAddress = useAtomValue(stxAddressAtom);
   const v1BalanceNYC = useAtomValue(v1BalanceNYCAtom);
   const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
+  const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
   const { openContractCall, isRequestPending } = useOpenContractCall();
 
   // can set a state atom here for UI feedback
@@ -58,6 +61,17 @@ export const useCcd012RedeemNyc = () => {
             NYC_V2_CONTRACT_NAME,
             NYC_ASSET_NAME
           )
+        )
+      );
+    }
+    // add redemption for balance from contract
+    if (redemptionForBalance !== null && redemptionForBalance > 0) {
+      postConditions.push(
+        makeContractSTXPostCondition(
+          CONTRACT_ADDRESS,
+          CONTRACT_NAME,
+          FungibleConditionCode.Equal,
+          redemptionForBalance
         )
       );
     }

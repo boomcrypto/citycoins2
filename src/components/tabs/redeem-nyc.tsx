@@ -31,7 +31,7 @@ import {
   v1BalanceNYCAtom,
   v2BalanceNYCAtom,
 } from "../../store/ccd-012";
-import { formatMicroAmount } from "../../store/common";
+import { formatAmount, formatMicroAmount } from "../../store/common";
 import { useCcd012RedeemNyc } from "../../hooks/use-ccd-012";
 
 function RedeemNYC() {
@@ -116,7 +116,7 @@ function RedeemNYC() {
         <Stat>
           <StatLabel>V1 NYC Balance</StatLabel>
           {v1BalanceNYC ? (
-            <StatNumber>{formatMicroAmount(v1BalanceNYC)}</StatNumber>
+            <StatNumber>{formatAmount(v1BalanceNYC)}</StatNumber>
           ) : (
             <Text mt={2} fontSize="small">
               (none detected)

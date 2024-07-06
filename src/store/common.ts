@@ -43,6 +43,13 @@ export function extractLoadableState<T>(loadedAtom: Loadable<T>) {
   return { isLoading, hasError, hasData, error, data };
 }
 
+export function formatAmount(amount: number) {
+  return amount.toLocaleString(navigator.language, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+}
+
 export function formatMicroAmount(
   amount: number,
   decimalsToDivide: number = 6,
