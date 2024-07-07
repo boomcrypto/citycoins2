@@ -54,6 +54,11 @@ export const STACKING_DAO_CONTRACT_NAME = "cc-redemption-v1";
 export const STACKING_DAO_FQ_NAME = `${STACKING_DAO_CONTRACT_ADDRESS}.${STACKING_DAO_CONTRACT_NAME}`;
 export const STACKING_DAO_FUNCTION_NAME = "deposit";
 
+export const LISA_CONTRACT_ADDRESS = "SPGAB1P3YV109E22KXFJYM63GK0G21BYX50CQ80B";
+export const LISA_CONTRACT_NAME = "redeem-nyc-for-listx";
+export const LISA_FQ_NAME = `${LISA_CONTRACT_ADDRESS}.${LISA_CONTRACT_NAME}`;
+export const LISA_FUNCTION_NAME = "redeem-nyc-and-stack-with-lisa";
+
 export const MICRO = (decimals: number) => Math.pow(10, decimals);
 
 /////////////////////////

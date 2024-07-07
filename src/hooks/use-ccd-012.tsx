@@ -4,6 +4,7 @@ import { useOpenContractCall } from "@micro-stacks/react";
 import {
   createAssetInfo,
   createFungiblePostCondition,
+  createSTXPostCondition,
   FungibleConditionCode,
   makeContractSTXPostCondition,
   PostCondition,
@@ -11,6 +12,9 @@ import {
 import {
   CONTRACT_ADDRESS,
   CONTRACT_NAME,
+  LISA_CONTRACT_ADDRESS,
+  LISA_CONTRACT_NAME,
+  LISA_FUNCTION_NAME,
   NYC_ASSET_NAME,
   NYC_V1_CONTRACT_ADDRESS,
   NYC_V1_CONTRACT_NAME,
@@ -148,10 +152,7 @@ export const useCcd012StackingDao = () => {
     v2BalanceNYC,
     redemptionForBalance
   );
-  // post conditions:
-  // - burn nyc v1 (balance from user)
-  // - burn nyc v2 (balance from user)
-  // - xfer redemption-stx from contract (to user)
+  // add to post conditions:
   // - xfer redemption-stx from user (to StackingDAO)
   // - xfer stSTX from contract (query amount)
 
@@ -170,4 +171,50 @@ export const useCcd012StackingDao = () => {
   };
 
   return { stackingDaoCall, isRequestPending };
+};
+
+export const useCcd012Lisa = () => {
+  const toast = useToast();
+  const stxAddress = useAtomValue(stxAddressAtom);
+  const v1BalanceNYC = useAtomValue(v1BalanceNYCAtom);
+  const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
+  const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
+  const { openContractCall, isRequestPending } = useOpenContractCall();
+
+  const functionArgs: string[] = [];
+  // function args: (none)
+
+  const postConditions = buildRedemptionPostConditions(
+    stxAddress,
+    v1BalanceNYC,
+    v2BalanceNYC,
+    redemptionForBalance
+  );
+  // add to post conditions:
+  // - xfer redemption-stx from user (to LISA)
+  if (stxAddress && postConditions) {
+    postConditions.push(
+      createSTXPostCondition(
+        stxAddress,
+        FungibleConditionCode.Equal,
+        redemptionForBalance!
+      )
+    );
+  }
+
+  const contractCallParams = {
+    contractAddress: LISA_CONTRACT_ADDRESS,
+    contractName: LISA_CONTRACT_NAME,
+    functionName: LISA_FUNCTION_NAME,
+    functionArgs: functionArgs,
+    postConditions: postConditions,
+    onFinish: (finishedTx: FinishedTxData) => onFinishToast(finishedTx, toast),
+    onCancel: () => onCancelToast(toast),
+  };
+
+  const lisaCall = async () => {
+    await openContractCall(contractCallParams);
+  };
+
+  return { lisaCall, isRequestPending };
 };
