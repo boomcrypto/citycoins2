@@ -20,8 +20,9 @@ import {
   Link,
   Divider,
   useToast,
+  Checkbox,
 } from "@chakra-ui/react";
-import { useAtom, useAtomValue } from "jotai";
+import { atom, useAtom, useAtomValue } from "jotai";
 import { LuExternalLink, LuRepeat } from "react-icons/lu";
 import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
@@ -34,9 +35,12 @@ import {
 import { formatAmount, formatMicroAmount } from "../../store/common";
 import { useCcd012RedeemNyc } from "../../hooks/use-ccd-012";
 
+const consentCheckedAtom = atom(false);
+
 function RedeemNYC() {
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [consentChecked, setConsentChecked] = useAtom(consentCheckedAtom);
 
   const stxAddress = useAtomValue(stxAddressAtom);
   const [v1BalanceNYC, setV1BalanceNyc] = useAtom(v1BalanceNYCAtom);
@@ -161,10 +165,10 @@ function RedeemNYC() {
         </Button>
       </Stack>
 
-      <Modal isOpen={isOpen} onClose={onClose}>
+      <Modal isOpen={isOpen} onClose={onClose} size="xl">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Redeem NYC for stSTX / liSTX</ModalHeader>
+          <ModalHeader>Redeem NYC and Stack STX</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <Text mb={4}>
@@ -176,46 +180,76 @@ function RedeemNYC() {
               <Link href="https://www.lisalab.io/" isExternal>
                 LISA
               </Link>{" "}
-              have partnered to offer stSTX and liSTX.
+              have partnered to offer redemption for stSTX and liSTX.
             </Text>
             <Text mb={4}>
               Please review the resources below before proceeding to fully
               understand the process through their platform.
             </Text>
             <Text mb={4}>
-              Please be aware of the risks associated with redeeming for stSTX
-              or liSTX. StackingDAO and LISA are not affiliated with CityCoins.
+              Please be aware of how each protocol operates and the associated
+              risks for stSTX or liSTX before continuing.
             </Text>
             <Divider my={4} />
-            <VStack align="stretch" spacing={2} textAlign="center">
-              <Text fontWeight="bold">Official Resources:</Text>
-              <Link
-                noOfLines={1}
-                href="https://www.stackingdao.com/"
-                isExternal
-              >
-                StackingDAO Website <LuExternalLink />
+            <VStack align="stretch" spacing={2}>
+              <Text fontWeight="bold">Official StackingDAO Resources</Text>
+              <Link href="https://www.stackingdao.com/" isExternal>
+                <HStack>
+                  <Text>StackingDAO Website</Text>
+                  <LuExternalLink />
+                </HStack>
               </Link>
               <Link href="https://discord.gg/stackingdao" isExternal>
-                StackingDAO Discord <LuExternalLink />
+                <HStack>
+                  <Text>StackingDAO Community</Text>
+                  <LuExternalLink />
+                </HStack>
               </Link>
-              <Link href="https://lidofinance.io/" isExternal>
-                Lido Finance Website <LuExternalLink />
+              <Text fontWeight="bold">Official LISA Resources</Text>
+              <Link href="https://www.lisalab.io/" isExternal>
+                <HStack>
+                  <Text>LISA Website</Text>
+                  <LuExternalLink />
+                </HStack>
               </Link>
-              <Link href="https://discord.gg/lido" isExternal>
-                Lido Finance Discord <LuExternalLink />
+              <Link href="https://t.me/Lisa_community" isExternal>
+                <HStack>
+                  <Text>LISA Community</Text>
+                  <LuExternalLink />
+                </HStack>
               </Link>
             </VStack>
+            <Divider mt={4} />
           </ModalBody>
-          <ModalFooter>
-            <HStack spacing={4}>
-              <Button colorScheme="blue" onClick={redeemForStSTX}>
-                Redeem for stSTX
+          <ModalFooter flexDir="column">
+            <Checkbox
+              onChange={(e) => setConsentChecked(e.target.checked)}
+              mb={4}
+            >
+              I acknowledge StackingDAO and LISA are not affiliated with
+              CityCoins and that I am responsible for my own actions.
+            </Checkbox>
+            <Stack spacing={4} direction={["column", null, "row"]} width="full">
+              <Button onClick={onClose} width="full">
+                Go Back
               </Button>
-              <Button colorScheme="green" onClick={redeemForLiSTX}>
-                Redeem for liSTX
+              <Button
+                colorScheme="green"
+                onClick={redeemForStSTX}
+                width="full"
+                isDisabled={!consentChecked}
+              >
+                Redeem stSTX
               </Button>
-            </HStack>
+              <Button
+                colorScheme="purple"
+                onClick={redeemForLiSTX}
+                width="full"
+                isDisabled={!consentChecked}
+              >
+                Redeem liSTX
+              </Button>
+            </Stack>
           </ModalFooter>
         </ModalContent>
       </Modal>
