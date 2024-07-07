@@ -1,4 +1,6 @@
 import { useToast } from "@chakra-ui/react";
+import { FinishedTxData } from "micro-stacks/connect";
+import { ClarityValue } from "micro-stacks/clarity";
 import { useOpenContractCall } from "@micro-stacks/react";
 import {
   createAssetInfo,
@@ -15,11 +17,26 @@ import {
   NYC_V2_CONTRACT_ADDRESS,
   NYC_V2_CONTRACT_NAME,
   redemptionForBalanceAtom,
+  STACKING_DAO_CONTRACT_ADDRESS,
+  STACKING_DAO_CONTRACT_NAME,
+  STACKING_DAO_FUNCTION_NAME,
   v1BalanceNYCAtom,
   v2BalanceNYCAtom,
 } from "../store/ccd-012";
 import { useAtomValue } from "jotai";
 import { stxAddressAtom } from "../store/stacks";
+
+const onFinishToast = (tx: FinishedTxData, toast: any) => {
+  toast({
+    title: "Redemption TX Sent",
+    status: "success",
+    description: `View on explorer:\nhttps://explorer.hiro.so/txid/${tx.txId}?chain=mainnet`,
+  });
+};
+
+const onCancelToast = (toast: any) => {
+  toast({ title: "Redemption Cancelled", status: "warning" });
+};
 
 export const useCcd012RedeemNyc = () => {
   const toast = useToast();
@@ -92,4 +109,43 @@ export const useCcd012RedeemNyc = () => {
   };
 
   return { redeemNycCall, isRequestPending };
+};
+
+export const useCcd012StackingDao = () => {
+  const toast = useToast();
+  const stxAddress = useAtomValue(stxAddressAtom);
+  const { openContractCall, isRequestPending } = useOpenContractCall();
+
+  const functionArgs: string[] = [];
+  // function args:
+  // - reserve: <reserve-trait>
+  // - commission: <commission-trait>
+  // - staking: <staking-trait>
+  // - direct-helpers: <direct-helpers-trait>
+  // - referrer: (optional principal)
+  // - pool: (optional principal)
+
+  const postConditions: string[] = [];
+  // post conditions:
+  // - burn nyc v1 (balance from user)
+  // - burn nyc v2 (balance from user)
+  // - xfer redemption-stx from contract (to user)
+  // - xfer redemption-stx from user (to StackingDAO)
+  // - xfer stSTX from contract (query amount)
+
+  const contractCallParams = {
+    contractAddress: STACKING_DAO_CONTRACT_ADDRESS,
+    contractName: STACKING_DAO_CONTRACT_NAME,
+    functionName: STACKING_DAO_FUNCTION_NAME,
+    functionArgs: functionArgs,
+    postConditions: postConditions,
+    onFinish: (finishedTx: FinishedTxData) => onFinishToast(finishedTx, toast),
+    onCancel: () => onCancelToast(toast),
+  };
+
+  const stackingDaoCall = async () => {
+    await openContractCall(contractCallParams);
+  };
+
+  return { stackingDaoCall, isRequestPending };
 };

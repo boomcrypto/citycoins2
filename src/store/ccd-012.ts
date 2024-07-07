@@ -48,6 +48,12 @@ export const NYC_V2_CONTRACT_ADDRESS =
   "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11";
 export const NYC_V2_CONTRACT_NAME = "newyorkcitycoin-token-v2";
 
+export const STACKING_DAO_CONTRACT_ADDRESS =
+  "SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG";
+export const STACKING_DAO_CONTRACT_NAME = "cc-redemption-v1";
+export const STACKING_DAO_FQ_NAME = `${STACKING_DAO_CONTRACT_ADDRESS}.${STACKING_DAO_CONTRACT_NAME}`;
+export const STACKING_DAO_FUNCTION_NAME = "deposit";
+
 export const MICRO = (decimals: number) => Math.pow(10, decimals);
 
 /////////////////////////
