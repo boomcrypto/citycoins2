@@ -1,6 +1,7 @@
 import { atomWithStorage } from "jotai/utils";
+import { ContractCallTransaction } from "@stacks/stacks-blockchain-api-types";
 import { RewardCycle, accountBalancesAtom, stxAddressAtom } from "./stacks";
-import { CC_API, CC_API_LEGACY, fetchJson, formatMicroAmount } from "./common";
+import { CC_API, CC_API_LEGACY, fetchJson, formatMicroAmount, VERSIONS } from "./common";
 import { atom } from "jotai";
 
 /////////////////////////
@@ -84,324 +85,114 @@ type CityConfigByVersion = {
   [key in VersionKeys]: CityConfig;
 };
 
-type CompiledCityConfig = {
-  [key in CityKeys]: CityConfigByVersion;
+function checkContract(
+  contractName: string,
+  contractCallsMap: ContractFunctionMap
+) {
+  return contractCallsMap.hasOwnProperty(contractName);
+}
+
+function checkFunctionName(
+  contractId: string,
+  functionName: string,
+  transactionCalls: ContractFunctionMap
+): boolean {
+  const expectedFunctionName = transactionCalls[contractId];
+  if (Array.isArray(expectedFunctionName)) {
+    return expectedFunctionName.includes(functionName);
+  } else {
+    return functionName === expectedFunctionName;
+  }
+}
+
+// MINING TRANSACTIONS
+
+const miningTransactionCalls: ContractFunctionMap = {
+  "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1": [
+    "mine-tokens",
+    "mine-many",
+  ],
+  "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2": [
+    "mine-tokens",
+    "mine-many",
+  ],
+  "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1": [
+    "mine-tokens",
+    "mine-many",
+  ],
+  "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2": [
+    "mine-tokens",
+    "mine-many",
+  ],
+  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining": "mine",
+  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining-v2": "mine",
 };
 
-/////////////////////////
-// CONSTANTS
-/////////////////////////
-
-export const REWARD_DELAY = 100;
-
-// VERSIONS
-
-const VERSIONS = ["legacyV1", "legacyV2", "daoV1", "daoV2"] as const;
-const CURRENT_VERSION = VERSIONS[VERSIONS.length - 1];
-
-// CITY INFO
-
-const MIA_INFO: CityInfo = {
-  name: "mia",
-  id: 1,
-  displayName: "Miami",
-  symbol: "MIA",
-  // logo: MiamiCoin,
-  // bgLogo: MiamiCoinBG,
-  versions: VERSIONS,
-  currentVersion: CURRENT_VERSION,
-};
-
-const NYC_INFO: CityInfo = {
-  name: "nyc",
-  id: 2,
-  displayName: "New York City",
-  symbol: "NYC",
-  // logo: NewYorkCityCoin,
-  // bgLogo: NewYorkCityCoinBG,
-  versions: VERSIONS,
-  currentVersion: CURRENT_VERSION,
-};
-
-export const CITY_INFO: CompiledCityInfo = {
-  mia: MIA_INFO,
-  nyc: NYC_INFO,
-};
-
-// TOKEN CONFIG
-
-const MIA_TOKEN_V1: TokenContract = {
-  deployer: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27",
-  contractName: "miamicoin-token",
-  activated: true,
-  activationBlock: 24497,
-  displayName: "MiamiCoin",
-  tokenName: "miamicoin",
-  symbol: "MIA",
-  decimals: 0,
-  logo: "https://cdn.citycoins.co/logos/miamicoin.png",
-  uri: "https://cdn.citycoins.co/metadata/miamicoin.json",
-};
-
-const MIA_TOKEN_V2: TokenContract = {
-  deployer: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R",
-  contractName: "miamicoin-token-v2",
-  activated: true,
-  activationBlock: 24497,
-  displayName: "MiamiCoin",
-  tokenName: "miamicoin",
-  symbol: "MIA",
-  decimals: 6,
-  logo: "https://cdn.citycoins.co/logos/miamicoin.png",
-  uri: "https://cdn.citycoins.co/metadata/miamicoin.json",
-};
-
-const NYC_TOKEN_V1: TokenContract = {
-  deployer: "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5",
-  contractName: "newyorkcitycoin-token",
-  activated: true,
-  activationBlock: 37449,
-  displayName: "NewYorkCityCoin",
-  tokenName: "newyorkcitycoin",
-  symbol: "NYC",
-  decimals: 0,
-  logo: "https://cdn.citycoins.co/logos/newyorkcitycoin.png",
-  uri: "https://cdn.citycoins.co/metadata/newyorkcitycoin.json",
-};
-
-const NYC_TOKEN_V2: TokenContract = {
-  deployer: "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11",
-  contractName: "newyorkcitycoin-token-v2",
-  activated: true,
-  activationBlock: 37449,
-  displayName: "NewYorkCityCoin",
-  tokenName: "newyorkcitycoin",
-  symbol: "NYC",
-  decimals: 6,
-  logo: "https://cdn.citycoins.co/logos/newyorkcitycoin.png",
-  uri: "https://cdn.citycoins.co/metadata/newyorkcitycoin.json",
-};
-
-const CITYCOIN_TOKENS = [
-  MIA_TOKEN_V1,
-  MIA_TOKEN_V2,
-  NYC_TOKEN_V1,
-  NYC_TOKEN_V2,
-];
-
-// DAO CONFIG
-
-const DAO_V2: CityConfigFunction = (city: CityKeys) => {
-  const tokenConfig = (city: CityKeys) => {
-    switch (city) {
-      case "mia":
-        return MIA_TOKEN_V2;
-      case "nyc":
-        return NYC_TOKEN_V2;
-    }
-  };
-  const treasuryContract = (city: CityKeys) => {
-    switch (city) {
-      case "mia":
-        return "ccd002-treasury-mia-stacking";
-      case "nyc":
-        return "ccd002-treasury-nyc-stacking";
-    }
-  };
-  return {
-    mining: {
-      deployer: "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH",
-      contractName: "ccd006-citycoin-mining-v2",
-      miningFunction: "mine",
-      miningClaimFunction: "claim-mining-reward",
-      activated: true,
-      activationBlock: 107389,
-      shutdown: false,
-      shutdownBlock: undefined,
-    },
-    stacking: {
-      deployer: "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH",
-      contractName: "ccd007-citycoin-stacking",
-      stackingFunction: "stack",
-      stackingClaimFunction: "claim-stacking-reward",
-      stackingTreasuryContract: treasuryContract(city),
-      activated: true,
-      startCycle: 54,
-      endCycle: undefined,
-    },
-    token: tokenConfig(city),
-  };
-};
-
-const DAO_V1: CityConfigFunction = (city: CityKeys) => {
-  const tokenConfig = (city: CityKeys) => {
-    switch (city) {
-      case "mia":
-        return MIA_TOKEN_V2;
-      case "nyc":
-        return NYC_TOKEN_V2;
-    }
-  };
-  const treasuryContract = (city: CityKeys) => {
-    switch (city) {
-      case "mia":
-        return "ccd002-treasury-mia-stacking";
-      case "nyc":
-        return "ccd002-treasury-nyc-stacking";
-    }
-  };
-  return {
-    mining: {
-      deployer: "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH",
-      contractName: "ccd006-citycoin-mining",
-      miningFunction: "mine",
-      miningClaimFunction: "claim-mining-reward",
-      activated: true,
-      activationBlock: 96779,
-      shutdown: true,
-      shutdownBlock: 107389,
-    },
-    stacking: {
-      deployer: "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH",
-      contractName: "ccd007-citycoin-stacking",
-      stackingFunction: "stack",
-      stackingClaimFunction: "claim-stacking-reward",
-      stackingTreasuryContract: treasuryContract(city),
-      activated: true,
-      startCycle: 54,
-      endCycle: undefined,
-    },
-    token: tokenConfig(city),
-  };
-};
-
-// CITY CONFIG
-
-export const MIA_CONFIG: CityConfigByVersion = {
-  legacyV1: {
-    mining: {
-      deployer: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27",
-      contractName: "miamicoin-core-v1",
-      miningFunction: "mine-many",
-      miningClaimFunction: "claim-mining-reward",
-      activated: false,
-      activationBlock: 24497,
-      shutdown: true,
-      shutdownBlock: 58917,
-    },
-    stacking: {
-      deployer: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27",
-      contractName: "miamicoin-core-v1",
-      stackingFunction: "stack-tokens",
-      stackingClaimFunction: "claim-stacking-reward",
-      stackingTreasuryContract: "miamicoin-core-v1",
-      activated: true,
-      startCycle: 1,
-      endCycle: 16,
-    },
-    token: MIA_TOKEN_V1,
-  },
-  legacyV2: {
-    mining: {
-      deployer: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R",
-      contractName: "miamicoin-core-v2",
-      miningFunction: "mine-many",
-      miningClaimFunction: "claim-mining-reward",
-      activated: true,
-      activationBlock: 58921,
-      shutdown: true,
-      shutdownBlock: 96779,
-    },
-    stacking: {
-      deployer: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R",
-      contractName: "miamicoin-core-v2",
-      stackingFunction: "stack-tokens",
-      stackingClaimFunction: "claim-stacking-reward",
-      stackingTreasuryContract: "miamicoin-core-v2",
-      activated: true,
-      startCycle: 17,
-      endCycle: 34,
-    },
-    token: MIA_TOKEN_V2,
-  },
-  daoV1: DAO_V1("mia"),
-  daoV2: DAO_V2("mia"),
-};
-
-export const NYC_CONFIG: CityConfigByVersion = {
-  legacyV1: {
-    mining: {
-      deployer: "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5",
-      contractName: "newyorkcitycoin-core-v1",
-      miningFunction: "mine-many",
-      miningClaimFunction: "claim-mining-reward",
-      activated: true,
-      activationBlock: 37449,
-      shutdown: true,
-      shutdownBlock: 58922,
-    },
-    stacking: {
-      deployer: "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5",
-      contractName: "newyorkcitycoin-core-v1",
-      stackingFunction: "stack-tokens",
-      stackingClaimFunction: "claim-stacking-reward",
-      stackingTreasuryContract: "newyorkcitycoin-core-v1",
-      activated: true,
-      startCycle: 1,
-      endCycle: 10,
-    },
-    token: NYC_TOKEN_V1,
-  },
-  legacyV2: {
-    mining: {
-      deployer: "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11",
-      contractName: "newyorkcitycoin-core-v2",
-      miningFunction: "mine-many",
-      miningClaimFunction: "claim-mining-reward",
-      activated: true,
-      activationBlock: 58925,
-      shutdown: true,
-      shutdownBlock: 96779,
-    },
-    stacking: {
-      deployer: "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11",
-      contractName: "newyorkcitycoin-core-v2",
-      stackingFunction: "stack-tokens",
-      stackingClaimFunction: "claim-stacking-reward",
-      stackingTreasuryContract: "newyorkcitycoin-core-v2",
-      activated: true,
-      startCycle: 11,
-      endCycle: 28,
-    },
-    token: NYC_TOKEN_V2,
-  },
-  daoV1: DAO_V1("nyc"),
-  daoV2: DAO_V2("nyc"),
-};
-
-const CITY_CONFIG: CompiledCityConfig = {
-  mia: MIA_CONFIG,
-  nyc: NYC_CONFIG,
-};
-
-// key: SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token::miamicoin
-// key: SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2::newyorkcitycoin
-// key: SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-token-v2::miamicoin
-// key: SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token::newyorkcitycoin
-
-/////////////////////////
-// LOCALSTORAGE ATOMS
-/////////////////////////
-
-export const citycoinsRewardCycleAtom = atomWithStorage<RewardCycle | null>(
-  "citycoins-cc-RewardCycle",
-  null
+export const miningTransactionsAtom = atom(
+  // read from current known txs
+  (get) => {
+    const transactions = get(transactionsAtom);
+    return transactions.filter(
+      (tx) =>
+        tx.tx_type === "contract_call" &&
+        checkContract(tx.contract_call.contract_id, miningTransactionCalls) &&
+        checkFunctionName(
+          tx.contract_call.contract_id,
+          tx.contract_call.function_name,
+          miningTransactionCalls
+        )
+    ) as ContractCallTransaction[];
+  }
 );
 
-export const citycoinsSelectedCityAtom = atomWithStorage<CityKeys | null>(
-  "citycoins-cc-selectedCity",
-  null
+// MINING CLAIM TRANSACTIONS
+
+const miningClaimTransactionCalls: ContractFunctionMap = {
+  "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1":
+    "claim-mining-reward",
+  "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2":
+    "claim-mining-reward",
+  "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1":
+    "claim-mining-reward",
+  "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2":
+    "claim-mining-reward",
+  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining":
+    "claim-mining-reward",
+  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining-v2":
+    "claim-mining-reward",
+};
+
+export const miningClaimTransactionsAtom = atom(
+  // read from current known txs
+  (get) => {
+    const transactions = get(transactionsAtom);
+    return transactions.filter(
+      (tx) =>
+        tx.tx_type === "contract_call" &&
+        checkContract(
+          tx.contract_call.contract_id,
+          miningClaimTransactionCalls
+        ) &&
+        checkFunctionName(
+          tx.contract_call.contract_id,
+          tx.contract_call.function_name,
+          miningClaimTransactionCalls
+        )
+    );
+  }
 );
+
+// STACKING TRANSACTIONS
+
+const stackingTransactionCalls: ContractFunctionMap = {
+  "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1": "stack-tokens",
+  "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2": "stack-tokens",
+  "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1":
+    "stack-tokens",
+  "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2":
+    "stack-tokens",
+  "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking": "stack",
+};
 
 export const citycoinsUserIdsAtom = atomWithStorage<UserIds | null>(
   "citycoins-cc-userIds",
