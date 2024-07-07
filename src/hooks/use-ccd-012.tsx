@@ -118,8 +118,8 @@ export const useCcd012RedeemNyc = () => {
     functionName: "redeem-nyc",
     functionArgs: [],
     postConditions,
-    onFinish: () => toast({ title: "Redemption TX Sent", status: "success" }),
-    onCancel: () => toast({ title: "Redemption Cancelled", status: "warning" }),
+    onFinish: (finishedTx: FinishedTxData) => onFinishToast(finishedTx, toast),
+    onCancel: () => onCancelToast(toast),
   };
 
   const redeemNycCall = async () => {
@@ -197,7 +197,7 @@ export const useCcd012Lisa = () => {
       createSTXPostCondition(
         stxAddress,
         FungibleConditionCode.Equal,
-        redemptionForBalance!
+        redemptionForBalance ?? 0
       )
     );
   }

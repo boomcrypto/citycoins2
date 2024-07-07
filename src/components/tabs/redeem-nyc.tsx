@@ -33,7 +33,11 @@ import {
   v2BalanceNYCAtom,
 } from "../../store/ccd-012";
 import { formatAmount, formatMicroAmount } from "../../store/common";
-import { useCcd012RedeemNyc } from "../../hooks/use-ccd-012";
+import {
+  useCcd012RedeemNyc,
+  useCcd012StackingDao,
+  useCcd012Lisa,
+} from "../../hooks/use-ccd-012";
 
 const consentCheckedAtom = atom(false);
 
@@ -51,6 +55,9 @@ function RedeemNYC() {
   );
 
   const { redeemNycCall, isRequestPending } = useCcd012RedeemNyc();
+  const { stackingDaoCall, isRequestPending: isRequestPendingStackingDAO } =
+    useCcd012StackingDao();
+  const { lisaCall, isRequestPending: isRequestPendingLisa } = useCcd012Lisa();
 
   const refreshBalances = () => {
     toast({
@@ -85,6 +92,7 @@ function RedeemNYC() {
     });
     console.log("Redeeming NYC for stSTX...");
     onClose();
+    stackingDaoCall();
   };
 
   const redeemForLiSTX = () => {
@@ -96,6 +104,7 @@ function RedeemNYC() {
     });
     console.log("Redeeming NYC for liSTX...");
     onClose();
+    lisaCall();
   };
 
   if (!stxAddress) {
@@ -239,6 +248,7 @@ function RedeemNYC() {
                 onClick={redeemForStSTX}
                 width="full"
                 isDisabled={!consentChecked}
+                isLoading={isRequestPendingStackingDAO}
               >
                 Redeem stSTX
               </Button>
@@ -247,6 +257,7 @@ function RedeemNYC() {
                 onClick={redeemForLiSTX}
                 width="full"
                 isDisabled={!consentChecked}
+                isLoading={isRequestPendingLisa}
               >
                 Redeem liSTX
               </Button>
