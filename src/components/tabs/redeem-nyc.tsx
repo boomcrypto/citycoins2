@@ -65,6 +65,8 @@ function RedeemNYC() {
       status: "info",
       duration: 2000,
       isClosable: true,
+      position: "top",
+      variant: "solid",
     });
     console.log("Refreshing balances...");
     setV1BalanceNyc();
@@ -76,8 +78,9 @@ function RedeemNYC() {
     toast({
       title: "Redeeming NYC...",
       status: "info",
-      duration: 2000,
       isClosable: true,
+      position: "top",
+      variant: "solid",
     });
     console.log("Redeeming NYC...");
     redeemNycCall();
@@ -87,8 +90,9 @@ function RedeemNYC() {
     toast({
       title: "Redeeming NYC for stSTX...",
       status: "info",
-      duration: 2000,
       isClosable: true,
+      position: "top",
+      variant: "solid",
     });
     console.log("Redeeming NYC for stSTX...");
     onClose();
@@ -99,8 +103,9 @@ function RedeemNYC() {
     toast({
       title: "Redeeming NYC for liSTX...",
       status: "info",
-      duration: 2000,
       isClosable: true,
+      position: "top",
+      variant: "solid",
     });
     console.log("Redeeming NYC for liSTX...");
     onClose();

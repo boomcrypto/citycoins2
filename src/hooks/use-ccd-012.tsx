@@ -33,13 +33,22 @@ import { stxAddressAtom } from "../store/stacks";
 const onFinishToast = (tx: FinishedTxData, toast: any) => {
   toast({
     title: "Redemption TX Sent",
-    status: "success",
     description: `View on explorer:\nhttps://explorer.hiro.so/txid/${tx.txId}?chain=mainnet`,
+    status: "success",
+    position: "top",
+    variant: "solid",
+    isClosable: true,
   });
 };
 
 const onCancelToast = (toast: any) => {
-  toast({ title: "Redemption Cancelled", status: "warning" });
+  toast({
+    title: "Redemption Cancelled",
+    status: "warning",
+    position: "top",
+    variant: "solid",
+    isClosable: true,
+  });
 };
 
 function buildRedemptionPostConditions(
