@@ -223,6 +223,7 @@ function RedeemNYC() {
           </ModalBody>
           <ModalFooter flexDir="column">
             <Checkbox
+              isChecked={consentChecked}
               onChange={(e) => setConsentChecked(e.target.checked)}
               mb={4}
             >
