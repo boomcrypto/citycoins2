@@ -1,12 +1,12 @@
 import { useToast } from "@chakra-ui/react";
 import { FinishedTxData } from "micro-stacks/connect";
-import { ClarityValue } from "micro-stacks/clarity";
 import { useOpenContractCall } from "@micro-stacks/react";
 import {
   createAssetInfo,
   createFungiblePostCondition,
   FungibleConditionCode,
   makeContractSTXPostCondition,
+  PostCondition,
 } from "micro-stacks/transactions";
 import {
   CONTRACT_ADDRESS,
@@ -38,19 +38,14 @@ const onCancelToast = (toast: any) => {
   toast({ title: "Redemption Cancelled", status: "warning" });
 };
 
-export const useCcd012RedeemNyc = () => {
-  const toast = useToast();
-  const stxAddress = useAtomValue(stxAddressAtom);
-  const v1BalanceNYC = useAtomValue(v1BalanceNYCAtom);
-  const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
-  const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
-  const { openContractCall, isRequestPending } = useOpenContractCall();
-
-  // can set a state atom here for UI feedback
-
-  const postConditions = [];
-
+function buildRedemptionPostConditions(
+  stxAddress: null | string,
+  v1BalanceNYC: null | number,
+  v2BalanceNYC: null | number,
+  redemptionForBalance: null | number
+) {
   if (stxAddress) {
+    const postConditions: PostCondition[] = [];
     // add v1 post condition if needed
     if (v1BalanceNYC !== null && v1BalanceNYC > 0) {
       postConditions.push(
@@ -92,7 +87,26 @@ export const useCcd012RedeemNyc = () => {
         )
       );
     }
+    return postConditions;
   }
+}
+
+export const useCcd012RedeemNyc = () => {
+  const toast = useToast();
+  const stxAddress = useAtomValue(stxAddressAtom);
+  const v1BalanceNYC = useAtomValue(v1BalanceNYCAtom);
+  const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
+  const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
+  const { openContractCall, isRequestPending } = useOpenContractCall();
+
+  // can set a state atom here for UI feedback
+
+  const postConditions = buildRedemptionPostConditions(
+    stxAddress,
+    v1BalanceNYC,
+    v2BalanceNYC,
+    redemptionForBalance
+  );
 
   const contractCallParams = {
     contractAddress: CONTRACT_ADDRESS,
@@ -114,6 +128,9 @@ export const useCcd012RedeemNyc = () => {
 export const useCcd012StackingDao = () => {
   const toast = useToast();
   const stxAddress = useAtomValue(stxAddressAtom);
+  const v1BalanceNYC = useAtomValue(v1BalanceNYCAtom);
+  const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
+  const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
   const { openContractCall, isRequestPending } = useOpenContractCall();
 
   const functionArgs: string[] = [];
@@ -125,7 +142,12 @@ export const useCcd012StackingDao = () => {
   // - referrer: (optional principal)
   // - pool: (optional principal)
 
-  const postConditions: string[] = [];
+  const postConditions = buildRedemptionPostConditions(
+    stxAddress,
+    v1BalanceNYC,
+    v2BalanceNYC,
+    redemptionForBalance
+  );
   // post conditions:
   // - burn nyc v1 (balance from user)
   // - burn nyc v2 (balance from user)
