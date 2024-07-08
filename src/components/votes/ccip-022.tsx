@@ -22,6 +22,7 @@ import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import VoteProgressBarCCIP022 from "./vote-progress-bar-ccip022";
 
+/*
 function VoteButtons() {
   const { voteYes, voteNo, isRequestPending } = useCcip022VoteActions();
   const hasVoted = useAtomValue(hasVotedAtom);
@@ -55,6 +56,7 @@ function VoteButtons() {
     </>
   );
 }
+*/
 
 function VoteResult() {
   const voterInfo = useCcip022VoteData("voterInfo");
@@ -79,12 +81,36 @@ function VoteResult() {
 
 function CCIP022() {
   const voterInfo = useCcip022VoteData("voterInfo");
-  const isVoteActive = useCcip022VoteData("isVoteActive");
+
+  /* const isVoteActive = useCcip022VoteData("isVoteActive");
   const voteTotals = useCcip022VoteData("voteTotals");
   const hasVoted = useAtomValue(hasVotedAtom);
   const totalVotes =
     parseInt(voteTotals.data?.totals.totalVotesNo) +
     parseInt(voteTotals.data?.totals.totalVotesYes);
+  */
+
+  const yesVotes = 132;
+  const noVotes = 4;
+  const totalVoteCount = yesVotes + noVotes;
+  const yesTotal = 1404542830929124;
+  const noTotal = 1250562992000000;
+  const totalVoteAmount = yesTotal + noTotal;
+
+  const voteTotalsObject: Ccip022VoteTotals = {
+    nyc: {
+      totalAmountYes: yesTotal.toString(),
+      totalAmountNo: noTotal.toString(),
+      totalVotesYes: yesVotes.toString(),
+      totalVotesNo: noVotes.toString(),
+    },
+    totals: {
+      totalAmountYes: yesTotal.toString(),
+      totalAmountNo: noTotal.toString(),
+      totalVotesYes: yesVotes.toString(),
+      totalVotesNo: noVotes.toString(),
+    },
+  };
 
   return (
     <Stack spacing={4}>
@@ -104,29 +130,23 @@ function CCIP022() {
           </Stat>
           <Stat>
             <StatLabel>Total Votes</StatLabel>
-            <StatNumber title={totalVotes.toString()}>
-              {totalVotes ?? <Spinner />}
+            <StatNumber title={totalVoteCount.toString()}>
+              {totalVoteCount}
             </StatNumber>
           </Stat>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber title={`NYC ${voteTotals.data?.nyc.totalVotesYes}`}>
-              {voteTotals.data?.totals.totalVotesYes ?? <Spinner />}
-            </StatNumber>
+            <StatNumber title={`NYC ${yesVotes}`}>{yesVotes}</StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber title={`NYC ${voteTotals.data?.nyc.totalVotesNo}`}>
-              {voteTotals.data?.totals.totalVotesNo ?? <Spinner />}
-            </StatNumber>
+            <StatNumber title={`NYC ${noVotes}`}>{noVotes}</StatNumber>
           </Stat>
         </Stack>
       </Box>
-      {voteTotals.data && (
-        <VoteProgressBarCCIP022 props={voteTotals.data as Ccip022VoteTotals} />
-      )}
+      <VoteProgressBarCCIP022 props={voteTotalsObject} />
       <Divider />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
@@ -143,14 +163,14 @@ function CCIP022() {
         <Text fontWeight="bold">Related Contracts:</Text>
         <Box textAlign="end">
           <Link
-            href="https://github.com/citycoins/protocol/blob/main/contracts/proposals/ccip022-treasury-redemption-nyc.clar"
+            href="https://explorer.hiro.so/txid/SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip022-treasury-redemption-nyc?chain=mainnet"
             isExternal
           >
             ccip022-treasury-redemption-nyc
           </Link>
           <br />
           <Link
-            href="https://github.com/citycoins/protocol/blob/main/contracts/extensions/ccd012-redemption-nyc.clar"
+            href="https://explorer.hiro.so/txid/SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd012-redemption-nyc?chain=mainnet"
             isExternal
           >
             ccd012-redemption-nyc
@@ -194,7 +214,8 @@ function CCIP022() {
           balance of NYC in their wallet. Both V1 and V2 are supported.
         </Text>
       </Stack>
-      {isVoteActive.data && hasVoted ? (
+      {/*
+      isVoteActive.data && hasVoted ? (
         <>
           <Divider />
           <Text fontWeight="bold">Vote recorded, thank you!</Text>
@@ -202,7 +223,8 @@ function CCIP022() {
         </>
       ) : (
         <VoteButtons />
-      )}
+      )
+      */}
       {voterInfo.data && <VoteResult />}
     </Stack>
   );
