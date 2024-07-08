@@ -76,16 +76,16 @@ function RedeemNYC() {
     setRedemptionForBalance();
   };
 
-  const readyToRedeem = () => {
+  const readyToRedeem = (requireConsent = false) => {
     let toastMsg = "";
-    if (!consentChecked) {
+    if (requireConsent && !consentChecked) {
       toastMsg = "Please read and acknowledge the disclaimer.";
     }
     if (!stxAddress) {
       toastMsg =
         "No STX address detected, please log out and reconnect your wallet.";
     }
-    if (!v1BalanceNYC || !v2BalanceNYC) {
+    if (!v1BalanceNYC && !v2BalanceNYC) {
       toastMsg =
         "No NYC balance detected, please refresh balances and try again.";
     }
@@ -116,7 +116,7 @@ function RedeemNYC() {
       variant: "solid",
     });
     console.log("Redeeming NYC...");
-    readyToRedeem() && redeemNycCall();
+    readyToRedeem(false) && redeemNycCall();
   };
 
   const redeemForStSTX = () => {
@@ -128,7 +128,7 @@ function RedeemNYC() {
       variant: "solid",
     });
     console.log("Redeeming NYC for stSTX...");
-    readyToRedeem() && stackingDaoCall();
+    readyToRedeem(true) && stackingDaoCall();
     onClose();
   };
 
@@ -141,7 +141,7 @@ function RedeemNYC() {
       variant: "solid",
     });
     console.log("Redeeming NYC for liSTX...");
-    readyToRedeem() && lisaCall();
+    readyToRedeem(true) && lisaCall();
     onClose();
   };
 
