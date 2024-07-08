@@ -27,7 +27,7 @@ export type LoadableDataset<T> = {
 
 export const activeTabAtom = atomWithStorage<number>(
   "citycoins-ui-activeTab",
-  3 // temporarily set to voting tab, default: 0
+  4 // default: Voting
 );
 
 // HELPER FUNCTIONS
@@ -41,6 +41,13 @@ export function extractLoadableState<T>(loadedAtom: Loadable<T>) {
   const data = hasData ? loadedAtom.data : undefined;
 
   return { isLoading, hasError, hasData, error, data };
+}
+
+export function formatAmount(amount: number) {
+  return amount.toLocaleString(navigator.language, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
 }
 
 export function formatMicroAmount(

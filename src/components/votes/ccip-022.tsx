@@ -17,13 +17,19 @@ import { useAtomValue } from "jotai";
 import { useCcip022VoteData } from "../../hooks/use-ccip-022-vote-data";
 import { useCcip022VoteActions } from "../../hooks/use-ccip-022-vote-actions";
 import { formatMicroAmount } from "../../store/common";
-import { hasVotedAtom } from "../../store/ccip-022";
-import { Ccip022VoteTotals } from "../../store/ccip-022";
+import { Ccip022VoteTotals, hasVotedAtom } from "../../store/ccip-022";
+import { stxAddressAtom } from "../../store/stacks";
+import SignIn from "../auth/sign-in";
 import VoteProgressBarCCIP022 from "./vote-progress-bar-ccip022";
 
 function VoteButtons() {
   const { voteYes, voteNo, isRequestPending } = useCcip022VoteActions();
   const hasVoted = useAtomValue(hasVotedAtom);
+  const stxAddress = useAtomValue(stxAddressAtom);
+
+  if (!stxAddress) {
+    return <SignIn />;
+  }
 
   return (
     <>
