@@ -1,4 +1,5 @@
 import { useToast } from "@chakra-ui/react";
+import { ClarityValue, noneCV, principalCV } from "micro-stacks/clarity";
 import { FinishedTxData } from "micro-stacks/connect";
 import { useOpenContractCall } from "@micro-stacks/react";
 import {
@@ -29,6 +30,7 @@ import {
 } from "../store/ccd-012";
 import { useAtomValue } from "jotai";
 import { stxAddressAtom } from "../store/stacks";
+import { getStackingDaoRatio } from "../store/ccip-022";
 
 const onFinishToast = (tx: FinishedTxData, toast: any) => {
   toast({
@@ -146,24 +148,59 @@ export const useCcd012StackingDao = () => {
   const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
   const { openContractCall, isRequestPending } = useOpenContractCall();
 
-  const functionArgs: string[] = [];
-  // function args:
-  // - reserve: <reserve-trait>
-  // - commission: <commission-trait>
-  // - staking: <staking-trait>
-  // - direct-helpers: <direct-helpers-trait>
-  // - referrer: (optional principal)
-  // - pool: (optional principal)
-
   const postConditions = buildRedemptionPostConditions(
     stxAddress,
     v1BalanceNYC,
     v2BalanceNYC,
     redemptionForBalance
   );
+
+  if (!stxAddress || !postConditions)
+    // return stub function and false for isRequestPending
+    return { stackingDaoCall: () => {}, isRequestPending: false };
+
   // add to post conditions:
   // - xfer redemption-stx from user (to StackingDAO)
-  // - xfer stSTX from contract (query amount)
+  postConditions.push(
+    createSTXPostCondition(
+      stxAddress,
+      FungibleConditionCode.Equal,
+      redemptionForBalance ?? 0
+    )
+  );
+
+  // - xfer stSTX from contract (query amount from contract)
+  // stSTX token: SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token
+  const stSTXRatio = getStackingDaoRatio();
+  if (stSTXRatio) {
+    postConditions.push(
+      createFungiblePostCondition(
+        STACKING_DAO_CONTRACT_ADDRESS,
+        FungibleConditionCode.Equal,
+        redemptionForBalance ?? 0,
+        createAssetInfo(STACKING_DAO_CONTRACT_ADDRESS, "ststx-token", "stSTX")
+      )
+    );
+  }
+
+  // function args based on a test tx from the UI:
+  const functionArgs: ClarityValue[] = [];
+  // - reserve: reserve-v1
+  functionArgs.push(principalCV(`${STACKING_DAO_CONTRACT_ADDRESS}.reserve-v1`));
+  // - commission: commission-v2
+  functionArgs.push(
+    principalCV(`${STACKING_DAO_CONTRACT_ADDRESS}.commission-v2`)
+  );
+  // - staking: staking-v0
+  functionArgs.push(principalCV(`${STACKING_DAO_CONTRACT_ADDRESS}.staking-v0`));
+  // - direct-helpers: direct-helpers-v1
+  functionArgs.push(
+    principalCV(`${STACKING_DAO_CONTRACT_ADDRESS}.direct-helpers-v1`)
+  );
+  // - referrer: none
+  functionArgs.push(noneCV());
+  // - pool: none
+  functionArgs.push(noneCV());
 
   const contractCallParams = {
     contractAddress: STACKING_DAO_CONTRACT_ADDRESS,
