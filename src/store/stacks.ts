@@ -51,6 +51,15 @@ export const acctBalancesAtom = atomWithStorage(
   null
 );
 
+export const stacksLocalStorageAtoms = [
+  blockHeightsAtom,
+  stxAddressAtom,
+  bnsNameAtom,
+  acctTxsAtom,
+  acctMempoolTxsAtom,
+  acctBalancesAtom,
+];
+
 /////////////////////////
 // DERIVED ATOMS
 /////////////////////////

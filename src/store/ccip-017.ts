@@ -62,6 +62,14 @@ export const ccip017HasVotedAtom = atomWithStorage(
   false
 );
 
+const ccip017LocalStorageAtoms = [
+  ccip017IsExecutableAtom,
+  ccip017IsVoteActiveAtom,
+  ccip017VoteTotalsAtom,
+  ccip017VoterInfoAtom,
+  ccip017HasVotedAtom,
+];
+
 /////////////////////////
 // DERIVED ATOMS
 /////////////////////////

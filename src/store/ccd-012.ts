@@ -65,12 +65,12 @@ export const MICRO = (decimals: number) => Math.pow(10, decimals);
 // LOCALSTORAGE ATOMS
 /////////////////////////
 
-const ccd012V1BalanceNYCLocalAtom = atomWithStorage<null | number>(
+export const ccd012V1BalanceNYCLocalAtom = atomWithStorage<null | number>(
   "citycoins-ccd012-NYCV1Balance",
   null
 );
 
-const ccd012V2BalanceNYCLocalAtom = atomWithStorage<null | number>(
+export const ccd012V2BalanceNYCLocalAtom = atomWithStorage<null | number>(
   "citycoins-ccd012-NYCV2Balance",
   null
 );
@@ -107,12 +107,25 @@ export const ccd012UserRedemptionInfoAtom =
     null
   );
 
-const ccd012stSTXRatioAtom = atomWithStorage<number | null>(
+export const ccd012stSTXRatioAtom = atomWithStorage<number | null>(
   "citycoins-ccd012-stSTXRatio",
   null
 );
 
 export const ccd012TxIdAtom = atom<string | null>(null);
+
+export const ccd012LocalStorageAtoms = [
+  ccd012V1BalanceNYCLocalAtom,
+  ccd012V2BalanceNYCLocalAtom,
+  ccd012IsRedemptionEnabledAtom,
+  ccd012RedemptionInfoAtom,
+  ccd012NycBalancesAtom,
+  ccd012RedemptionForBalanceAtom,
+  ccd012RedemptionAmountClaimedAtom,
+  ccd012UserRedemptionInfoAtom,
+  ccd012stSTXRatioAtom,
+  ccd012TxIdAtom,
+];
 
 /////////////////////////
 // DERIVED ATOMS

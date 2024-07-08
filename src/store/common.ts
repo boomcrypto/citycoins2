@@ -30,6 +30,8 @@ export const activeTabAtom = atomWithStorage<number>(
   4 // default: Voting
 );
 
+export const commonLocalStorageAtoms = [activeTabAtom];
+
 // HELPER FUNCTIONS
 
 export function extractLoadableState<T>(loadedAtom: Loadable<T>) {
