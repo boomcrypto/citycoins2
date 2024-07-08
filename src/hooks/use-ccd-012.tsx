@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useToast } from "@chakra-ui/react";
 import { ClarityValue, noneCV, principalCV } from "micro-stacks/clarity";
 import { FinishedTxData } from "micro-stacks/connect";
@@ -25,14 +26,13 @@ import {
   STACKING_DAO_CONTRACT_ADDRESS,
   STACKING_DAO_CONTRACT_NAME,
   STACKING_DAO_FUNCTION_NAME,
+  ccd012TxIdAtom,
   stSTXRatioAtom,
   v1BalanceNYCAtom,
   v2BalanceNYCAtom,
 } from "../store/ccd-012";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { stxAddressAtom } from "../store/stacks";
-import { getStackingDaoRatio } from "../store/ccip-022";
-import { useEffect } from "react";
 
 const onFinishToast = (tx: FinishedTxData, toast: any) => {
   toast({
@@ -42,7 +42,9 @@ const onFinishToast = (tx: FinishedTxData, toast: any) => {
     position: "top",
     variant: "solid",
     isClosable: true,
+    duration: 9000,
   });
+  return tx.txId;
 };
 
 const onCancelToast = (toast: any) => {
@@ -114,6 +116,7 @@ export const useCcd012RedeemNyc = () => {
   const v1BalanceNYC = useAtomValue(v1BalanceNYCAtom);
   const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
   const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
+  const setTxId = useSetAtom(ccd012TxIdAtom);
   const { openContractCall, isRequestPending } = useOpenContractCall();
 
   // can set a state atom here for UI feedback
@@ -131,7 +134,10 @@ export const useCcd012RedeemNyc = () => {
     functionName: "redeem-nyc",
     functionArgs: [],
     postConditions,
-    onFinish: (finishedTx: FinishedTxData) => onFinishToast(finishedTx, toast),
+    onFinish: (finishedTx: FinishedTxData) => {
+      const txId = onFinishToast(finishedTx, toast);
+      setTxId(txId);
+    },
     onCancel: () => onCancelToast(toast),
   };
 
@@ -149,19 +155,11 @@ export const useCcd012StackingDao = () => {
   const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
   const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
   const [stSTXRatio, setStSTXRatio] = useAtom(stSTXRatioAtom);
+  const setTxId = useSetAtom(ccd012TxIdAtom);
   const { openContractCall, isRequestPending } = useOpenContractCall();
 
   useEffect(() => {
-    const fetchSTXRatio = async () => {
-      try {
-        const ratio = await getStackingDaoRatio();
-        setStSTXRatio(ratio);
-      } catch (error) {
-        console.error("Failed to fetch stSTX ratio:", error);
-        setStSTXRatio(null);
-      }
-    };
-
+    const fetchSTXRatio = async () => setStSTXRatio();
     fetchSTXRatio();
   }, [setStSTXRatio]);
 
@@ -224,7 +222,10 @@ export const useCcd012StackingDao = () => {
     functionName: STACKING_DAO_FUNCTION_NAME,
     functionArgs: functionArgs,
     postConditions: postConditions,
-    onFinish: (finishedTx: FinishedTxData) => onFinishToast(finishedTx, toast),
+    onFinish: (finishedTx: FinishedTxData) => {
+      const txId = onFinishToast(finishedTx, toast);
+      setTxId(txId);
+    },
     onCancel: () => onCancelToast(toast),
   };
 
@@ -241,6 +242,7 @@ export const useCcd012Lisa = () => {
   const v1BalanceNYC = useAtomValue(v1BalanceNYCAtom);
   const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
   const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
+  const setTxId = useSetAtom(ccd012TxIdAtom);
   const { openContractCall, isRequestPending } = useOpenContractCall();
 
   const functionArgs: string[] = [];
@@ -270,7 +272,10 @@ export const useCcd012Lisa = () => {
     functionName: LISA_FUNCTION_NAME,
     functionArgs: functionArgs,
     postConditions: postConditions,
-    onFinish: (finishedTx: FinishedTxData) => onFinishToast(finishedTx, toast),
+    onFinish: (finishedTx: FinishedTxData) => {
+      const txId = onFinishToast(finishedTx, toast);
+      setTxId(txId);
+    },
     onCancel: () => onCancelToast(toast),
   };
 

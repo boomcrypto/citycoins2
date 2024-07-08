@@ -107,11 +107,26 @@ export const ccd012UserRedemptionInfoAtom =
     null
   );
 
+const ccd012stSTXRatioAtom = atomWithStorage<number | null>(
+  "citycoins-ccd012-stSTXRatio",
+  null
+);
+
+export const ccd012TxIdAtom = atom<string | null>(null);
+
 /////////////////////////
 // DERIVED ATOMS
 /////////////////////////
 
-export const stSTXRatioAtom = atom<number | null>(null);
+export const stSTXRatioAtom = atom(
+  // getter
+  (get) => get(ccd012stSTXRatioAtom),
+  // setter
+  async (get, set) => {
+    const ratio = await get(getStackingDaoRatioQueryAtom);
+    set(ccd012stSTXRatioAtom, ratio);
+  }
+);
 
 export const v1BalanceNYCAtom = atom(
   // getter
@@ -325,6 +340,17 @@ const userRedemptionInfoQueryAtom = atom(async (get) => {
   }
 });
 
+const getStackingDaoRatioQueryAtom = atom(async () => {
+  try {
+    const ratio = await getStackingDaoRatio();
+    return ratio;
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch stSTX ratio for ${STACKING_DAO_FQ_NAME}: ${error}`
+    );
+  }
+});
+
 /////////////////////////
 // HELPER FUNCTIONS
 /////////////////////////
@@ -441,4 +467,23 @@ async function getUserRedemptionInfo(
       true
     );
   return userRedemptionInfoQuery;
+}
+
+// helper to get the stSTX to STX ratio from the StackingDAO contract
+// calls `get-stx-per-ststx` on `SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.data-core-v1`
+// The param `reserve-contract` should be `SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.reserve-v1`.
+// example: return `u1015555`, meaning for 1.015555 STX you will get 1 stSTX.
+export async function getStackingDaoRatio(): Promise<number> {
+  const stackingDaoRatioQuery = await fetchReadOnlyFunction<number>(
+    {
+      contractAddress: STACKING_DAO_CONTRACT_ADDRESS,
+      contractName: "data-core-v1",
+      functionName: "get-stx-per-ststx",
+      functionArgs: [
+        principalCV(`${STACKING_DAO_CONTRACT_ADDRESS}.reserve-v1`),
+      ],
+    },
+    true
+  );
+  return stackingDaoRatioQuery;
 }

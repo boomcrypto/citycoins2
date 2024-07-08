@@ -27,6 +27,7 @@ import { LuExternalLink, LuRepeat } from "react-icons/lu";
 import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import {
+  ccd012TxIdAtom,
   redemptionForBalanceAtom,
   totalBalanceNYCAtom,
   v1BalanceNYCAtom,
@@ -53,6 +54,7 @@ function RedeemNYC() {
   const [redemptionForBalance, setRedemptionForBalance] = useAtom(
     redemptionForBalanceAtom
   );
+  const ccd012TxId = useAtomValue(ccd012TxIdAtom);
 
   const { redeemNycCall, isRequestPending } = useCcd012RedeemNyc();
   const { stackingDaoCall, isRequestPending: isRequestPendingStackingDAO } =
@@ -74,6 +76,37 @@ function RedeemNYC() {
     setRedemptionForBalance();
   };
 
+  const readyToRedeem = () => {
+    let toastMsg = "";
+    if (!consentChecked) {
+      toastMsg = "Please read and acknowledge the disclaimer.";
+    }
+    if (!stxAddress) {
+      toastMsg =
+        "No STX address detected, please log out and reconnect your wallet.";
+    }
+    if (!v1BalanceNYC || !v2BalanceNYC) {
+      toastMsg =
+        "No NYC balance detected, please refresh balances and try again.";
+    }
+    if (!redemptionForBalance) {
+      toastMsg =
+        "Unable to compute redemption amount, please refresh balances and try again.";
+    }
+    // a little hacky, but works if msg above was never set = no error
+    if (toastMsg === "") return true;
+    // else display msg and exit false
+    toast({
+      title: "Redemption Preparation Error",
+      description: toastMsg,
+      status: "warning",
+      isClosable: true,
+      position: "top",
+      variant: "solid",
+    });
+    return false;
+  };
+
   const redeemNYC = () => {
     toast({
       title: "Redeeming NYC...",
@@ -83,7 +116,7 @@ function RedeemNYC() {
       variant: "solid",
     });
     console.log("Redeeming NYC...");
-    redeemNycCall();
+    readyToRedeem() && redeemNycCall();
   };
 
   const redeemForStSTX = () => {
@@ -95,8 +128,8 @@ function RedeemNYC() {
       variant: "solid",
     });
     console.log("Redeeming NYC for stSTX...");
+    readyToRedeem() && stackingDaoCall();
     onClose();
-    stackingDaoCall();
   };
 
   const redeemForLiSTX = () => {
@@ -108,8 +141,8 @@ function RedeemNYC() {
       variant: "solid",
     });
     console.log("Redeeming NYC for liSTX...");
+    readyToRedeem() && lisaCall();
     onClose();
-    lisaCall();
   };
 
   if (!stxAddress) {
@@ -171,12 +204,36 @@ function RedeemNYC() {
       </StatGroup>
 
       <Stack spacing={4} direction={["column", null, "row"]}>
-        <Button isLoading={isRequestPending} onClick={redeemNYC} width="full">
-          Redeem for STX
-        </Button>
-        <Button onClick={onOpen} width="full">
-          Redeem for stSTX / liSTX
-        </Button>
+        {ccd012TxId === null ? (
+          <>
+            <Button
+              isLoading={isRequestPending}
+              isDisabled={ccd012TxId !== null}
+              onClick={redeemNYC}
+              width="full"
+            >
+              Redeem for STX
+            </Button>
+            <Button
+              onClick={onOpen}
+              width="full"
+              isDisabled={ccd012TxId !== null}
+            >
+              Redeem for stSTX / liSTX
+            </Button>
+          </>
+        ) : (
+          <HStack>
+            <Text>Redemption submitted!</Text>
+            <Link
+              isExternal
+              href={`https://explorer.hiro.so/txid/${ccd012TxId}?chain=mainnet`}
+            >
+              View on explorer
+            </Link>
+            <LuExternalLink />
+          </HStack>
+        )}
       </Stack>
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl">

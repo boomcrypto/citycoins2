@@ -200,22 +200,3 @@ async function getVoterInfo(voterAddress: string): Promise<Ccip022VoterInfo> {
   // console.log("Voter Info", voterInfoQuery);
   return voterInfoQuery;
 }
-
-// helper to get the stSTX to STX ratio from the StackingDAO contract
-// calls `get-stx-per-ststx` on `SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.data-core-v1`
-// The param `reserve-contract` should be `SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.reserve-v1`.
-// example: return `u1015555`, meaning for 1.015555 STX you will get 1 stSTX.
-export async function getStackingDaoRatio(): Promise<number> {
-  const stackingDaoRatioQuery = await fetchReadOnlyFunction<number>(
-    {
-      contractAddress: STACKING_DAO_CONTRACT_ADDRESS,
-      contractName: "data-core-v1",
-      functionName: "get-stx-per-ststx",
-      functionArgs: [
-        principalCV(`${STACKING_DAO_CONTRACT_ADDRESS}.reserve-v1`),
-      ],
-    },
-    true
-  );
-  return stackingDaoRatioQuery;
-}
