@@ -93,7 +93,7 @@ export const useClearUserData = () => {
   const clearData = useAtomCallback(
     useCallback((get, set) => {
       const resetAtom = (atom: AnyWritableAtom) => {
-        set(atom, RESET as any);
+        set(atom, RESET);
       };
 
       // combine all local storage atoms

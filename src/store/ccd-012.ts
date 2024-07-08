@@ -112,7 +112,10 @@ export const ccd012stSTXRatioAtom = atomWithStorage<number | null>(
   null
 );
 
-export const ccd012TxIdAtom = atom<string | null>(null);
+export const ccd012TxIdAtom = atomWithStorage<string | null>(
+  "citycoins-ccd012-txid",
+  null
+);
 
 export const ccd012LocalStorageAtoms = [
   ccd012V1BalanceNYCLocalAtom,

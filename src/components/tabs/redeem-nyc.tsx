@@ -208,17 +208,12 @@ function RedeemNYC() {
           <>
             <Button
               isLoading={isRequestPending}
-              isDisabled={ccd012TxId !== null}
               onClick={redeemNYC}
               width="full"
             >
               Redeem for STX
             </Button>
-            <Button
-              onClick={onOpen}
-              width="full"
-              isDisabled={ccd012TxId !== null}
-            >
+            <Button onClick={onOpen} width="full">
               Redeem for stSTX / liSTX
             </Button>
           </>
