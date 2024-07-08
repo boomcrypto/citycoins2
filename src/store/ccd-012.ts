@@ -111,6 +111,8 @@ export const ccd012UserRedemptionInfoAtom =
 // DERIVED ATOMS
 /////////////////////////
 
+export const stSTXRatioAtom = atom<number | null>(null);
+
 export const v1BalanceNYCAtom = atom(
   // getter
   (get) => get(ccd012V1BalanceNYCLocalAtom),

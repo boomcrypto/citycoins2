@@ -25,12 +25,14 @@ import {
   STACKING_DAO_CONTRACT_ADDRESS,
   STACKING_DAO_CONTRACT_NAME,
   STACKING_DAO_FUNCTION_NAME,
+  stSTXRatioAtom,
   v1BalanceNYCAtom,
   v2BalanceNYCAtom,
 } from "../store/ccd-012";
-import { useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { stxAddressAtom } from "../store/stacks";
 import { getStackingDaoRatio } from "../store/ccip-022";
+import { useEffect } from "react";
 
 const onFinishToast = (tx: FinishedTxData, toast: any) => {
   toast({
@@ -146,7 +148,22 @@ export const useCcd012StackingDao = () => {
   const v1BalanceNYC = useAtomValue(v1BalanceNYCAtom);
   const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
   const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
+  const [stSTXRatio, setStSTXRatio] = useAtom(stSTXRatioAtom);
   const { openContractCall, isRequestPending } = useOpenContractCall();
+
+  useEffect(() => {
+    const fetchSTXRatio = async () => {
+      try {
+        const ratio = await getStackingDaoRatio();
+        setStSTXRatio(ratio);
+      } catch (error) {
+        console.error("Failed to fetch stSTX ratio:", error);
+        setStSTXRatio(null);
+      }
+    };
+
+    fetchSTXRatio();
+  }, [setStSTXRatio]);
 
   const postConditions = buildRedemptionPostConditions(
     stxAddress,
@@ -170,8 +187,7 @@ export const useCcd012StackingDao = () => {
   );
 
   // - xfer stSTX from contract (query amount from contract)
-  // stSTX token: SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token
-  const stSTXRatio = getStackingDaoRatio();
+  // - stSTX token: SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token
   if (stSTXRatio) {
     postConditions.push(
       createFungiblePostCondition(
