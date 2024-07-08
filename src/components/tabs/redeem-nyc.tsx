@@ -213,7 +213,7 @@ function RedeemNYC() {
             >
               Redeem for STX
             </Button>
-            <Button onClick={onOpen} width="full">
+            <Button onClick={onOpen} width="full" isLoading={isRequestPending}>
               Redeem for stSTX / liSTX
             </Button>
           </>
