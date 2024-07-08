@@ -2,9 +2,8 @@ import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { fetchReadOnlyFunction } from "micro-stacks/api";
 import { validateStacksAddress } from "micro-stacks/crypto";
-import { principalCV, standardPrincipalCV, uintCV } from "micro-stacks/clarity";
+import { standardPrincipalCV, uintCV } from "micro-stacks/clarity";
 import { stxAddressAtom } from "./stacks";
-import { STACKING_DAO_CONTRACT_ADDRESS } from "./ccd-012";
 
 /////////////////////////
 // TYPES

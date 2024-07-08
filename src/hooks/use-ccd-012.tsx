@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useToast } from "@chakra-ui/react";
 import { ClarityValue, noneCV, principalCV } from "micro-stacks/clarity";
 import { FinishedTxData } from "micro-stacks/connect";
@@ -31,7 +32,6 @@ import {
   v1BalanceNYCAtom,
   v2BalanceNYCAtom,
 } from "../store/ccd-012";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { stxAddressAtom } from "../store/stacks";
 
 const onFinishToast = (tx: FinishedTxData, toast: any) => {

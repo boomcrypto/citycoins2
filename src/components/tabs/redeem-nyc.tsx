@@ -24,8 +24,8 @@ import {
 } from "@chakra-ui/react";
 import { atom, useAtom, useAtomValue } from "jotai";
 import { LuExternalLink, LuRepeat } from "react-icons/lu";
-import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
+import { stxAddressAtom } from "../../store/stacks";
 import {
   ccd012TxIdAtom,
   redemptionForBalanceAtom,
