@@ -211,7 +211,9 @@ export async function getStackingDaoRatio(): Promise<number> {
       contractAddress: STACKING_DAO_CONTRACT_ADDRESS,
       contractName: "data-core-v1",
       functionName: "get-stx-per-ststx",
-      functionArgs: [principalCV(`${STACKING_DAO_CONTRACT_ADDRESS}.reserve-1`)],
+      functionArgs: [
+        principalCV(`${STACKING_DAO_CONTRACT_ADDRESS}.reserve-v1`),
+      ],
     },
     true
   );
