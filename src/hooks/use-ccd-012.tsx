@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useToast } from "@chakra-ui/react";
 import { ClarityValue, noneCV, principalCV } from "micro-stacks/clarity";
 import { FinishedTxData } from "micro-stacks/connect";
@@ -28,7 +27,6 @@ import {
   STACKING_DAO_CONTRACT_NAME,
   STACKING_DAO_FUNCTION_NAME,
   ccd012TxIdAtom,
-  stSTXRatioAtom,
   v1BalanceNYCAtom,
   v2BalanceNYCAtom,
 } from "../store/ccd-012";
@@ -154,14 +152,8 @@ export const useCcd012StackingDao = () => {
   const v1BalanceNYC = useAtomValue(v1BalanceNYCAtom);
   const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
   const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
-  const [stSTXRatio, setStSTXRatio] = useAtom(stSTXRatioAtom);
   const setTxId = useSetAtom(ccd012TxIdAtom);
   const { openContractCall, isRequestPending } = useOpenContractCall();
-
-  useEffect(() => {
-    const fetchSTXRatio = async () => setStSTXRatio();
-    fetchSTXRatio();
-  }, [setStSTXRatio]);
 
   const postConditions = buildRedemptionPostConditions(
     stxAddress,
@@ -184,18 +176,34 @@ export const useCcd012StackingDao = () => {
     )
   );
 
+  /*
+
+  NOT NECESSARY - stSTX is minted, no post condition needed
+  
   // - xfer stSTX from contract (query amount from contract)
   // - stSTX token: SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token
+  // console.log("stSTXRatio", stSTXRatio);
   if (stSTXRatio) {
+    const stSTXRatioDecimal = stSTXRatio / MICRO(6); // 1.023801
+    const stMicroSTXAmount = (redemptionForBalance ?? 0) * stSTXRatioDecimal;
+    const stMicroSTXAmountRounded = Math.round(stMicroSTXAmount);
+
+    // console.log("stSTXRatioDecimal", stSTXRatioDecimal);
+    // console.log("stMicroSTXAmount", stMicroSTXAmount);
+    // console.log("stMicroSTXAmountRounded", stMicroSTXAmountRounded);
+    // console.log("stSTXAmount", stMicroSTXAmountRounded / MICRO(6));
+
     postConditions.push(
       createFungiblePostCondition(
         STACKING_DAO_CONTRACT_ADDRESS,
         FungibleConditionCode.Equal,
-        redemptionForBalance ?? 0,
+        stMicroSTXAmountRounded,
         createAssetInfo(STACKING_DAO_CONTRACT_ADDRESS, "ststx-token", "stSTX")
       )
     );
   }
+
+  */
 
   // function args based on a test tx from the UI:
   const functionArgs: ClarityValue[] = [];
