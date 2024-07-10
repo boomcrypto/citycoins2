@@ -8,7 +8,7 @@ import { stxAddressAtom } from "./stacks";
 // TYPES
 /////////////////////////
 
-type NycRedemptionInfo = {
+export type NycRedemptionInfo = {
   redemptionsEnabled: boolean;
   blockHeight: number;
   totalSupply: number;
@@ -213,6 +213,17 @@ export const redemptionInfoAtom = atom(
   async (get, set) => {
     const redemptionInfo = await get(redemptionInfoQueryAtom);
     set(ccd012RedemptionInfoAtom, redemptionInfo);
+  }
+);
+
+export const redemptionProgressAtom = atom(
+  // getter
+  (get) => {
+    const redemptionInfo = get(redemptionInfoAtom);
+    if (!redemptionInfo) return null;
+    return (
+      (redemptionInfo.totalRedeemed / redemptionInfo.contractBalance) * 100
+    );
   }
 );
 

@@ -21,6 +21,8 @@ import {
   Divider,
   useToast,
   Checkbox,
+  Box,
+  Progress,
 } from "@chakra-ui/react";
 import { atom, useAtom, useAtomValue } from "jotai";
 import { LuExternalLink, LuRepeat } from "react-icons/lu";
@@ -32,6 +34,7 @@ import {
   nycTotalSupplyInfoAtom,
   redemptionForBalanceAtom,
   redemptionInfoAtom,
+  redemptionProgressAtom,
   totalBalanceNYCAtom,
   v1BalanceNYCAtom,
   v2BalanceNYCAtom,
@@ -58,6 +61,7 @@ function RedeemNYC() {
     redemptionForBalanceAtom
   );
   const [redemptionInfo, setRedemptionInfo] = useAtom(redemptionInfoAtom);
+  const redemptionProgress = useAtomValue(redemptionProgressAtom);
   const [nycTotalSupply, setNycTotalSupply] = useAtom(nycTotalSupplyInfoAtom);
   const ccd012TxId = useAtomValue(ccd012TxIdAtom);
 
@@ -289,6 +293,17 @@ function RedeemNYC() {
                 </StatNumber>
               </Stat>
             </StatGroup>
+
+            {redemptionProgress && (
+              <>
+                <Text fontSize="sm">
+                  NYC Redemption Progress: {redemptionProgress.toFixed(2)}%
+                </Text>
+                <Box width="100%">
+                  <Progress value={redemptionProgress} size="lg" />
+                </Box>
+              </>
+            )}
           </Stack>
         ) : (
           <Button onClick={setRedemptionInfo}>Get Redemption Info</Button>
