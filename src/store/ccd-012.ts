@@ -32,6 +32,12 @@ type AddressNycRedemptionInfo = {
   redemptionClaims: number;
 };
 
+type TokenSupplyInfo = {
+  supplyV1: number;
+  supplyV2: number;
+  totalSupply: number;
+};
+
 /////////////////////////
 // CONSTANTS
 /////////////////////////
@@ -388,7 +394,7 @@ const userRedemptionInfoQueryAtom = atom(async (get) => {
 const getNycTotalSupplyInfoQueryAtom = atom(async () => {
   try {
     const supplyInfo = await getNycTotalSupplyInfo();
-    console.log("supplyInfo", supplyInfo);
+    // console.log("supplyInfo", supplyInfo);
     return supplyInfo;
   } catch (error) {
     throw new Error(
@@ -526,12 +532,6 @@ async function getUserRedemptionInfo(
   return userRedemptionInfoQuery;
 }
 
-type TokenSupplyInfo = {
-  supplyV1: number;
-  supplyV2: number;
-  totalSupply: number;
-};
-
 export async function getNycTotalSupplyInfo(): Promise<TokenSupplyInfo> {
   const totalSupplyV1 = await fetchReadOnlyFunction<bigint>({
     contractAddress: NYC_V1_CONTRACT_ADDRESS,
@@ -541,12 +541,12 @@ export async function getNycTotalSupplyInfo(): Promise<TokenSupplyInfo> {
   });
   const totalSupplyV1Number = getSafeNumberFromBigInt(totalSupplyV1);
 
-  console.log("totalSupplyV1", typeof totalSupplyV1, totalSupplyV1);
-  console.log(
-    "totalSupplyV1Number",
-    typeof totalSupplyV1Number,
-    totalSupplyV1Number
-  );
+  //console.log("totalSupplyV1", typeof totalSupplyV1, totalSupplyV1);
+  //console.log(
+  //  "totalSupplyV1Number",
+  //  typeof totalSupplyV1Number,
+  //  totalSupplyV1Number
+  //);
 
   const totalSupplyV2 = await fetchReadOnlyFunction<bigint>({
     contractAddress: NYC_V2_CONTRACT_ADDRESS,
@@ -556,21 +556,21 @@ export async function getNycTotalSupplyInfo(): Promise<TokenSupplyInfo> {
   });
   const totalSupplyV2Number = getSafeNumberFromBigInt(totalSupplyV2);
 
-  console.log("totalSupplyV2", typeof totalSupplyV2, totalSupplyV2);
-  console.log(
-    "totalSupplyV2Number",
-    typeof totalSupplyV2Number,
-    totalSupplyV2Number
-  );
+  //console.log("totalSupplyV2", typeof totalSupplyV2, totalSupplyV2);
+  //console.log(
+  //  "totalSupplyV2Number",
+  //  typeof totalSupplyV2Number,
+  //  totalSupplyV2Number
+  //);
 
   const totalSupply = totalSupplyV1Number * MICRO(6) + totalSupplyV2Number;
 
-  console.log(
-    "totalSupply",
-    typeof totalSupply,
-    totalSupply,
-    (totalSupply / MICRO(6)).toLocaleString()
-  );
+  //console.log(
+  //  "totalSupply",
+  //  typeof totalSupply,
+  //  totalSupply,
+  //  (totalSupply / MICRO(6)).toLocaleString()
+  //);
 
   return {
     supplyV1: totalSupplyV1Number,
