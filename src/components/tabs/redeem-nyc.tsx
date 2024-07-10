@@ -86,7 +86,7 @@ function RedeemNYC() {
     }
     if (!stxAddress) {
       toastMsg =
-        "No STX address detected, please log out and reconnect your wallet.";
+        "No STX address detected, please clear data and reconnect your wallet.";
     }
     if (!v1BalanceNYC && !v2BalanceNYC) {
       toastMsg =
