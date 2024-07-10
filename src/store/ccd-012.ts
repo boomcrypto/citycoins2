@@ -8,7 +8,7 @@ import { stxAddressAtom } from "./stacks";
 // TYPES
 /////////////////////////
 
-type NycRedemptionInfo = {
+export type NycRedemptionInfo = {
   redemptionsEnabled: boolean;
   blockHeight: number;
   totalSupply: number;
@@ -30,6 +30,12 @@ type AddressNycRedemptionInfo = {
   nycBalances: AddressNycBalances;
   redemptionAmount: number;
   redemptionClaims: number;
+};
+
+type TokenSupplyInfo = {
+  supplyV1: number;
+  supplyV2: number;
+  totalSupply: number;
 };
 
 /////////////////////////
@@ -119,6 +125,12 @@ export const ccd012TxIdAtom = atomWithStorage<string | null>(
   null
 );
 
+export const ccd012NycTotalSupplyInfoLocalAtom =
+  atomWithStorage<TokenSupplyInfo | null>(
+    "citycoins-ccd012-nycTotalSupplyInfo",
+    null
+  );
+
 export const ccd012LocalStorageAtoms = [
   ccd012V1BalanceNYCLocalAtom,
   ccd012V2BalanceNYCLocalAtom,
@@ -155,7 +167,7 @@ export const v1BalanceNYCAtom = atom(
     if (balance === undefined) return;
     if (typeof balance === "bigint") {
       try {
-        set(ccd012V1BalanceNYCLocalAtom, getBalanceFromBigint(balance));
+        set(ccd012V1BalanceNYCLocalAtom, getSafeNumberFromBigInt(balance));
       } catch (error) {
         console.error(`Failed to set v1BalanceAtom with bigint: ${error}`);
       }
@@ -174,7 +186,7 @@ export const v2BalanceNYCAtom = atom(
     if (balance === undefined) return;
     if (typeof balance === "bigint") {
       try {
-        set(ccd012V2BalanceNYCLocalAtom, getBalanceFromBigint(balance));
+        set(ccd012V2BalanceNYCLocalAtom, getSafeNumberFromBigInt(balance));
       } catch (error) {
         console.error(`Failed to set v2BalanceAtom with bigint: ${error}`);
       }
@@ -207,6 +219,17 @@ export const redemptionInfoAtom = atom(
   async (get, set) => {
     const redemptionInfo = await get(redemptionInfoQueryAtom);
     set(ccd012RedemptionInfoAtom, redemptionInfo);
+  }
+);
+
+export const redemptionProgressAtom = atom(
+  // getter
+  (get) => {
+    const redemptionInfo = get(redemptionInfoAtom);
+    if (!redemptionInfo) return null;
+    return (
+      (redemptionInfo.totalRedeemed / redemptionInfo.contractBalance) * 100
+    );
   }
 );
 
@@ -250,6 +273,16 @@ export const userRedemptionInfoAtom = atom(
     const userRedemptionInfo = await get(userRedemptionInfoQueryAtom);
     if (!userRedemptionInfo) return;
     set(ccd012UserRedemptionInfoAtom, userRedemptionInfo);
+  }
+);
+
+export const nycTotalSupplyInfoAtom = atom(
+  // getter
+  (get) => get(ccd012NycTotalSupplyInfoLocalAtom),
+  // setter
+  async (get, set) => {
+    const supplyInfo = await get(getNycTotalSupplyInfoQueryAtom);
+    set(ccd012NycTotalSupplyInfoLocalAtom, supplyInfo);
   }
 );
 
@@ -358,6 +391,18 @@ const userRedemptionInfoQueryAtom = atom(async (get) => {
   }
 });
 
+const getNycTotalSupplyInfoQueryAtom = atom(async () => {
+  try {
+    const supplyInfo = await getNycTotalSupplyInfo();
+    // console.log("supplyInfo", supplyInfo);
+    return supplyInfo;
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch NYC total supply info for ${CONTRACT_FQ_NAME}: ${error}`
+    );
+  }
+});
+
 const getStackingDaoRatioQueryAtom = atom(async () => {
   try {
     const ratio = await getStackingDaoRatio();
@@ -373,7 +418,7 @@ const getStackingDaoRatioQueryAtom = atom(async () => {
 // HELPER FUNCTIONS
 /////////////////////////
 
-function getBalanceFromBigint(balance: bigint): number {
+function getSafeNumberFromBigInt(balance: bigint): number {
   const numberBalance = Number(balance);
   if (Number.isSafeInteger(numberBalance)) {
     return numberBalance;
@@ -485,6 +530,53 @@ async function getUserRedemptionInfo(
       true
     );
   return userRedemptionInfoQuery;
+}
+
+export async function getNycTotalSupplyInfo(): Promise<TokenSupplyInfo> {
+  const totalSupplyV1 = await fetchReadOnlyFunction<bigint>({
+    contractAddress: NYC_V1_CONTRACT_ADDRESS,
+    contractName: NYC_V1_CONTRACT_NAME,
+    functionName: "get-total-supply",
+    functionArgs: [],
+  });
+  const totalSupplyV1Number = getSafeNumberFromBigInt(totalSupplyV1);
+
+  //console.log("totalSupplyV1", typeof totalSupplyV1, totalSupplyV1);
+  //console.log(
+  //  "totalSupplyV1Number",
+  //  typeof totalSupplyV1Number,
+  //  totalSupplyV1Number
+  //);
+
+  const totalSupplyV2 = await fetchReadOnlyFunction<bigint>({
+    contractAddress: NYC_V2_CONTRACT_ADDRESS,
+    contractName: NYC_V2_CONTRACT_NAME,
+    functionName: "get-total-supply",
+    functionArgs: [],
+  });
+  const totalSupplyV2Number = getSafeNumberFromBigInt(totalSupplyV2);
+
+  //console.log("totalSupplyV2", typeof totalSupplyV2, totalSupplyV2);
+  //console.log(
+  //  "totalSupplyV2Number",
+  //  typeof totalSupplyV2Number,
+  //  totalSupplyV2Number
+  //);
+
+  const totalSupply = totalSupplyV1Number * MICRO(6) + totalSupplyV2Number;
+
+  //console.log(
+  //  "totalSupply",
+  //  typeof totalSupply,
+  //  totalSupply,
+  //  (totalSupply / MICRO(6)).toLocaleString()
+  //);
+
+  return {
+    supplyV1: totalSupplyV1Number,
+    supplyV2: totalSupplyV2Number,
+    totalSupply: totalSupply,
+  };
 }
 
 // helper to get the stSTX to STX ratio from the StackingDAO contract

@@ -21,6 +21,8 @@ import {
   Divider,
   useToast,
   Checkbox,
+  Box,
+  Progress,
 } from "@chakra-ui/react";
 import { atom, useAtom, useAtomValue } from "jotai";
 import { LuExternalLink, LuRepeat } from "react-icons/lu";
@@ -29,8 +31,10 @@ import { stxAddressAtom } from "../../store/stacks";
 import {
   ccd012TxIdAtom,
   MICRO,
+  nycTotalSupplyInfoAtom,
   redemptionForBalanceAtom,
   redemptionInfoAtom,
+  redemptionProgressAtom,
   totalBalanceNYCAtom,
   v1BalanceNYCAtom,
   v2BalanceNYCAtom,
@@ -57,6 +61,8 @@ function RedeemNYC() {
     redemptionForBalanceAtom
   );
   const [redemptionInfo, setRedemptionInfo] = useAtom(redemptionInfoAtom);
+  const redemptionProgress = useAtomValue(redemptionProgressAtom);
+  const [nycTotalSupply, setNycTotalSupply] = useAtom(nycTotalSupplyInfoAtom);
   const ccd012TxId = useAtomValue(ccd012TxIdAtom);
 
   const { redeemNycCall, isRequestPending } = useCcd012RedeemNyc();
@@ -255,7 +261,7 @@ function RedeemNYC() {
               <Stat>
                 <StatLabel>Redemption Ratio</StatLabel>
                 <StatNumber>
-                  {redemptionInfo.redemptionRatio / MICRO(6)}
+                  {redemptionInfo.redemptionRatio / MICRO(8)}
                 </StatNumber>
               </Stat>
             </StatGroup>
@@ -287,9 +293,71 @@ function RedeemNYC() {
                 </StatNumber>
               </Stat>
             </StatGroup>
+
+            {redemptionProgress && (
+              <>
+                <Text fontSize="sm">
+                  NYC Redemption Progress: {redemptionProgress.toFixed(2)}%
+                </Text>
+                <Box width="100%">
+                  <Progress value={redemptionProgress} size="lg" />
+                </Box>
+              </>
+            )}
           </Stack>
         ) : (
           <Button onClick={setRedemptionInfo}>Get Redemption Info</Button>
+        )}
+      </Stack>
+
+      <Divider />
+
+      <Stack>
+        <Heading>NYC Token Info</Heading>
+        {nycTotalSupply ? (
+          // sample object
+          // {"blockHeight":"156958","contractBalance":"15519436600244","currentContractBalance":"10790341594479","redemptionRatio":"291064","redemptionsEnabled":true,"totalRedeemed":"4729095005765","totalSupply":"5331965209999999"}
+          <Stack spacing={4}>
+            <Button leftIcon={<LuRepeat />} onClick={setNycTotalSupply}>
+              Refresh Token Info
+            </Button>
+            <StatGroup>
+              <Stat>
+                <StatLabel>NYC V1 Supply</StatLabel>
+                <StatNumber>{formatAmount(nycTotalSupply.supplyV1)}</StatNumber>
+              </Stat>
+              <Stat>
+                <StatLabel>NYC V2 Supply</StatLabel>
+                <StatNumber>
+                  {formatMicroAmount(nycTotalSupply.supplyV2)}
+                </StatNumber>
+              </Stat>
+            </StatGroup>
+            <StatGroup>
+              <Stat>
+                <StatLabel>NYC Total Supply</StatLabel>
+                <StatNumber>
+                  {formatMicroAmount(nycTotalSupply.totalSupply)}
+                </StatNumber>
+              </Stat>
+              <Stat>
+                <StatLabel>Total Burned</StatLabel>
+                {redemptionInfo ? (
+                  <StatNumber>
+                    {formatMicroAmount(
+                      redemptionInfo.totalSupply - nycTotalSupply.totalSupply
+                    )}
+                  </StatNumber>
+                ) : (
+                  <Text mt={2} fontSize="small">
+                    (none detected)
+                  </Text>
+                )}
+              </Stat>
+            </StatGroup>
+          </Stack>
+        ) : (
+          <Button onClick={setNycTotalSupply}>Get Token Info</Button>
         )}
       </Stack>
 
