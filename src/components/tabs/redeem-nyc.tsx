@@ -257,7 +257,7 @@ function RedeemNYC() {
               <Stat>
                 <StatLabel>Redemption Ratio</StatLabel>
                 <StatNumber>
-                  {redemptionInfo.redemptionRatio / MICRO(6)}
+                  {redemptionInfo.redemptionRatio / MICRO(8)}
                 </StatNumber>
               </Stat>
             </StatGroup>
