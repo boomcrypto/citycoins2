@@ -13,6 +13,8 @@ type NycRedemptionInfo = {
   blockHeight: number;
   totalSupply: number;
   contractBalance: number;
+  currentContractBalance: number;
+  totalRedeemed: number;
   redemptionRatio: number;
 };
 
