@@ -28,7 +28,9 @@ import SignIn from "../auth/sign-in";
 import { stxAddressAtom } from "../../store/stacks";
 import {
   ccd012TxIdAtom,
+  MICRO,
   redemptionForBalanceAtom,
+  redemptionInfoAtom,
   totalBalanceNYCAtom,
   v1BalanceNYCAtom,
   v2BalanceNYCAtom,
@@ -54,6 +56,7 @@ function RedeemNYC() {
   const [redemptionForBalance, setRedemptionForBalance] = useAtom(
     redemptionForBalanceAtom
   );
+  const [redemptionInfo, setRedemptionInfo] = useAtom(redemptionInfoAtom);
   const ccd012TxId = useAtomValue(ccd012TxIdAtom);
 
   const { redeemNycCall, isRequestPending } = useCcd012RedeemNyc();
@@ -83,7 +86,7 @@ function RedeemNYC() {
     }
     if (!stxAddress) {
       toastMsg =
-        "No STX address detected, please log out and reconnect your wallet.";
+        "No STX address detected, please clear data and reconnect your wallet.";
     }
     if (!v1BalanceNYC && !v2BalanceNYC) {
       toastMsg =
@@ -157,7 +160,7 @@ function RedeemNYC() {
 
   return (
     <VStack spacing={8} align="stretch">
-      <Heading>CityCoins NYC Redemption</Heading>
+      <Heading>User Redemption Info</Heading>
 
       <Button leftIcon={<LuRepeat />} onClick={refreshBalances}>
         Refresh Balances
@@ -228,6 +231,65 @@ function RedeemNYC() {
             </Link>
             <LuExternalLink />
           </HStack>
+        )}
+      </Stack>
+
+      <Divider />
+
+      <Stack>
+        <Heading>Contract Redemption Info</Heading>
+        {redemptionInfo ? (
+          // sample object
+          // {"blockHeight":"156958","contractBalance":"15519436600244","currentContractBalance":"10790341594479","redemptionRatio":"291064","redemptionsEnabled":true,"totalRedeemed":"4729095005765","totalSupply":"5331965209999999"}
+          <Stack spacing={4}>
+            <Button leftIcon={<LuRepeat />} onClick={setRedemptionInfo}>
+              Refresh Redemption Info
+            </Button>
+            <StatGroup>
+              <Stat>
+                <StatLabel>Redemption Height</StatLabel>
+                <StatNumber>
+                  {formatAmount(redemptionInfo.blockHeight)}
+                </StatNumber>
+              </Stat>
+              <Stat>
+                <StatLabel>Redemption Ratio</StatLabel>
+                <StatNumber>
+                  {redemptionInfo.redemptionRatio / MICRO(6)}
+                </StatNumber>
+              </Stat>
+            </StatGroup>
+            <StatGroup>
+              <Stat>
+                <StatLabel>Initial Contract Balance</StatLabel>
+                <StatNumber>
+                  {formatMicroAmount(redemptionInfo.contractBalance)}
+                </StatNumber>
+              </Stat>
+              <Stat>
+                <StatLabel>Redemption NYC Supply</StatLabel>
+                <StatNumber>
+                  {formatMicroAmount(redemptionInfo.totalSupply)}
+                </StatNumber>
+              </Stat>
+            </StatGroup>
+            <StatGroup>
+              <Stat>
+                <StatLabel>Current Contract Balance</StatLabel>
+                <StatNumber>
+                  {formatMicroAmount(redemptionInfo.currentContractBalance)}
+                </StatNumber>
+              </Stat>
+              <Stat>
+                <StatLabel>Total STX Redeemed</StatLabel>
+                <StatNumber>
+                  {formatMicroAmount(redemptionInfo.totalRedeemed)}
+                </StatNumber>
+              </Stat>
+            </StatGroup>
+          </Stack>
+        ) : (
+          <Button onClick={setRedemptionInfo}>Get Redemption Info</Button>
         )}
       </Stack>
 
