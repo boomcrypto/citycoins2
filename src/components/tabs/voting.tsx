@@ -41,7 +41,7 @@ function Voting() {
         <AccordionItem>
           <h2>
             <AccordionButton>
-              <VoteTitle title="Vote 9: Stacking PoX-4" status="pending" />
+              <VoteTitle title="Vote 9: Stacking with PoX-4" status="pending" />
             </AccordionButton>
           </h2>
           <AccordionPanel pb={4}>
