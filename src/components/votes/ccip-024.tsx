@@ -170,7 +170,7 @@ function CCIP024() {
           >
             CCIP-020 Graceful Protocol Shutdown
           </Link>{" "}
-          and
+          and{" "}
           <Link
             href="https://github.com/citycoins/governance/blob/main/ccips/ccip-022/ccip-022-citycoins-treasury-redemption-nyc.md"
             isExternal
