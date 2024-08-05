@@ -18,11 +18,10 @@ import { useAtomValue } from "jotai";
 import { useCcip019VoteData } from "../../hooks/use-ccip-019-vote-data";
 import { useCcip019VoteActions } from "../../hooks/use-ccip-019-vote-actions";
 import { formatMicroAmount } from "../../store/common";
-import { hasVotedAtom } from "../../store/ccip-019";
+import { Ccip019VoteTotals, hasVotedAtom } from "../../store/ccip-019";
 import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
-import VoteProgressBarCCIP022 from "./vote-progress-bar-ccip022";
-import { Ccip022VoteTotals } from "../../store/ccip-022";
+import VoteProgressBarMiaOnly from "./vote-progress-bar-mia-only";
 
 function VoteButtons() {
   const { voteYes, voteNo, isRequestPending } = useCcip019VoteActions();
@@ -127,7 +126,7 @@ function CCIP019() {
         </Stack>
       </Box>
       {voteTotals.data && (
-        <VoteProgressBarCCIP022 props={voteTotals.data as Ccip022VoteTotals} />
+        <VoteProgressBarMiaOnly props={voteTotals.data as Ccip019VoteTotals} />
       )}
       <Divider />
       <Stack direction={["column", "row"]} justifyContent="space-between">
