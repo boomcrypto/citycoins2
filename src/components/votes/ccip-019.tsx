@@ -70,7 +70,7 @@ function VoteResult() {
           Total Votes: {formatMicroAmount(voterInfo.data?.total)} CityCoins
         </ListItem>
         <UnorderedList>
-          <ListItem>MIA: {formatMicroAmount(voterInfo.data?.nyc)}</ListItem>
+          <ListItem>MIA: {formatMicroAmount(voterInfo.data?.mia)}</ListItem>
         </UnorderedList>
       </UnorderedList>
     </Stack>
@@ -113,13 +113,13 @@ function CCIP019() {
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber title={`MIA ${voteTotals.data?.nyc.totalVotesYes}`}>
+            <StatNumber title={`MIA ${voteTotals.data?.mia.totalVotesYes}`}>
               {voteTotals.data?.totals.totalVotesYes ?? <Spinner />}
             </StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber title={`MIA ${voteTotals.data?.nyc.totalVotesNo}`}>
+            <StatNumber title={`MIA ${voteTotals.data?.mia.totalVotesNo}`}>
               {voteTotals.data?.totals.totalVotesNo ?? <Spinner />}
             </StatNumber>
           </Stat>
@@ -144,10 +144,24 @@ function CCIP019() {
         <Text fontWeight="bold">Related Contracts:</Text>
         <Box textAlign="end">
           <Link
-            href="https://github.com/friedger/cc-protocol/blob/ccip-019/contracts/proposals/ccip019-pox-4-stacking.clar"
+            href="https://explorer.hiro.so/txid/SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip019-pox-4-stacking?chain=mainnet"
             isExternal
           >
             ccip019-pox-4-stacking
+          </Link>
+          ,{" "}
+          <Link
+            href="https://explorer.hiro.so/txid/SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd002-treasury-mia-mining-v3?chain=mainnet"
+            isExternal
+          >
+            ccd002-treasury-mia-mining-v3
+          </Link>
+          ,{" "}
+          <Link
+            href="https://explorer.hiro.so/txid/SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd002-treasury-mia-rewards-v3?chain=mainnet"
+            isExternal
+          >
+            ccd002-treasury-mia-rewards-v3
           </Link>
         </Box>
       </Stack>

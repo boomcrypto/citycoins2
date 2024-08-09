@@ -69,7 +69,7 @@ function VoteResult() {
           Total Votes: {formatMicroAmount(voterInfo.data?.total)} CityCoins
         </ListItem>
         <UnorderedList>
-          <ListItem>MIA: {formatMicroAmount(voterInfo.data?.nyc)}</ListItem>
+          <ListItem>MIA: {formatMicroAmount(voterInfo.data?.mia)}</ListItem>
         </UnorderedList>
       </UnorderedList>
     </Stack>
@@ -112,13 +112,13 @@ function CCIP024() {
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber title={`MIA ${voteTotals.data?.nyc.totalVotesYes}`}>
+            <StatNumber title={`MIA ${voteTotals.data?.mia.totalVotesYes}`}>
               {voteTotals.data?.totals.totalVotesYes ?? <Spinner />}
             </StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber title={`MIA ${voteTotals.data?.nyc.totalVotesNo}`}>
+            <StatNumber title={`MIA ${voteTotals.data?.mia.totalVotesNo}`}>
               {voteTotals.data?.totals.totalVotesNo ?? <Spinner />}
             </StatNumber>
           </Stat>
@@ -143,10 +143,10 @@ function CCIP024() {
         <Text fontWeight="bold">Related Contracts:</Text>
         <Box textAlign="end">
           <Link
-            href="https://github.com/friedger/cc-protocol/blob/ccip-024/contracts/proposals/ccip024-pox-4-stacking.clar"
+            href="https://explorer.hiro.so/txid/SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip024-miamicoin-signal-vote?chain=mainnet"
             isExternal
           >
-            ccip024-pox-4-stacking
+            ccip024-miamicoin-signal-vote
           </Link>
         </Box>
       </Stack>
