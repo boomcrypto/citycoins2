@@ -7,15 +7,17 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
+import VoteTitle from "../votes/vote-title";
 import CityCoinsVoteV1 from "../votes/citycoins-vote-v1";
 import CityCoinsVoteV2 from "../votes/citycoins-vote-v2";
 import CityCoinsVoteV3 from "../votes/citycoins-vote-v3";
 import CCIP014 from "../votes/ccip-014";
 import CCIP017 from "../votes/ccip-017";
 import CCIP021 from "../votes/ccip-021";
-import VoteTitle from "../votes/vote-title";
 import CCIP020 from "../votes/ccip-020";
 import CCIP022 from "../votes/ccip-022";
+import CCIP019 from "../votes/ccip-019";
+import CCIP024 from "../votes/ccip-024";
 
 function Voting() {
   return (
@@ -23,6 +25,29 @@ function Voting() {
       <Heading>CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
       <Accordion allowMultiple>
+        <AccordionItem>
+          <h2>
+            <AccordionButton>
+              <VoteTitle
+                title="Vote 10: MiamiCoin Signal Vote"
+                status="active"
+              />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel pb={4}>
+            <CCIP024 />
+          </AccordionPanel>
+        </AccordionItem>
+        <AccordionItem>
+          <h2>
+            <AccordionButton>
+              <VoteTitle title="Vote 9: Stacking with PoX-4" status="active" />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel pb={4}>
+            <CCIP019 />
+          </AccordionPanel>
+        </AccordionItem>
         <AccordionItem>
           <h2>
             <AccordionButton>

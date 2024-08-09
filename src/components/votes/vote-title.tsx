@@ -29,7 +29,9 @@ function VoteTitle(props: { title: string; status: VoteStatus }) {
       textAlign="left"
       py={[8, 4]}
     >
-      <Text>{props.title}</Text>
+      <Text mb={[4, 0]} fontSize="xl">
+        {props.title}
+      </Text>
       <Badge
         minW={100}
         textAlign="center"
