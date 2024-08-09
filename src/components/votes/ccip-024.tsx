@@ -176,10 +176,10 @@ function CCIP024() {
           >
             CCIP-022 CityCoins Treasury Redemption NYC
           </Link>
-          , the MiamiCoin (MIA) community seeks to send a signal to the City of
-          Miami regarding the STX treasury held by the protocol. This CCIP
-          proposes an on-chain vote for MIA holders to express their desire for
-          the City of Miami to consider nullifying their gift agreement and
+          , the MiamiCoin (MIA) community seeks to send a verifiable poll to the
+          City of Miami regarding the STX treasury held by the protocol. This
+          CCIP proposes an on-chain vote for MIA holders to express their desire
+          for the City of Miami to consider nullifying their gift agreement and
           allow token holders to liquidate the treasury in a manner similar to
           the NYC redemption process outlined in CCIP-022.
         </Text>
