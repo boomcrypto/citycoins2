@@ -23,6 +23,7 @@ import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import VoteProgressBarMiaOnly from "./vote-progress-bar-mia-only";
 
+/*
 function VoteButtons() {
   const { voteYes, voteNo, isRequestPending } = useCcip019VoteActions();
   const hasVoted = useAtomValue(hasVotedAtom);
@@ -56,6 +57,8 @@ function VoteButtons() {
     </>
   );
 }
+*/
+
 function VoteResult() {
   const voterInfo = useCcip019VoteData("voterInfo");
 
@@ -80,12 +83,36 @@ function VoteResult() {
 function CCIP019() {
   const voterInfo = useCcip019VoteData("voterInfo");
 
+  /*
   const isVoteActive = useCcip019VoteData("isVoteActive");
   const voteTotals = useCcip019VoteData("voteTotals");
   const hasVoted = useAtomValue(hasVotedAtom);
   const totalVotes =
     parseInt(voteTotals.data?.totals.totalVotesNo) +
     parseInt(voteTotals.data?.totals.totalVotesYes);
+  */
+
+  const yesVotes = 56;
+  const noVotes = 0;
+  const totalVoteCount = yesVotes + noVotes;
+  const yesTotal = 1933337130000000;
+  const noTotal = 0;
+  const totalVoteAmount = yesTotal + noTotal;
+
+  const voteTotalsObject: Ccip019VoteTotals = {
+    mia: {
+      totalAmountYes: yesTotal.toString(),
+      totalAmountNo: noTotal.toString(),
+      totalVotesYes: yesVotes.toString(),
+      totalVotesNo: noVotes.toString(),
+    },
+    totals: {
+      totalAmountYes: yesTotal.toString(),
+      totalAmountNo: noTotal.toString(),
+      totalVotesYes: yesVotes.toString(),
+      totalVotesNo: noVotes.toString(),
+    },
+  };
 
   return (
     <Stack spacing={4}>
@@ -105,29 +132,23 @@ function CCIP019() {
           </Stat>
           <Stat>
             <StatLabel>Total Votes</StatLabel>
-            <StatNumber title={totalVotes.toString()}>
-              {totalVotes ?? <Spinner />}
+            <StatNumber title={totalVoteCount.toString()}>
+              {totalVoteCount}
             </StatNumber>
           </Stat>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber title={`MIA ${voteTotals.data?.mia.totalVotesYes}`}>
-              {voteTotals.data?.totals.totalVotesYes ?? <Spinner />}
-            </StatNumber>
+            <StatNumber title={`MIA ${yesVotes}`}>{yesVotes}</StatNumber>
           </Stat>
           <Stat>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber title={`MIA ${voteTotals.data?.mia.totalVotesNo}`}>
-              {voteTotals.data?.totals.totalVotesNo ?? <Spinner />}
-            </StatNumber>
+            <StatNumber title={`MIA ${noVotes}`}>{noVotes}</StatNumber>
           </Stat>
         </Stack>
       </Box>
-      {voteTotals.data && (
-        <VoteProgressBarMiaOnly props={voteTotals.data as Ccip019VoteTotals} />
-      )}
+      <VoteProgressBarMiaOnly props={voteTotalsObject} />
       <Divider />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
@@ -212,7 +233,9 @@ function CCIP019() {
           for future redemption or other purposes.
         </Text>
       </Stack>
-      {isVoteActive.data && hasVoted ? (
+
+      {/*
+      isVoteActive.data && hasVoted ? (
         <>
           <Divider />
           <Text fontWeight="bold">Vote recorded, thank you!</Text>
@@ -220,7 +243,9 @@ function CCIP019() {
         </>
       ) : (
         <VoteButtons />
-      )}
+      )
+      */}
+
       {voterInfo.data && <VoteResult />}
     </Stack>
   );
