@@ -93,10 +93,10 @@ function CCIP024() {
 
   const yesVotes = 71;
   const noVotes = 0;
-  const totalVoteAmount = yesVotes + noVotes;
-  const yesTotal = 2_021_212_615;
+  const totalVoteCount = yesVotes + noVotes;
+  const yesTotal = 2021212615000000;
   const noTotal = 0;
-  const totalVoteCount = yesTotal + noTotal;
+  const totalVoteAmount = yesTotal + noTotal;
 
   const voteTotalsObject: Ccip024VoteTotals = {
     mia: {
