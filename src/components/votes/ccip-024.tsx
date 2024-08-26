@@ -1,10 +1,8 @@
 import {
   Box,
-  Button,
   Divider,
   Link,
   ListItem,
-  Spinner,
   Stack,
   Stat,
   StatLabel,
@@ -13,13 +11,9 @@ import {
   UnorderedList,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { useAtomValue } from "jotai";
 import { useCcip024VoteData } from "../../hooks/use-ccip-024-vote-data";
-import { useCcip024VoteActions } from "../../hooks/use-ccip-024-vote-actions";
 import { formatMicroAmount } from "../../store/common";
-import { Ccip024VoteTotals, hasVotedAtom } from "../../store/ccip-024";
-import { stxAddressAtom } from "../../store/stacks";
-import SignIn from "../auth/sign-in";
+import { Ccip024VoteTotals } from "../../store/ccip-024";
 import VoteProgressBarMiaOnly from "./vote-progress-bar-mia-only";
 
 /*
@@ -96,7 +90,6 @@ function CCIP024() {
   const totalVoteCount = yesVotes + noVotes;
   const yesTotal = 2021212615000000;
   const noTotal = 0;
-  const totalVoteAmount = yesTotal + noTotal;
 
   const voteTotalsObject: Ccip024VoteTotals = {
     mia: {

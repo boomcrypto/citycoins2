@@ -1,10 +1,8 @@
 import {
   Box,
-  Button,
   Divider,
   Link,
   ListItem,
-  Spinner,
   Stack,
   Stat,
   StatLabel,
@@ -13,50 +11,10 @@ import {
   UnorderedList,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { useAtomValue } from "jotai";
 import { useCcip022VoteData } from "../../hooks/use-ccip-022-vote-data";
-import { useCcip022VoteActions } from "../../hooks/use-ccip-022-vote-actions";
 import { formatMicroAmount } from "../../store/common";
-import { Ccip022VoteTotals, hasVotedAtom } from "../../store/ccip-022";
-import { stxAddressAtom } from "../../store/stacks";
-import SignIn from "../auth/sign-in";
+import { Ccip022VoteTotals } from "../../store/ccip-022";
 import VoteProgressBarCCIP022 from "./vote-progress-bar-ccip022";
-
-/*
-function VoteButtons() {
-  const { voteYes, voteNo, isRequestPending } = useCcip022VoteActions();
-  const hasVoted = useAtomValue(hasVotedAtom);
-  const stxAddress = useAtomValue(stxAddressAtom);
-
-  if (!stxAddress) {
-    return <SignIn />;
-  }
-
-  return (
-    <>
-      <Text fontWeight="bold">{hasVoted ? "Change vote" : "Voting"}:</Text>
-      <Stack direction={["column", "row"]} spacing={4}>
-        <Button
-          onClick={voteYes}
-          colorScheme="green"
-          size="lg"
-          isLoading={isRequestPending}
-        >
-          Vote Yes
-        </Button>
-        <Button
-          onClick={voteNo}
-          colorScheme="red"
-          size="lg"
-          isLoading={isRequestPending}
-        >
-          Vote No
-        </Button>
-      </Stack>
-    </>
-  );
-}
-*/
 
 function VoteResult() {
   const voterInfo = useCcip022VoteData("voterInfo");
@@ -82,20 +40,11 @@ function VoteResult() {
 function CCIP022() {
   const voterInfo = useCcip022VoteData("voterInfo");
 
-  /* const isVoteActive = useCcip022VoteData("isVoteActive");
-  const voteTotals = useCcip022VoteData("voteTotals");
-  const hasVoted = useAtomValue(hasVotedAtom);
-  const totalVotes =
-    parseInt(voteTotals.data?.totals.totalVotesNo) +
-    parseInt(voteTotals.data?.totals.totalVotesYes);
-  */
-
   const yesVotes = 132;
   const noVotes = 4;
   const totalVoteCount = yesVotes + noVotes;
   const yesTotal = 1404542830929124;
   const noTotal = 1250562992000000;
-  const totalVoteAmount = yesTotal + noTotal;
 
   const voteTotalsObject: Ccip022VoteTotals = {
     nyc: {

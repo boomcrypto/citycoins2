@@ -16,42 +16,6 @@ import { formatMicroAmount } from "../../store/common";
 import { Ccip020VoteTotals } from "../../store/ccip-020";
 import VoteProgressBarV2 from "./vote-progress-bar-v2";
 
-/*
-function VoteButtons() {
-  const stxAddress = useAtomValue(stxAddressAtom);
-  const { voteYes, voteNo, isRequestPending } = useCcip020VoteActions();
-  const hasVoted = useAtomValue(hasVotedAtom);
-
-  if (!stxAddress) {
-    return <SignIn />;
-  }
-
-  return (
-    <>
-      <Text fontWeight="bold">{hasVoted ? "Change vote" : "Voting"}:</Text>
-      <Stack direction={["column", "row"]} spacing={4}>
-        <Button
-          onClick={voteYes}
-          colorScheme="green"
-          size="lg"
-          isLoading={isRequestPending}
-        >
-          Vote Yes
-        </Button>
-        <Button
-          onClick={voteNo}
-          colorScheme="red"
-          size="lg"
-          isLoading={isRequestPending}
-        >
-          Vote No
-        </Button>
-      </Stack>
-    </>
-  );
-}
-*/
-
 function VoteResult() {
   const voterInfo = useCcip020VoteData("voterInfo");
 
