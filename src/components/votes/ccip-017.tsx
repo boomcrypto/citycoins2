@@ -15,37 +15,6 @@ import VoteProgressBar from "./vote-progress-bar";
 import { useCcip017VoteData } from "../../hooks/use-ccip-017-vote-data";
 import { formatMicroAmount } from "../../store/common";
 
-/*
-function VoteButtons() {
-  const { voteYes, voteNo, isRequestPending } = useCcip017VoteActions();
-  const hasVoted = useAtomValue(hasVotedAtom);
-
-  return (
-    <>
-      <Text fontWeight="bold">{hasVoted ? "Change vote" : "Voting"}:</Text>
-      <Stack direction={["column", "row"]} spacing={4}>
-        <Button
-          onClick={voteYes}
-          colorScheme="green"
-          size="lg"
-          isLoading={isRequestPending}
-        >
-          Vote Yes
-        </Button>
-        <Button
-          onClick={voteNo}
-          colorScheme="red"
-          size="lg"
-          isLoading={isRequestPending}
-        >
-          Vote No
-        </Button>
-      </Stack>
-    </>
-  );
-}
-*/
-
 function VoteResult() {
   const voterInfo = useCcip017VoteData("voterInfo");
 

@@ -30,7 +30,7 @@ function Voting() {
             <AccordionButton>
               <VoteTitle
                 title="Vote 10: MiamiCoin Signal Vote"
-                status="active"
+                status="passed"
               />
             </AccordionButton>
           </h2>

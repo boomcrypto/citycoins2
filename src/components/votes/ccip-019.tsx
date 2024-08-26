@@ -1,11 +1,9 @@
 import {
   Box,
-  Button,
   Code,
   Divider,
   Link,
   ListItem,
-  Spinner,
   Stack,
   Stat,
   StatLabel,
@@ -14,50 +12,10 @@ import {
   UnorderedList,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { useAtomValue } from "jotai";
 import { useCcip019VoteData } from "../../hooks/use-ccip-019-vote-data";
-import { useCcip019VoteActions } from "../../hooks/use-ccip-019-vote-actions";
 import { formatMicroAmount } from "../../store/common";
-import { Ccip019VoteTotals, hasVotedAtom } from "../../store/ccip-019";
-import { stxAddressAtom } from "../../store/stacks";
-import SignIn from "../auth/sign-in";
+import { Ccip019VoteTotals } from "../../store/ccip-019";
 import VoteProgressBarMiaOnly from "./vote-progress-bar-mia-only";
-
-/*
-function VoteButtons() {
-  const { voteYes, voteNo, isRequestPending } = useCcip019VoteActions();
-  const hasVoted = useAtomValue(hasVotedAtom);
-  const stxAddress = useAtomValue(stxAddressAtom);
-
-  if (!stxAddress) {
-    return <SignIn />;
-  }
-
-  return (
-    <>
-      <Text fontWeight="bold">{hasVoted ? "Change vote" : "Voting"}:</Text>
-      <Stack direction={["column", "row"]} spacing={4}>
-        <Button
-          onClick={voteYes}
-          colorScheme="green"
-          size="lg"
-          isLoading={isRequestPending}
-        >
-          Vote Yes
-        </Button>
-        <Button
-          onClick={voteNo}
-          colorScheme="red"
-          size="lg"
-          isLoading={isRequestPending}
-        >
-          Vote No
-        </Button>
-      </Stack>
-    </>
-  );
-}
-*/
 
 function VoteResult() {
   const voterInfo = useCcip019VoteData("voterInfo");
@@ -83,21 +41,11 @@ function VoteResult() {
 function CCIP019() {
   const voterInfo = useCcip019VoteData("voterInfo");
 
-  /*
-  const isVoteActive = useCcip019VoteData("isVoteActive");
-  const voteTotals = useCcip019VoteData("voteTotals");
-  const hasVoted = useAtomValue(hasVotedAtom);
-  const totalVotes =
-    parseInt(voteTotals.data?.totals.totalVotesNo) +
-    parseInt(voteTotals.data?.totals.totalVotesYes);
-  */
-
   const yesVotes = 56;
   const noVotes = 0;
   const totalVoteCount = yesVotes + noVotes;
   const yesTotal = 1933337130000000;
   const noTotal = 0;
-  const totalVoteAmount = yesTotal + noTotal;
 
   const voteTotalsObject: Ccip019VoteTotals = {
     mia: {
@@ -233,18 +181,6 @@ function CCIP019() {
           for future redemption or other purposes.
         </Text>
       </Stack>
-
-      {/*
-      isVoteActive.data && hasVoted ? (
-        <>
-          <Divider />
-          <Text fontWeight="bold">Vote recorded, thank you!</Text>
-          <Text>Refresh to see stats once the tx confirms.</Text>
-        </>
-      ) : (
-        <VoteButtons />
-      )
-      */}
 
       {voterInfo.data && <VoteResult />}
     </Stack>

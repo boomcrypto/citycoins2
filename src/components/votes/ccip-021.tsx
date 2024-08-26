@@ -11,42 +11,9 @@ import {
   UnorderedList,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { useAtomValue } from "jotai";
 import { useCcip021VoteData } from "../../hooks/use-ccip-021-vote-data";
 import { formatMicroAmount } from "../../store/common";
-import { hasVotedAtom } from "../../store/ccip-021";
 import VoteProgressBar from "./vote-progress-bar";
-
-/*
-function VoteButtons() {
-  const { voteYes, voteNo, isRequestPending } = useCcip021VoteActions();
-  const hasVoted = useAtomValue(hasVotedAtom);
-
-  return (
-    <>
-      <Text fontWeight="bold">{hasVoted ? "Change vote" : "Voting"}:</Text>
-      <Stack direction={["column", "row"]} spacing={4}>
-        <Button
-          onClick={voteYes}
-          colorScheme="green"
-          size="lg"
-          isLoading={isRequestPending}
-        >
-          Vote Yes
-        </Button>
-        <Button
-          onClick={voteNo}
-          colorScheme="red"
-          size="lg"
-          isLoading={isRequestPending}
-        >
-          Vote No
-        </Button>
-      </Stack>
-    </>
-  );
-}
-*/
 
 function VoteResult() {
   const voterInfo = useCcip021VoteData("voterInfo");

@@ -8,12 +8,8 @@ interface VoteProgressBarMiaOnlyProps {
 }
 
 function VoteProgressBarMiaOnly({ props }: VoteProgressBarMiaOnlyProps) {
-  // console.log(JSON.stringify(props, null, 2));
-  // const totalVotesYes = parseInt(props.totals.totalVotesYes);
-  // const totalVotesNo = parseInt(props.totals.totalVotesNo);
   const totalAmountYes = parseInt(props.totals.totalAmountYes);
   const totalAmountNo = parseInt(props.totals.totalAmountNo);
-  // const totalVotes = totalVotesYes + totalVotesNo;
   const totalVotesAmount = totalAmountYes + totalAmountNo;
   const yesVotePercentage = (totalAmountYes / totalVotesAmount) * 100;
 
