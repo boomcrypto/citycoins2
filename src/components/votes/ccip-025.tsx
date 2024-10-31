@@ -19,7 +19,7 @@ import { formatMicroAmount } from "../../store/common";
 import { Ccip025VoteTotals, hasVotedAtom } from "../../store/ccip-025";
 import { stxAddressAtom } from "../../store/stacks";
 import VoteProgressBarMiaOnly from "./vote-progress-bar-mia-only";
-import SignIn from "../sign-in";
+import SignIn from "../auth/sign-in";
 
 function VoteButtons() {
   const { voteYes, voteNo, isRequestPending } = useCcip025VoteActions();
@@ -119,9 +119,7 @@ function CCIP025() {
           </Stat>
           <Stat>
             <StatLabel>Total Votes</StatLabel>
-            <StatNumber title={totalVotes.toString()}>
-              {totalVotes}
-            </StatNumber>
+            <StatNumber title={totalVotes.toString()}>{totalVotes}</StatNumber>
           </Stat>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
@@ -175,7 +173,17 @@ function CCIP025() {
       <Stack spacing={2}>
         <Text fontWeight="bold">Details:</Text>
         <Text>
-          This proposal extends the sunset period for direct execution of proposals by an additional 2 years. The current sunset period is set to expire in Q4 2023, and this extension would allow the community to continue using the direct execution process through Q4 2025.
+          When the ccd001-direct-execute1 Clarity contract was deployed, a
+          sunset height of approximately 6 months was set, after which the
+          extension will no longer be able to execute proposals. This
+          functionality was extended as part of CCIP-017 and CCIP-021.
+        </Text>
+        <Text>
+          The current sunset height is 173,748. After that block height no
+          proposal can be executed anymore. In preparation of CCIP-016 and
+          CCIP-023, an extension is required now. This CCIP intends to extend
+          the sunset period by an additional 103,680 Stacks blocks (approx 2
+          years)
         </Text>
       </Stack>
 
