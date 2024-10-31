@@ -37,7 +37,7 @@ export type Ccip025VoterInfo = {
 /////////////////////////
 
 export const CONTRACT_ADDRESS = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH";
-export const CONTRACT_NAME = "ccip025-extend-sunset-period-3";
+export const CONTRACT_NAME = "ccip025-extend-sunset-period-3-v2";
 export const CONTRACT_FQ_NAME = `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`;
 
 /////////////////////////
