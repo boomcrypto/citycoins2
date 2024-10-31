@@ -18,6 +18,7 @@ import CCIP020 from "../votes/ccip-020";
 import CCIP022 from "../votes/ccip-022";
 import CCIP019 from "../votes/ccip-019";
 import CCIP024 from "../votes/ccip-024";
+import CCIP025 from "../votes/ccip-025";
 
 function Voting() {
   return (
@@ -25,6 +26,19 @@ function Voting() {
       <Heading>CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
       <Accordion allowMultiple>
+        <AccordionItem>
+          <h2>
+            <AccordionButton>
+              <VoteTitle
+                title="Vote 11: Extend Direct Execute Sunset Period 3"
+                status="active"
+              />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel pb={4}>
+            <CCIP025 />
+          </AccordionPanel>
+        </AccordionItem>
         <AccordionItem>
           <h2>
             <AccordionButton>
