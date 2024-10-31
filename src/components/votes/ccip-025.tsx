@@ -159,6 +159,12 @@ function CCIP025() {
           >
             ccip025-extend-sunset-period-3
           </Link>
+          <Link
+            href="https://explorer.hiro.so/txid/SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccip025-extend-sunset-period-3-v2?chain=mainnet"
+            isExternal
+          >
+            ccip025-extend-sunset-period-3-v2
+          </Link>
         </Box>
       </Stack>
       <Stack direction={["column", "row"]} justifyContent="space-between">
