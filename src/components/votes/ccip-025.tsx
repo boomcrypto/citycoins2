@@ -77,27 +77,32 @@ function VoteResult() {
 }
 
 function CCIP025() {
+  const voterInfo = useCcip025VoteData("voterInfo");
+
+  /*
   const isVoteActive = useCcip025VoteData("isVoteActive");
   const voteTotals = useCcip025VoteData("voteTotals");
-  const voterInfo = useCcip025VoteData("voterInfo");
   const hasVoted = useAtomValue(hasVotedAtom);
+  */
 
-  const totalVotes =
-    parseInt(voteTotals.data?.totals.totalVotesNo) +
-    parseInt(voteTotals.data?.totals.totalVotesYes);
+  const yesVotes = 20;
+  const noVotes = 0;
+  const totalVoteCount = yesVotes + noVotes;
+  const yesTotal = 1387676994000000;
+  const noTotal = 0;
 
-  const voteTotalsObject: Ccip025VoteTotals = voteTotals.data || {
+  const voteTotalsObject: Ccip025VoteTotals = {
     mia: {
-      totalAmountYes: "0",
-      totalAmountNo: "0",
-      totalVotesYes: "0",
-      totalVotesNo: "0",
+      totalAmountYes: yesTotal.toString(),
+      totalAmountNo: noTotal.toString(),
+      totalVotesYes: yesVotes.toString(),
+      totalVotesNo: noVotes.toString(),
     },
     totals: {
-      totalAmountYes: "0",
-      totalAmountNo: "0",
-      totalVotesYes: "0",
-      totalVotesNo: "0",
+      totalAmountYes: yesTotal.toString(),
+      totalAmountNo: noTotal.toString(),
+      totalVotesYes: yesVotes.toString(),
+      totalVotesNo: noVotes.toString(),
     },
   };
 
@@ -119,7 +124,7 @@ function CCIP025() {
           </Stat>
           <Stat>
             <StatLabel>Total Votes</StatLabel>
-            <StatNumber title={totalVotes.toString()}>{totalVotes}</StatNumber>
+            <StatNumber title={totalVoteCount.toString()}>{totalVoteCount}</StatNumber>
           </Stat>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
@@ -194,7 +199,7 @@ function CCIP025() {
         </Text>
       </Stack>
 
-      {isVoteActive.data && hasVoted ? (
+      {/*isVoteActive.data && hasVoted ? (
         <>
           <Divider />
           <Text fontWeight="bold">Vote recorded, thank you!</Text>
@@ -202,7 +207,7 @@ function CCIP025() {
         </>
       ) : (
         <VoteButtons />
-      )}
+      )*/}
 
       {voterInfo.data && <VoteResult />}
     </Stack>
