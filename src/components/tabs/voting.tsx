@@ -31,7 +31,7 @@ function Voting() {
             <AccordionButton>
               <VoteTitle
                 title="Vote 11: Extend Direct Execute Sunset Period 3"
-                status="active"
+                status="passed"
               />
             </AccordionButton>
           </h2>
