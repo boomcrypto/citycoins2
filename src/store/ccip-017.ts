@@ -196,7 +196,7 @@ async function getVoterInfo(voterAddress: string): Promise<Ccip017VoterInfo> {
     contractAddress: CONTRACT_ADDRESS,
     contractName: "ccd003-user-registry",
     functionName: "get-user-id",
-    functionArgs: [{ type: "principal", value: voterAddress }],
+    functionArgs: [standardPrincipalCV(voterAddress)],
   });
   const voterIdQuery = await fetchReadOnlyFunction<number>(
     {
