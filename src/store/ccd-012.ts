@@ -491,16 +491,41 @@ async function getNycBalances(address: string): Promise<AddressNycBalances> {
 async function getRedemptionForBalance(
   balance: number
 ): Promise<null | number> {
-  const redemptionForBalanceQuery = await fetchReadOnlyFunction<null | number>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-redemption-for-balance",
-      functionArgs: [uintCV(balance)],
-    },
-    true
+  const url = `https://cache.aibtc.dev/contract-calls/read-only/${CONTRACT_ADDRESS}/${CONTRACT_NAME}/get-redemption-for-balance`;
+  const body = {
+    functionArgs: [{ type: "uint", value: balance }],
+    network: "mainnet",
+  };
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  const response = await fetch(url, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch redemption-for-balance: ${response.statusText}, ${response.status}, ${url}`
+    );
+  }
+  const result = (await response.json()) as {
+    success: boolean;
+    data?: unknown;
+    error?: {
+      code: string;
+      message: string;
+      details?: any;
+      id?: string;
+    };
+  };
+  if (result.success && result.data !== undefined) {
+    return result.data as number;
+  }
+  console.error(
+    `Failed to parse result in redemption-for-balance: ${result.error?.message}, ${result.error?.code}, ${url}`
   );
-  return redemptionForBalanceQuery;
+  return null;
 }
 
 async function getRedemptionAmountClaimed(address: string): Promise<number> {
