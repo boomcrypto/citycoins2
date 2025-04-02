@@ -488,73 +488,132 @@ async function getNycBalances(address: string): Promise<AddressNycBalances> {
   return nycBalancesQuery;
 }
 
+const CACHE_BASE_URL = "https://cache.aibtc.dev";
+const CACHE_READ_ONLY_URL = `${CACHE_BASE_URL}/contract-calls/read-only/${CONTRACT_ADDRESS}/${CONTRACT_NAME}`;
+const CACHE_INIT_OBJ = {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+};
+
+type CacheRequest = {
+  functionArgs: { type: string; value: string | number }[];
+  network: string;
+  senderAddress?: string;
+  cacheControl?: CacheControlOptions;
+};
+
+type CacheControlOptions = {
+  bustCache?: boolean;
+  skipCache?: boolean;
+  ttl?: number;
+};
+
+type CacheResponse = {
+  success: boolean;
+  data?: unknown;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+    id?: string;
+  };
+};
+
 async function getRedemptionForBalance(
   balance: number
 ): Promise<null | number> {
-  const url = `https://cache.aibtc.dev/contract-calls/read-only/${CONTRACT_ADDRESS}/${CONTRACT_NAME}/get-redemption-for-balance`;
-  const body = {
+  // set up the url
+  const url = `${CACHE_READ_ONLY_URL}/get-redemption-for-balance`;
+  // set up the request body
+  const body: CacheRequest = {
     functionArgs: [{ type: "uint", value: balance }],
     network: "mainnet",
   };
-  const headers = {
-    "Content-Type": "application/json",
-  };
+  // make the request
   const response = await fetch(url, {
-    method: "POST",
-    headers: headers,
+    ...CACHE_INIT_OBJ,
     body: JSON.stringify(body),
   });
+  // return error if not ok
   if (!response.ok) {
     throw new Error(
       `Failed to fetch redemption-for-balance: ${response.statusText}, ${response.status}, ${url}`
     );
   }
-  const result = (await response.json()) as {
-    success: boolean;
-    data?: unknown;
-    error?: {
-      code: string;
-      message: string;
-      details?: any;
-      id?: string;
-    };
-  };
+  // parse the response
+  const result = (await response.json()) as CacheResponse;
+  // check if the response is successful, return data if so
   if (result.success && result.data !== undefined) {
     return result.data as number;
   }
-  console.error(
+  // return error if not successful
+  throw new Error(
     `Failed to parse result in redemption-for-balance: ${result.error?.message}, ${result.error?.code}, ${url}`
   );
-  return null;
 }
 
 async function getRedemptionAmountClaimed(address: string): Promise<number> {
-  const redemptionAmountClaimedQuery = await fetchReadOnlyFunction<number>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-redemption-amount-claimed",
-      functionArgs: [principalCV(address)],
-    },
-    true
+  // set up the url
+  const url = `${CACHE_READ_ONLY_URL}/get-redemption-amount-claimed`;
+  // set up the request body
+  const body: CacheRequest = {
+    functionArgs: [{ type: "principal", value: address }],
+    network: "mainnet",
+  };
+  // make the request
+  const response = await fetch(url, {
+    ...CACHE_INIT_OBJ,
+    body: JSON.stringify(body),
+  });
+  // return error if not ok
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch redemption-amount-claimed: ${response.statusText}, ${response.status}, ${url}`
+    );
+  }
+  // parse the response
+  const result = (await response.json()) as CacheResponse;
+  // check if the response is successful, return data if so
+  if (result.success && result.data !== undefined) {
+    return result.data as number;
+  }
+  // return error if not successful
+  throw new Error(
+    `Failed to parse result in redemption-amount-claimed: ${result.error?.message}, ${result.error?.code}, ${url}`
   );
-  return redemptionAmountClaimedQuery;
 }
 
 async function getUserRedemptionInfo(
   address: string
 ): Promise<AddressNycRedemptionInfo> {
-  const userRedemptionInfoQuery =
-    await fetchReadOnlyFunction<AddressNycRedemptionInfo>(
-      {
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: CONTRACT_NAME,
-        functionName: "get-user-redemption-info",
-        functionArgs: [principalCV(address)],
-      },
-      true
+  // set up the url
+  const url = `${CACHE_READ_ONLY_URL}/get-user-redemption-info`;
+  // set up the request body
+  const body: CacheRequest = {
+    functionArgs: [{ type: "principal", value: address }],
+    network: "mainnet",
+  };
+  // make the request
+  const response = await fetch(url, {
+    ...CACHE_INIT_OBJ,
+    body: JSON.stringify(body),
+  });
+  // return error if not ok
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch user-redemption-info: ${response.statusText}, ${response.status}, ${url}`
     );
-  return userRedemptionInfoQuery;
+  }
+  // parse the response
+  const result = (await response.json()) as CacheResponse;
+  // check if the response is successful, return data if so
+  if (result.success && result.data !== undefined) {
+    return result.data as AddressNycRedemptionInfo;
+  }
+  // return error if not successful
+  throw new Error(
+    `Failed to parse result in user-redemption-info: ${result.error?.message}, ${result.error?.code}, ${url}`
+  );
 }
 
 export async function getNycTotalSupplyInfo(): Promise<TokenSupplyInfo> {
