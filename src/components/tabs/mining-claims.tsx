@@ -1,8 +1,8 @@
 import { Heading, Stack, Text } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
 import { stxAddressAtom } from "../../store/stacks";
-import ComingSoon from "../coming-soon";
 import SignIn from "../auth/sign-in";
+import { MiningStatus } from "../mining-status";
 
 function MiningClaims() {
   const stxAddress = useAtomValue(stxAddressAtom);
@@ -20,7 +20,8 @@ function MiningClaims() {
   return (
     <Stack spacing={4}>
       <Heading>CityCoins Mining Claims</Heading>
-      <ComingSoon />
+      <Text>View your mining activity and claim available rewards below.</Text>
+      <MiningStatus />
     </Stack>
   );
 }
