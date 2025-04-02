@@ -1,8 +1,8 @@
 import { useAtomValue } from "jotai";
-import { 
-  enhancedMiningTransactionsAtom, 
+import {
+  enhancedMiningTransactionsAtom,
   unclaimedMiningRewardsAtom,
-  UnclaimedReward
+  UnclaimedReward,
 } from "../store/mining-analysis";
 import { blockHeightsAtom } from "../store/stacks";
 import { useMiningClaims } from "../hooks/use-mining-claims";
@@ -26,10 +26,9 @@ import {
   Button,
   Tooltip,
   Link,
-  Spinner
+  Spinner,
 } from "@chakra-ui/react";
 import { formatAmount } from "../store/common";
-import { ExternalLinkIcon } from "@chakra-ui/icons";
 
 export function MiningStatus() {
   const enhancedMiningTxs = useAtomValue(enhancedMiningTransactionsAtom);
@@ -37,16 +36,22 @@ export function MiningStatus() {
   const blockHeights = useAtomValue(blockHeightsAtom);
   const currentBlockHeight = blockHeights?.stx || 0;
   const { claimMiningReward, isRequestPending } = useMiningClaims();
-  
+
   // Calculate summary statistics
-  const totalBlocksMined = enhancedMiningTxs.reduce((sum, tx) => sum + tx.blocks_mined, 0);
+  const totalBlocksMined = enhancedMiningTxs.reduce(
+    (sum, tx) => sum + tx.blocks_mined,
+    0
+  );
   const totalBlocksClaimed = enhancedMiningTxs.reduce(
-    (sum, tx) => sum + tx.claimed_status.filter(status => status.claimed).length, 
+    (sum, tx) =>
+      sum + tx.claimed_status.filter((status) => status.claimed).length,
     0
   );
   const totalBlocksUnclaimed = totalBlocksMined - totalBlocksClaimed;
-  const matureUnclaimedBlocks = unclaimedRewards.filter(reward => reward.is_mature).length;
-  
+  const matureUnclaimedBlocks = unclaimedRewards.filter(
+    (reward) => reward.is_mature
+  ).length;
+
   if (!blockHeights) {
     return (
       <Stack spacing={4} align="center" justify="center" h="200px">
@@ -55,24 +60,31 @@ export function MiningStatus() {
       </Stack>
     );
   }
-  
+
   return (
     <Stack spacing={6}>
       <Box>
-        <Heading size="md" mb={4}>Mining Status Summary</Heading>
+        <Heading size="md" mb={4}>
+          Mining Status Summary
+        </Heading>
         <Text>Current Block Height: {formatAmount(currentBlockHeight)}</Text>
         <Text>Total Mining Transactions: {enhancedMiningTxs.length}</Text>
         <Text>Total Blocks Mined: {formatAmount(totalBlocksMined)}</Text>
         <Text>
-          Claimed: {formatAmount(totalBlocksClaimed)} | 
-          Unclaimed: {formatAmount(totalBlocksUnclaimed)} (
-          <Badge colorScheme="green">{formatAmount(matureUnclaimedBlocks)} mature</Badge> | 
+          Claimed: {formatAmount(totalBlocksClaimed)} | Unclaimed:{" "}
+          {formatAmount(totalBlocksUnclaimed)} (
+          <Badge colorScheme="green">
+            {formatAmount(matureUnclaimedBlocks)} mature
+          </Badge>{" "}
+          |
           <Badge colorScheme="yellow">
-            {formatAmount(totalBlocksUnclaimed - matureUnclaimedBlocks)} immature
-          </Badge>)
+            {formatAmount(totalBlocksUnclaimed - matureUnclaimedBlocks)}{" "}
+            immature
+          </Badge>
+          )
         </Text>
       </Box>
-      
+
       <Accordion allowMultiple>
         <AccordionItem>
           <h2>
@@ -98,19 +110,23 @@ export function MiningStatus() {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {enhancedMiningTxs.map(tx => {
-                    const claimedCount = tx.claimed_status.filter(status => status.claimed).length;
-                    const claimPercentage = (claimedCount / tx.blocks_mined) * 100;
-                    
+                  {enhancedMiningTxs.map((tx) => {
+                    const claimedCount = tx.claimed_status.filter(
+                      (status) => status.claimed
+                    ).length;
+                    const claimPercentage =
+                      (claimedCount / tx.blocks_mined) * 100;
+
                     return (
                       <Tr key={tx.tx_id}>
                         <Td>
                           <Tooltip label={tx.tx_id}>
-                            <Link 
-                              href={`https://explorer.hiro.so/txid/${tx.tx_id}?chain=mainnet`} 
+                            <Link
+                              href={`https://explorer.hiro.so/txid/${tx.tx_id}?chain=mainnet`}
                               isExternal
                             >
-                              {tx.tx_id.substring(0, 8)}... <ExternalLinkIcon mx="2px" />
+                              {tx.tx_id.substring(0, 8)}...
+                              {tx.tx_id.substring(tx.tx_id.length - 8)}
                             </Link>
                           </Tooltip>
                         </Td>
@@ -122,7 +138,8 @@ export function MiningStatus() {
                             <Badge colorScheme="green">All Claimed</Badge>
                           ) : claimedCount > 0 ? (
                             <Badge colorScheme="yellow">
-                              {claimedCount}/{tx.blocks_mined} ({claimPercentage.toFixed(0)}%)
+                              {claimedCount}/{tx.blocks_mined} (
+                              {claimPercentage.toFixed(0)}%)
                             </Badge>
                           ) : (
                             <Badge colorScheme="red">Unclaimed</Badge>
@@ -136,7 +153,7 @@ export function MiningStatus() {
             )}
           </AccordionPanel>
         </AccordionItem>
-        
+
         <AccordionItem>
           <h2>
             <AccordionButton>
@@ -163,8 +180,9 @@ export function MiningStatus() {
                 </Thead>
                 <Tbody>
                   {unclaimedRewards.map((reward) => {
-                    const blocksUntilMaturity = reward.maturity_height - currentBlockHeight;
-                    
+                    const blocksUntilMaturity =
+                      reward.maturity_height - currentBlockHeight;
+
                     return (
                       <Tr key={`${reward.tx_id}-${reward.block_height}`}>
                         <Td>{reward.block_height}</Td>
@@ -180,13 +198,17 @@ export function MiningStatus() {
                           )}
                         </Td>
                         <Td>
-                          <Badge colorScheme={reward.is_mature ? "green" : "yellow"}>
-                            {reward.is_mature ? "Ready to claim" : "Not yet claimable"}
+                          <Badge
+                            colorScheme={reward.is_mature ? "green" : "yellow"}
+                          >
+                            {reward.is_mature
+                              ? "Ready to claim"
+                              : "Not yet claimable"}
                           </Badge>
                         </Td>
                         <Td>
-                          <Button 
-                            size="xs" 
+                          <Button
+                            size="xs"
                             colorScheme="blue"
                             isDisabled={!reward.is_mature || isRequestPending}
                             isLoading={isRequestPending}

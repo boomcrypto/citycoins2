@@ -3,7 +3,7 @@ import { atomWithStorage } from "jotai/utils";
 import { fetchReadOnlyFunction } from "micro-stacks/api";
 import { validateStacksAddress } from "micro-stacks/crypto";
 import { standardPrincipalCV, uintCV } from "micro-stacks/clarity";
-import { stxAddressAtom } from "./stacks";
+import { fetchReadOnlyFunctionCached, stxAddressAtom } from "./stacks";
 
 /////////////////////////
 // TYPES
@@ -138,6 +138,17 @@ export const ccip017VoterInfoQueryAtom = atom(async (get) => {
 /////////////////////////
 
 async function getIsExecutable(): Promise<boolean> {
+  const isExecutableResult = await fetchReadOnlyFunctionCached(
+    CONTRACT_ADDRESS,
+    CONTRACT_NAME,
+    "is-executable",
+    [],
+    undefined,
+    undefined,
+    {
+      ttl: 600,
+    }
+  );
   const isExecutableQuery = await fetchReadOnlyFunction<boolean>(
     {
       contractAddress: CONTRACT_ADDRESS,
@@ -181,6 +192,12 @@ async function getVoterInfo(voterAddress: string): Promise<Ccip017VoterInfo> {
     throw new Error("Invalid STX address");
   }
   // console.log("Voter Address", voterAddress);
+  const voterIdResult = await fetchReadOnlyFunctionCached({
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: "ccd003-user-registry",
+    functionName: "get-user-id",
+    functionArgs: [{ type: "principal", value: voterAddress }],
+  });
   const voterIdQuery = await fetchReadOnlyFunction<number>(
     {
       contractAddress: CONTRACT_ADDRESS,
