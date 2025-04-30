@@ -1,5 +1,5 @@
 import { atomWithStorage } from "jotai/utils";
-import { fetchCoreApiInfo } from "micro-stacks/api";
+import { fetchCoreApiInfo, ReadOnlyFunctionOptions } from "micro-stacks/api";
 import {
   AddressTransactionsWithTransfersListResponse,
   Transaction,
@@ -7,6 +7,7 @@ import {
 import { HIRO_API, fancyFetch, sleep } from "./common";
 import { Setter, atom } from "jotai";
 import LZString from "lz-string";
+import { ClarityValue } from "micro-stacks/clarity";
 
 /////////////////////////
 // TYPES
@@ -128,13 +129,118 @@ export const transactionFetchStatusAtom = atom<FetchStatus>({
 /////////////////////////
 
 export const blockHeightsQueryAtom = atom(async () => {
-  return await getBlockHeights();
+  return await getCachedBlockHeights();
 });
 
 /////////////////////////
 // HELPER FUNCTIONS
 /////////////////////////
 
+// create a type for this output
+//{"success":true,"data":{"success":true,"data":"{\"server_version\":\"stacks-blockchain-api v8.8.0-beta.2 (beta:c398dd68b)\",\"status\":\"ready\",\"pox_v1_unlock_height\":781552,\"pox_v2_unlock_height\":787652,\"pox_v3_unlock_height\":840361,\"chain_tip\":{\"block_height\":888365,\"block_hash\":\"0x14ebfeb3502f4baa102d0ba398592fd82514267d9c5cb7ad214a98065d80962e\",\"index_block_hash\":\"0xba656cab9c9e300420ef8ec6465682af97d9a33efe5e26c10cfbf53153c09df2\",\"burn_block_height\":890500}}"}}
+type HiroExtendedInfoResponse = {
+  success: boolean;
+  data: {
+    server_version: string;
+    status: string;
+    pox_v1_unlock_height: number;
+    pox_v2_unlock_height: number;
+    pox_v3_unlock_height: number;
+    chain_tip: {
+      block_height: number;
+      block_hash: string;
+      index_block_hash: string;
+      burn_block_height: number;
+    };
+  };
+};
+
+async function getCachedBlockHeights(): Promise<BlockHeights | undefined> {
+  const url = "https://cache.aibtc.dev/hiro-api/extended";
+  const response = await fetch(url);
+  if (!response.ok) {
+    return undefined;
+  }
+  const data = (await response.json()) as HiroExtendedInfoResponse;
+  if (!data.success) {
+    return undefined;
+  }
+  const blockHeights: BlockHeights = {
+    btc: data.data.chain_tip.burn_block_height,
+    stx: data.data.chain_tip.block_height,
+  };
+  return blockHeights;
+}
+
+export const CACHE_BASE_URL = "https://cache.aibtc.dev";
+export const CACHE_READ_ONLY_URL = `${CACHE_BASE_URL}/contract-calls/read-only`;
+export const CACHE_INIT_OBJ = {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+};
+
+export type CacheRequest = {
+  functionArgs: ClarityValue[];
+  network: string;
+  senderAddress?: string;
+  cacheControl?: CacheControlOptions;
+};
+
+export type CacheControlOptions = {
+  bustCache?: boolean;
+  skipCache?: boolean;
+  ttl?: number;
+};
+
+export type CacheResponse = {
+  success: boolean;
+  data?: unknown;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+    id?: string;
+  };
+};
+
+export type CacheFunctionOptions = ReadOnlyFunctionOptions & {
+  cacheControl?: CacheControlOptions;
+  functionArgs: ClarityValue[];
+  network?: string;
+};
+
+export async function fetchReadOnlyFunctionCached(
+  options: CacheFunctionOptions
+): Promise<CacheResponse> {
+  const {
+    contractAddress,
+    contractName,
+    functionName,
+    functionArgs,
+    network,
+    senderAddress,
+    cacheControl,
+  } = options;
+  const url = `${CACHE_READ_ONLY_URL}/${contractAddress}/${contractName}/${functionName}`;
+  const requestBody: CacheRequest = {
+    functionArgs,
+    network: network || "mainnet",
+    senderAddress,
+    cacheControl,
+  };
+  const response = await fetch(url, {
+    ...CACHE_INIT_OBJ,
+    body: JSON.stringify(requestBody),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch read-only function: ${response.status}`);
+  }
+  const data = (await response.json()) as CacheResponse;
+  if (!data.success) {
+    throw new Error(`Failed to fetch read-only function: ${data.error}`);
+  }
+  return data;
+}
 async function getBlockHeights(): Promise<BlockHeights | undefined> {
   try {
     const v2InfoResponse = await fetchCoreApiInfo({

@@ -2,7 +2,12 @@ import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { fetchReadOnlyFunction } from "micro-stacks/api";
 import { principalCV, uintCV } from "micro-stacks/clarity";
-import { stxAddressAtom } from "./stacks";
+import {
+  CACHE_INIT_OBJ,
+  CACHE_READ_ONLY_URL,
+  fetchReadOnlyFunctionCached,
+  stxAddressAtom,
+} from "./stacks";
 
 /////////////////////////
 // TYPES
@@ -476,92 +481,137 @@ async function getRedemptionInfo(): Promise<NycRedemptionInfo> {
 }
 
 async function getNycBalances(address: string): Promise<AddressNycBalances> {
-  const nycBalancesQuery = await fetchReadOnlyFunction<AddressNycBalances>(
+  const nycBalancesResult = await fetchReadOnlyFunctionCached(
+    CONTRACT_ADDRESS,
+    CONTRACT_NAME,
+    "get-nyc-balances",
+    [{ type: "principal", value: address }],
+    undefined,
+    undefined,
     {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-nyc-balances",
-      functionArgs: [address],
-    },
-    true
+      ttl: 60, // 1 minute
+    }
   );
-  return nycBalancesQuery;
+  // check if the response is successful, return data if so
+  if (nycBalancesResult.success && nycBalancesResult.data !== undefined) {
+    return nycBalancesResult.data as AddressNycBalances;
+  }
+  // return error if not successful
+  throw new Error(
+    `Failed to parse result in nyc-balances: ${nycBalancesResult.error?.message}, ${nycBalancesResult.error?.code}`
+  );
 }
 
 async function getRedemptionForBalance(
   balance: number
 ): Promise<null | number> {
-  const redemptionForBalanceQuery = await fetchReadOnlyFunction<null | number>(
+  const result = await fetchReadOnlyFunctionCached(
+    CONTRACT_ADDRESS,
+    CONTRACT_NAME,
+    "get-redemption-for-balance",
+    [{ type: "uint", value: balance }],
+    undefined,
+    undefined,
     {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-redemption-for-balance",
-      functionArgs: [uintCV(balance)],
-    },
-    true
+      ttl: 600, // 10 minutes
+    }
   );
-  return redemptionForBalanceQuery;
+  // check if the response is successful, return data if so
+  if (result.success && result.data !== undefined) {
+    return result.data as number;
+  }
+  // return error if not successful
+  throw new Error(
+    `Failed to parse result in redemption-for-balance: ${result.error?.message}, ${result.error?.code}`
+  );
 }
 
 async function getRedemptionAmountClaimed(address: string): Promise<number> {
-  const redemptionAmountClaimedQuery = await fetchReadOnlyFunction<number>(
+  const result = await fetchReadOnlyFunctionCached(
+    CONTRACT_ADDRESS,
+    CONTRACT_NAME,
+    "get-redemption-amount-claimed",
+    [{ type: "principal", value: address }],
+    undefined,
+    undefined,
     {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-redemption-amount-claimed",
-      functionArgs: [principalCV(address)],
-    },
-    true
+      ttl: 600, // 10 minutes
+    }
   );
-  return redemptionAmountClaimedQuery;
+  // check if the response is successful, return data if so
+  if (result.success && result.data !== undefined) {
+    return result.data as number;
+  }
+  // return error if not successful
+  throw new Error(
+    `Failed to parse result in redemption-amount-claimed: ${result.error?.message}, ${result.error?.code}`
+  );
 }
 
 async function getUserRedemptionInfo(
   address: string
 ): Promise<AddressNycRedemptionInfo> {
-  const userRedemptionInfoQuery =
-    await fetchReadOnlyFunction<AddressNycRedemptionInfo>(
-      {
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: CONTRACT_NAME,
-        functionName: "get-user-redemption-info",
-        functionArgs: [principalCV(address)],
-      },
-      true
-    );
-  return userRedemptionInfoQuery;
+  const result = await fetchReadOnlyFunctionCached(
+    CONTRACT_ADDRESS,
+    CONTRACT_NAME,
+    "get-user-redemption-info",
+    [{ type: "principal", value: address }],
+    undefined,
+    undefined,
+    {
+      ttl: 600, // 10 minutes
+    }
+  );
+  // check if the response is successful, return data if so
+  if (result.success && result.data !== undefined) {
+    return result.data as AddressNycRedemptionInfo;
+  }
+  // return error if not successful
+  throw new Error(
+    `Failed to parse result in user-redemption-info: ${result.error?.message}, ${result.error?.code}`
+  );
 }
 
 export async function getNycTotalSupplyInfo(): Promise<TokenSupplyInfo> {
-  const totalSupplyV1 = await fetchReadOnlyFunction<bigint>({
-    contractAddress: NYC_V1_CONTRACT_ADDRESS,
-    contractName: NYC_V1_CONTRACT_NAME,
-    functionName: "get-total-supply",
-    functionArgs: [],
-  });
-  const totalSupplyV1Number = getSafeNumberFromBigInt(totalSupplyV1);
+  const totalSupplyV1Result = await fetchReadOnlyFunctionCached(
+    NYC_V1_CONTRACT_ADDRESS,
+    NYC_V1_CONTRACT_NAME,
+    "get-total-supply",
+    [],
+    undefined,
+    undefined,
+    {
+      ttl: 600, // 10 minutes
+    }
+  );
+  // check if response failed
+  if (!totalSupplyV1Result.success) {
+    throw new Error(
+      `Failed to fetch total supply from NYC V1: ${totalSupplyV1Result.error?.message}`
+    );
+  }
+  const totalSupplyV1BigInt = BigInt(String(totalSupplyV1Result.data));
+  const totalSupplyV1Number = getSafeNumberFromBigInt(totalSupplyV1BigInt);
 
-  //console.log("totalSupplyV1", typeof totalSupplyV1, totalSupplyV1);
-  //console.log(
-  //  "totalSupplyV1Number",
-  //  typeof totalSupplyV1Number,
-  //  totalSupplyV1Number
-  //);
-
-  const totalSupplyV2 = await fetchReadOnlyFunction<bigint>({
-    contractAddress: NYC_V2_CONTRACT_ADDRESS,
-    contractName: NYC_V2_CONTRACT_NAME,
-    functionName: "get-total-supply",
-    functionArgs: [],
-  });
-  const totalSupplyV2Number = getSafeNumberFromBigInt(totalSupplyV2);
-
-  //console.log("totalSupplyV2", typeof totalSupplyV2, totalSupplyV2);
-  //console.log(
-  //  "totalSupplyV2Number",
-  //  typeof totalSupplyV2Number,
-  //  totalSupplyV2Number
-  //);
+  const totalSupplyV2Result = await fetchReadOnlyFunctionCached(
+    NYC_V2_CONTRACT_ADDRESS,
+    NYC_V2_CONTRACT_NAME,
+    "get-total-supply",
+    [],
+    undefined,
+    undefined,
+    {
+      ttl: 600, // 10 minutes
+    }
+  );
+  // check if response failed
+  if (!totalSupplyV2Result.success) {
+    throw new Error(
+      `Failed to fetch total supply from NYC V2: ${totalSupplyV2Result.error?.message}`
+    );
+  }
+  const totalSupplyV2BigInt = BigInt(String(totalSupplyV2Result.data));
+  const totalSupplyV2Number = getSafeNumberFromBigInt(totalSupplyV2BigInt);
 
   const totalSupply = totalSupplyV1Number * MICRO(6) + totalSupplyV2Number;
 
