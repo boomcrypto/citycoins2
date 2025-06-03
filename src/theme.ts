@@ -1,9 +1,4 @@
-import {
-  extendTheme,
-  type StyleFunctionProps,
-  type ThemeConfig,
-  createMultiStyleConfigHelpers,
-} from "@chakra-ui/react";
+import { createSystem, defaultConfig } from "@chakra-ui/react";
 import { tabsAnatomy } from "@chakra-ui/anatomy";
 import { mode } from "@chakra-ui/theme-tools";
 
@@ -18,8 +13,8 @@ const config: ThemeConfig = {
 };
 
 const fonts = {
-  heading: "Open Sans, sans-serif",
-  body: "Open Sans, sans-serif",
+  heading: { value: "Open Sans, sans-serif" },
+  body: { value: "Open Sans, sans-serif" },
 };
 
 const linkStyles = {
@@ -35,7 +30,7 @@ const linkStyles = {
 const tabsBaseStyle = definePartsStyle({
   tab: {
     fontWeight: "semibold",
-    _selected: (props: StyleFunctionProps) => ({
+    _selected: (props) => ({
       borderTop: "5px solid",
       color: mode("blue.600", "blue.300")(props),
     }),
@@ -45,13 +40,17 @@ const tabsBaseStyle = definePartsStyle({
 // Export the component theme
 export const tabsTheme = defineMultiStyleConfig({ baseStyle: tabsBaseStyle });
 
-const theme = extendTheme({
-  config,
-  components: {
-    Link: linkStyles,
-    Tabs: tabsTheme,
+export const system = createSystem(defaultConfig, {
+  theme: {
+    tokens: {
+      config,
+      fonts,
+      components: {
+        Link: linkStyles,
+        Tabs: tabsTheme,
+      },
+    },
   },
-  fonts,
 });
 
 export default theme;

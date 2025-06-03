@@ -1,16 +1,13 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { useToast } from "@chakra-ui/react";
-import { ClarityValue, noneCV, principalCV } from "micro-stacks/clarity";
-import { FinishedTxData } from "micro-stacks/connect";
-import { useOpenContractCall } from "@micro-stacks/react";
 import {
-  createAssetInfo,
-  createFungiblePostCondition,
-  createSTXPostCondition,
+  ClarityValue,
   FungibleConditionCode,
-  makeContractSTXPostCondition,
+  noneCV,
+  Pc,
   PostCondition,
-} from "micro-stacks/transactions";
+  principalCV,
+} from "@stacks/transactions";
 import {
   CONTRACT_ADDRESS,
   CONTRACT_NAME,
@@ -31,18 +28,20 @@ import {
   v2BalanceNYCAtom,
 } from "../store/ccd-012";
 import { stxAddressAtom } from "../store/stacks";
+import { request } from "@stacks/connect";
+import { CallContractParams, TransactionResult } from "@stacks/connect/dist/types/methods";
 
-const onFinishToast = (tx: FinishedTxData, toast: any) => {
+const onFinishToast = (tx: TransactionResult, toast: any) => {
   toast({
     title: "Redemption TX Sent",
-    description: `View on explorer:\nhttps://explorer.hiro.so/txid/${tx.txId}?chain=mainnet`,
+    description: `View on explorer:\nhttps://explorer.hiro.so/txid/${tx.txid}?chain=mainnet`,
     status: "success",
     position: "top",
     variant: "solid",
     isClosable: true,
     duration: 9000,
   });
-  return tx.txId;
+  return tx.txid || null;
 };
 
 const onCancelToast = (toast: any) => {
@@ -66,42 +65,31 @@ function buildRedemptionPostConditions(
     // add v1 post condition if needed
     if (v1BalanceNYC !== null && v1BalanceNYC > 0) {
       postConditions.push(
-        createFungiblePostCondition(
-          stxAddress,
-          FungibleConditionCode.Equal,
-          v1BalanceNYC,
-          createAssetInfo(
-            NYC_V1_CONTRACT_ADDRESS,
-            NYC_V1_CONTRACT_NAME,
+        Pc.principal(stxAddress)
+          .willSendEq(v1BalanceNYC)
+          .ft(
+            `${NYC_V1_CONTRACT_ADDRESS}.${NYC_V1_CONTRACT_NAME}`,
             NYC_ASSET_NAME
           )
-        )
       );
     }
     // add v2 post condition if needed
     if (v2BalanceNYC !== null && v2BalanceNYC > 0) {
       postConditions.push(
-        createFungiblePostCondition(
-          stxAddress,
-          FungibleConditionCode.Equal,
-          v2BalanceNYC,
-          createAssetInfo(
-            NYC_V2_CONTRACT_ADDRESS,
-            NYC_V2_CONTRACT_NAME,
+        Pc.principal(stxAddress)
+          .willSendEq(v2BalanceNYC)
+          .ft(
+            `${NYC_V2_CONTRACT_ADDRESS}.${NYC_V2_CONTRACT_NAME}`,
             NYC_ASSET_NAME
           )
-        )
       );
     }
     // add redemption for balance from contract
     if (redemptionForBalance !== null && redemptionForBalance > 0) {
       postConditions.push(
-        makeContractSTXPostCondition(
-          CONTRACT_ADDRESS,
-          CONTRACT_NAME,
-          FungibleConditionCode.Equal,
-          redemptionForBalance
-        )
+        Pc.principal(`${CONTRACT_ADDRESS}.${CONTRACT_NAME}`)
+          .willSendEq(redemptionForBalance)
+          .ustx()
       );
     }
     return postConditions;
@@ -115,7 +103,6 @@ export const useCcd012RedeemNyc = () => {
   const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
   const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
   const setTxId = useSetAtom(ccd012TxIdAtom);
-  const { openContractCall, isRequestPending } = useOpenContractCall();
 
   // can set a state atom here for UI feedback
 
@@ -126,24 +113,26 @@ export const useCcd012RedeemNyc = () => {
     redemptionForBalance
   );
 
-  const contractCallParams = {
-    contractAddress: CONTRACT_ADDRESS,
-    contractName: CONTRACT_NAME,
+  const contractCallParams: CallContractParams = {
+    contract: `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`,
     functionName: "redeem-nyc",
     functionArgs: [],
     postConditions,
-    onFinish: (finishedTx: FinishedTxData) => {
-      const txId = onFinishToast(finishedTx, toast);
-      setTxId(txId);
-    },
-    onCancel: () => onCancelToast(toast),
   };
 
   const redeemNycCall = async () => {
-    await openContractCall(contractCallParams);
+    try {
+      const finishedTx = await request("stx_callContract",
+        contractCallParams
+      );
+      const txId = onFinishToast(finishedTx, toast);
+      setTxId(txId);
+    } catch (error) {
+      onCancelToast(toast);
+    }
   };
 
-  return { redeemNycCall, isRequestPending };
+  return { redeemNycCall };
 };
 
 export const useCcd012StackingDao = () => {
@@ -153,7 +142,6 @@ export const useCcd012StackingDao = () => {
   const v2BalanceNYC = useAtomValue(v2BalanceNYCAtom);
   const redemptionForBalance = useAtomValue(redemptionForBalanceAtom);
   const setTxId = useSetAtom(ccd012TxIdAtom);
-  const { openContractCall, isRequestPending } = useOpenContractCall();
 
   const postConditions = buildRedemptionPostConditions(
     stxAddress,
@@ -164,16 +152,14 @@ export const useCcd012StackingDao = () => {
 
   if (!stxAddress || !postConditions)
     // return stub function and false for isRequestPending
-    return { stackingDaoCall: () => {}, isRequestPending: false };
+    return { stackingDaoCall: () => { }, isRequestPending: false };
 
   // add to post conditions:
   // - xfer redemption-stx from user (to StackingDAO)
   postConditions.push(
-    createSTXPostCondition(
-      stxAddress,
-      FungibleConditionCode.Equal,
-      redemptionForBalance ?? 0
-    )
+    Pc.principal(stxAddress)
+      .willSendEq(redemptionForBalance ?? 0)
+      .ustx()
   );
 
   /*

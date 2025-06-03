@@ -1,9 +1,9 @@
 import { Button } from "@chakra-ui/react";
-import { useAuth } from "@micro-stacks/react";
 import { useClearUserData } from "../../hooks/use-clear-user-data";
+import { disconnect } from "@stacks/connect";
 
 function ClearData(props: { variant?: string }) {
-  const { signOut } = useAuth();
+
   const clearUserData = useClearUserData();
 
   return (
@@ -15,7 +15,7 @@ function ClearData(props: { variant?: string }) {
         clearUserData();
         // sign out of the wallet
         try {
-          signOut();
+          disconnect();
         } catch (error) {
           console.error("Error while signing out: ", error);
         }

@@ -9,68 +9,70 @@ import { stxAddressAtom } from "./stacks";
 // TYPES
 /////////////////////////
 
-export type Ccip025Atoms =
+export type Ccip016Atoms =
   | "isExecutable"
   | "isVoteActive"
   | "voteTotals"
   | "voterInfo";
 
 export type CityVoteRecord = {
-  totalAmountYes: string;
-  totalAmountNo: string;
-  totalVotesYes: string;
-  totalVotesNo: string;
+  totalAmountYes: number;
+  totalAmountNo: number;
+  totalVotesYes: number;
+  totalVotesNo: number;
 };
 
-export type Ccip025VoteTotals = {
+export type Ccip016VoteTotals = {
   mia: CityVoteRecord;
+  nyc: CityVoteRecord;
   totals: CityVoteRecord;
 };
 
-export type Ccip025VoterInfo = {
-  vote: boolean;
+export type Ccip016VoterInfo = {
   mia: number;
+  nyc: number;
+  vote: boolean;
 };
 
 /////////////////////////
 // CONSTANTS
 /////////////////////////
 
-export const CONTRACT_ADDRESS = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH";
-export const CONTRACT_NAME = "ccip025-extend-sunset-period-3-v2";
+export const CONTRACT_ADDRESS = "SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9";
+export const CONTRACT_NAME = "ccip016-missed-payouts";
 export const CONTRACT_FQ_NAME = `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`;
 
 /////////////////////////
 // LOCALSTORAGE ATOMS
 /////////////////////////
 
-export const ccip025IsExecutableAtom = atomWithStorage(
-  "citycoins-ccip025-isExecutable",
+export const ccip016IsExecutableAtom = atomWithStorage(
+  "citycoins-ccip016-isExecutable",
   false
 );
-export const ccip025IsVoteActiveAtom = atomWithStorage(
-  "citycoins-ccip025-isVoteActive",
+export const ccip016IsVoteActiveAtom = atomWithStorage(
+  "citycoins-ccip016-isVoteActive",
   false
 );
-export const ccip025VoteTotalsAtom = atomWithStorage<Ccip025VoteTotals | null>(
-  "citycoins-ccip025-voteTotals",
+export const ccip016VoteTotalsAtom = atomWithStorage<Ccip016VoteTotals | null>(
+  "citycoins-ccip016-voteTotals",
   null
 );
-export const ccip025VoterInfoAtom = atomWithStorage<Ccip025VoterInfo | null>(
-  "citycoins-ccip025-voterInfo",
+export const ccip016VoterInfoAtom = atomWithStorage<Ccip016VoterInfo | null>(
+  "citycoins-ccip016-voterInfo",
   null
 );
-export const ccip025HasVotedAtom = atomWithStorage(
-  "citycoins-ccip025-hasVoted",
+export const ccip016HasVotedAtom = atomWithStorage(
+  "citycoins-ccip016-hasVoted",
   false
 );
 
-export const ccip025LocalStorageAtoms = [
-  ccip025IsExecutableAtom,
-  ccip025IsVoteActiveAtom,
-  ccip025VoteTotalsAtom,
-  ccip025VoterInfoAtom,
-  ccip025HasVotedAtom,
+export const ccip016LocalStorageAtoms = [
+  ccip016IsExecutableAtom,
+  ccip016IsVoteActiveAtom,
+  ccip016VoteTotalsAtom,
+  ccip016VoterInfoAtom,
+  ccip016HasVotedAtom,
 ];
 
 /////////////////////////
@@ -78,8 +80,8 @@ export const ccip025LocalStorageAtoms = [
 /////////////////////////
 
 export const hasVotedAtom = atom((get) => {
-  const voterInfo = get(ccip025VoterInfoAtom);
-  const hasVoted = get(ccip025HasVotedAtom);
+  const voterInfo = get(ccip016VoterInfoAtom);
+  const hasVoted = get(ccip016HasVotedAtom);
   if (voterInfo !== null || hasVoted) {
     return true;
   }
@@ -90,7 +92,7 @@ export const hasVotedAtom = atom((get) => {
 // LOADABLE ASYNC ATOMS
 /////////////////////////
 
-export const ccip025IsExecutableQueryAtom = atom(async () => {
+export const ccip016IsExecutableQueryAtom = atom(async () => {
   try {
     const isExecutable = await getIsExecutable();
     return isExecutable;
@@ -101,7 +103,7 @@ export const ccip025IsExecutableQueryAtom = atom(async () => {
   }
 });
 
-export const ccip025IsVoteActiveQueryAtom = atom(async () => {
+export const ccip016IsVoteActiveQueryAtom = atom(async () => {
   try {
     const isVoteActive = await getIsVoteActive();
     return isVoteActive;
@@ -112,7 +114,7 @@ export const ccip025IsVoteActiveQueryAtom = atom(async () => {
   }
 });
 
-export const ccip025VoteTotalsQueryAtom = atom(async () => {
+export const ccip016VoteTotalsQueryAtom = atom(async () => {
   try {
     const voteTotals = await getVoteTotals();
     return voteTotals;
@@ -123,7 +125,7 @@ export const ccip025VoteTotalsQueryAtom = atom(async () => {
   }
 });
 
-export const ccip025VoterInfoQueryAtom = atom(async (get) => {
+export const ccip016VoterInfoQueryAtom = atom(async (get) => {
   const stxAddress = get(stxAddressAtom);
   if (stxAddress === null) return undefined;
   try {
@@ -166,8 +168,8 @@ async function getIsVoteActive(): Promise<boolean> {
   return isVoteActiveQuery;
 }
 
-async function getVoteTotals(): Promise<Ccip025VoteTotals> {
-  const voteTotalsQuery = await fetchReadOnlyFunction<Ccip025VoteTotals>(
+async function getVoteTotals(): Promise<Ccip016VoteTotals> {
+  const voteTotalsQuery = await fetchReadOnlyFunction<Ccip016VoteTotals>(
     {
       contractAddress: CONTRACT_ADDRESS,
       contractName: CONTRACT_NAME,
@@ -179,7 +181,7 @@ async function getVoteTotals(): Promise<Ccip025VoteTotals> {
   return voteTotalsQuery;
 }
 
-async function getVoterInfo(voterAddress: string): Promise<Ccip025VoterInfo> {
+async function getVoterInfo(voterAddress: string): Promise<Ccip016VoterInfo> {
   if (!validateStacksAddress(voterAddress)) {
     throw new Error("Invalid STX address");
   }
@@ -192,7 +194,7 @@ async function getVoterInfo(voterAddress: string): Promise<Ccip025VoterInfo> {
     },
     true
   );
-  const voterInfoQuery = await fetchReadOnlyFunction<Ccip025VoterInfo>(
+  const voterInfoQuery = await fetchReadOnlyFunction<Ccip016VoterInfo>(
     {
       contractAddress: CONTRACT_ADDRESS,
       contractName: CONTRACT_NAME,

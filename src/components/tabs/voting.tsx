@@ -19,6 +19,7 @@ import CCIP022 from "../votes/ccip-022";
 import CCIP019 from "../votes/ccip-019";
 import CCIP024 from "../votes/ccip-024";
 import CCIP025 from "../votes/ccip-025";
+import CCIP016 from "../votes/ccip-016";
 
 function Voting() {
   return (
@@ -26,6 +27,19 @@ function Voting() {
       <Heading>CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
       <Accordion allowMultiple>
+        <AccordionItem>
+          <h2>
+            <AccordionButton>
+              <VoteTitle
+                title="Vote 12: Mising Payouts"
+                status="active"
+              />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel pb={4}>
+            <CCIP016 />
+          </AccordionPanel>
+        </AccordionItem>
         <AccordionItem>
           <h2>
             <AccordionButton>

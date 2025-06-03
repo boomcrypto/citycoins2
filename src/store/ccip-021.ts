@@ -2,7 +2,7 @@ import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { fetchReadOnlyFunction } from "micro-stacks/api";
 import { validateStacksAddress } from "micro-stacks/crypto";
-import { standardPrincipalCV, uintCV } from "micro-stacks/clarity";
+import { standardPrincipalCV, uintCV } from "@stacks/transactions";
 import { stxAddressAtom } from "./stacks";
 
 /////////////////////////

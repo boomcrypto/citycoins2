@@ -1,15 +1,14 @@
-import { useOpenContractCall } from "@micro-stacks/react";
-import { boolCV } from "micro-stacks/clarity";
+import { openContractCall } from "@stacks/connect";
+import { boolCV } from "@stacks/transactions";
 import {
   CONTRACT_ADDRESS,
   CONTRACT_NAME,
-  ccip025HasVotedAtom,
-} from "../store/ccip-025";
+  ccip016HasVotedAtom,
+} from "../store/ccip-016";
 import { useSetAtom } from "jotai";
 
-export const useCcip025VoteActions = () => {
-  const { openContractCall, isRequestPending } = useOpenContractCall();
-  const setCcip025HasVoted = useSetAtom(ccip025HasVotedAtom);
+export const useCcip016VoteActions = () => {
+  const setCcip016HasVoted = useSetAtom(ccip016HasVotedAtom);
 
   const voteYes = async () => {
     await openContractCall({
@@ -18,11 +17,11 @@ export const useCcip025VoteActions = () => {
       functionName: "vote-on-proposal",
       functionArgs: [boolCV(true)],
       onFinish: async (data) => {
-        console.log("Vote Yes on CCIP-025 success!", data);
-        setCcip025HasVoted(true);
+        console.log("Vote Yes on CCIP-016 success!", data);
+        setCcip016HasVoted(true);
       },
       onCancel: () => {
-        console.log("Vote Yes on CCIP-025 popup closed!");
+        console.log("Vote Yes on CCIP-016 popup closed!");
       },
     });
   };
@@ -34,14 +33,14 @@ export const useCcip025VoteActions = () => {
       functionName: "vote-on-proposal",
       functionArgs: [boolCV(false)],
       onFinish: async (data) => {
-        console.log("Vote No on CCIP-025 success!", data);
-        setCcip025HasVoted(true);
+        console.log("Vote No on CCIP-016 success!", data);
+        setCcip016HasVoted(true);
       },
       onCancel: () => {
-        console.log("Vote No on CCIP-025 popup closed!");
+        console.log("Vote No on CCIP-016 popup closed!");
       },
     });
   };
 
-  return { voteYes, voteNo, isRequestPending };
+  return { voteYes, voteNo };
 };

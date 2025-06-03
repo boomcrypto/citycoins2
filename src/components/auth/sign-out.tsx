@@ -1,8 +1,7 @@
 import { Button } from "@chakra-ui/react";
-import { useAuth } from "@micro-stacks/react";
+import { disconnect } from "@stacks/connect";
 
 function SignOut(props: { variant?: string }) {
-  const { signOut } = useAuth();
   return (
     <Button
       variant={props.variant || "solid"}
@@ -10,7 +9,7 @@ function SignOut(props: { variant?: string }) {
       onClick={() => {
         // sign out of the wallet
         try {
-          signOut();
+          disconnect();
         } catch (error) {
           console.error("Error while signing out: ", error);
         }

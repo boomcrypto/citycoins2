@@ -1,8 +1,17 @@
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
-import { fetchReadOnlyFunction } from "micro-stacks/api";
-import { principalCV, uintCV } from "micro-stacks/clarity";
+import {
+  boolCV,
+  BooleanCV,
+  ClarityType,
+  fetchCallReadOnlyFunction,
+  principalCV,
+  TupleCV,
+  UIntCV,
+  uintCV,
+} from "@stacks/transactions";
 import { stxAddressAtom } from "./stacks";
+import { s } from "framer-motion/dist/types.d-CQt5spQA";
 
 /////////////////////////
 // TYPES
@@ -430,90 +439,82 @@ function getSafeNumberFromBigInt(balance: bigint): number {
 }
 
 async function getV1Balance(address: string): Promise<number> {
-  const v1Balance = await fetchReadOnlyFunction<number>({
+  const v1Balance = await fetchCallReadOnlyFunction({
     contractAddress: NYC_V1_CONTRACT_ADDRESS,
     contractName: NYC_V1_CONTRACT_NAME,
     functionName: "get-balance",
     functionArgs: [principalCV(address)],
+    senderAddress: address,
   });
-  return v1Balance;
+  return Number((v1Balance as UIntCV).value);
 }
 
 async function getV2Balance(address: string): Promise<number> {
-  const v2Balance = await fetchReadOnlyFunction<number>({
+  const v2Balance = await fetchCallReadOnlyFunction({
     contractAddress: NYC_V2_CONTRACT_ADDRESS,
     contractName: NYC_V2_CONTRACT_NAME,
     functionName: "get-balance",
     functionArgs: [principalCV(address)],
+    senderAddress: address,
   });
-  return v2Balance;
+  return Number((v2Balance as UIntCV).value);
 }
 
 async function isRedemptionEnabled(): Promise<boolean> {
-  const isRedemptionEnabledQuery = await fetchReadOnlyFunction<boolean>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "is-redemption-enabled",
-      functionArgs: [],
-    },
-    true
-  );
-  return isRedemptionEnabledQuery;
+  const isRedemptionEnabledQuery = await fetchCallReadOnlyFunction({
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "is-redemption-enabled",
+    functionArgs: [],
+    senderAddress: CONTRACT_ADDRESS,
+  });
+  return (isRedemptionEnabledQuery as BooleanCV).type === ClarityType.BoolTrue;
 }
 
 async function getRedemptionInfo(): Promise<NycRedemptionInfo> {
-  const redemptionInfoQuery = await fetchReadOnlyFunction<NycRedemptionInfo>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-redemption-info",
-      functionArgs: [],
-    },
-    true
-  );
-  return redemptionInfoQuery;
+  const redemptionInfoQuery = await fetchCallReadOnlyFunction({
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "get-redemption-info",
+    functionArgs: [],
+    senderAddress: CONTRACT_ADDRESS,
+  });
+  return (redemptionInfoQuery as TupleCV).value;
 }
 
 async function getNycBalances(address: string): Promise<AddressNycBalances> {
-  const nycBalancesQuery = await fetchReadOnlyFunction<AddressNycBalances>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-nyc-balances",
-      functionArgs: [address],
-    },
-    true
-  );
+  const nycBalancesQuery = await fetchCallReadOnlyFunction({
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "get-nyc-balances",
+    functionArgs: [principalCV(address)],
+    senderAddress: address,
+  });
   return nycBalancesQuery;
 }
 
 async function getRedemptionForBalance(
   balance: number
 ): Promise<null | number> {
-  const redemptionForBalanceQuery = await fetchReadOnlyFunction<null | number>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-redemption-for-balance",
-      functionArgs: [uintCV(balance)],
-    },
-    true
-  );
+  const redemptionForBalanceQuery = await fetchCallReadOnlyFunction({
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "get-redemption-for-balance",
+    functionArgs: [uintCV(balance)],
+    senderAddress: CONTRACT_ADDRESS,
+  });
   return redemptionForBalanceQuery;
 }
 
 async function getRedemptionAmountClaimed(address: string): Promise<number> {
-  const redemptionAmountClaimedQuery = await fetchReadOnlyFunction<number>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-redemption-amount-claimed",
-      functionArgs: [principalCV(address)],
-    },
-    true
-  );
-  return redemptionAmountClaimedQuery;
+  const redemptionAmountClaimedQuery = await fetchCallReadOnlyFunction({
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "get-redemption-amount-claimed",
+    functionArgs: [principalCV(address)],
+    senderAddress: address,
+  });
+  return Number((redemptionAmountClaimedQuery as UIntCV).value);
 }
 
 async function getUserRedemptionInfo(
@@ -533,13 +534,16 @@ async function getUserRedemptionInfo(
 }
 
 export async function getNycTotalSupplyInfo(): Promise<TokenSupplyInfo> {
-  const totalSupplyV1 = await fetchReadOnlyFunction<bigint>({
+  const totalSupplyV1 = (await fetchCallReadOnlyFunction({
     contractAddress: NYC_V1_CONTRACT_ADDRESS,
     contractName: NYC_V1_CONTRACT_NAME,
     functionName: "get-total-supply",
     functionArgs: [],
-  });
-  const totalSupplyV1Number = getSafeNumberFromBigInt(totalSupplyV1);
+    senderAddress: NYC_V1_CONTRACT_ADDRESS,
+  })) as UIntCV;
+  const totalSupplyV1Number = getSafeNumberFromBigInt(
+    BigInt(totalSupplyV1.value)
+  );
 
   //console.log("totalSupplyV1", typeof totalSupplyV1, totalSupplyV1);
   //console.log(
@@ -548,13 +552,16 @@ export async function getNycTotalSupplyInfo(): Promise<TokenSupplyInfo> {
   //  totalSupplyV1Number
   //);
 
-  const totalSupplyV2 = await fetchReadOnlyFunction<bigint>({
+  const totalSupplyV2 = (await fetchCallReadOnlyFunction({
     contractAddress: NYC_V2_CONTRACT_ADDRESS,
     contractName: NYC_V2_CONTRACT_NAME,
     functionName: "get-total-supply",
     functionArgs: [],
-  });
-  const totalSupplyV2Number = getSafeNumberFromBigInt(totalSupplyV2);
+    senderAddress: NYC_V2_CONTRACT_ADDRESS,
+  })) as UIntCV;
+  const totalSupplyV2Number = getSafeNumberFromBigInt(
+    BigInt(totalSupplyV2.value)
+  );
 
   //console.log("totalSupplyV2", typeof totalSupplyV2, totalSupplyV2);
   //console.log(
@@ -584,16 +591,15 @@ export async function getNycTotalSupplyInfo(): Promise<TokenSupplyInfo> {
 // The param `reserve-contract` should be `SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.reserve-v1`.
 // example: return `u1015555`, meaning for 1.015555 STX you will get 1 stSTX.
 export async function getStackingDaoRatio(): Promise<number> {
-  const stackingDaoRatioQuery = await fetchReadOnlyFunction<number>(
-    {
-      contractAddress: STACKING_DAO_CONTRACT_ADDRESS,
-      contractName: "data-core-v1",
-      functionName: "get-stx-per-ststx",
-      functionArgs: [
-        principalCV(`${STACKING_DAO_CONTRACT_ADDRESS}.reserve-v1`),
-      ],
-    },
-    true
+  const stackingDaoRatioQuery = (await fetchCallReadOnlyFunction({
+    contractAddress: STACKING_DAO_CONTRACT_ADDRESS,
+    contractName: "data-core-v1",
+    functionName: "get-stx-per-ststx",
+    functionArgs: [principalCV(`${STACKING_DAO_CONTRACT_ADDRESS}.reserve-v1`)],
+    senderAddress: STACKING_DAO_CONTRACT_ADDRESS,
+  })) as UIntCV;
+  const stackingDaoRatio = getSafeNumberFromBigInt(
+    BigInt(stackingDaoRatioQuery.value)
   );
-  return stackingDaoRatioQuery;
+  return stackingDaoRatio;
 }
