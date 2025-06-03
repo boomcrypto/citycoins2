@@ -33,9 +33,8 @@ export type Ccip016VoterInfo = {
 // CONSTANTS
 /////////////////////////
 
-// TODO: Update with actual CCIP-016 contract address and name
-export const CONTRACT_ADDRESS = "SP000000000000000000002Q6VF78";
-export const CONTRACT_NAME = "ccip016-vote-contract";
+export const CONTRACT_ADDRESS = "SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9";
+export const CONTRACT_NAME = "ccip016-missed-payouts-v3";
 export const CONTRACT_FQ_NAME = `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`;
 
 /////////////////////////
