@@ -8,6 +8,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import VoteTitle from "../votes/vote-title";
+import CCIP016 from "../votes/ccip-016";
 import CityCoinsVoteV1 from "../votes/citycoins-vote-v1";
 import CityCoinsVoteV2 from "../votes/citycoins-vote-v2";
 import CityCoinsVoteV3 from "../votes/citycoins-vote-v3";
@@ -26,6 +27,19 @@ function Voting() {
       <Heading>CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
       <Accordion allowMultiple>
+        <AccordionItem>
+          <h2>
+            <AccordionButton>
+              <VoteTitle
+                title="Vote 12: CCIP-016 Refund Incorrect CCD007 Payouts"
+                status="active" // TODO: Update status as appropriate
+              />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel pb={4}>
+            <CCIP016 />
+          </AccordionPanel>
+        </AccordionItem>
         <AccordionItem>
           <h2>
             <AccordionButton>
