@@ -21,6 +21,42 @@ import { formatMicroAmount } from "../../store/common";
 import { useAtomValue } from "jotai";
 import { stxAddressAtom } from "../../store/stacks";
 import { hasVotedAtom as ccip016HasVotedAtom } from "../../store/ccip-016"; // aliased to avoid conflict if other hasVotedAtoms are in scope
+import SignIn from "../auth/sign-in";
+
+function VoteButtons() {
+  const { voteYes, voteNo, isRequestPending } = useCcip016VoteActions();
+  const stxAddress = useAtomValue(stxAddressAtom);
+
+  if (!stxAddress) {
+    return <SignIn />;
+  }
+
+  return (
+    <>
+      <Text fontWeight="bold" textAlign="center">
+        Voting:
+      </Text>
+      <Stack direction={["column", "row"]} spacing={4} justifyContent="center">
+        <Button
+          onClick={voteYes}
+          colorScheme="green"
+          isLoading={isRequestPending}
+          isDisabled={isRequestPending}
+        >
+          Vote Yes
+        </Button>
+        <Button
+          onClick={voteNo}
+          colorScheme="red"
+          isLoading={isRequestPending}
+          isDisabled={isRequestPending}
+        >
+          Vote No
+        </Button>
+      </Stack>
+    </>
+  );
+}
 
 function VoteResult() {
   const voterInfo = useCcip016VoteData("voterInfo");
@@ -56,14 +92,12 @@ function CCIP016() {
   const isVoteActive = useCcip016VoteData("isVoteActive");
   const voterInfo = useCcip016VoteData("voterInfo");
   const hasVoted = useAtomValue(ccip016HasVotedAtom);
-  const { voteYes, voteNo, isRequestPending } = useCcip016VoteActions();
+  const { isRequestPending } = useCcip016VoteActions(); // voteYes and voteNo are now in VoteButtons
 
   const yesVotes = voteTotals.data?.yesVotes ?? 0;
   const noVotes = voteTotals.data?.noVotes ?? 0;
   const yesTotal = voteTotals.data?.yesTotal ?? 0;
   const noTotal = voteTotals.data?.noTotal ?? 0;
-
-  const showVoteButtons = stxAddress && isVoteActive.data && !hasVoted && !voterInfo.data;
 
   return (
     <Stack spacing={4}>
@@ -111,25 +145,23 @@ function CCIP016() {
         <VoteProgressBar yesTotal={yesTotal} noTotal={noTotal} />
       )}
       <Divider />
-      {showVoteButtons && (
-        <ButtonGroup justifyContent="center" spacing={6}>
-          <Button
-            colorScheme="green"
-            onClick={voteYes}
-            isLoading={isRequestPending}
-            isDisabled={isRequestPending}
-          >
-            Vote Yes
-          </Button>
-          <Button
-            colorScheme="red"
-            onClick={voteNo}
-            isLoading={isRequestPending}
-            isDisabled={isRequestPending}
-          >
-            Vote No
-          </Button>
-        </ButtonGroup>
+      {isVoteActive.isLoading ? (
+        <CircularProgress isIndeterminate alignSelf="center" />
+      ) : isVoteActive.data ? (
+        hasVoted || voterInfo.data ? ( // If already voted (from atom) or voterInfo loaded (from contract)
+          <>
+            <Text fontWeight="bold" textAlign="center">
+              Vote recorded, thank you!
+            </Text>
+            <Text textAlign="center">
+              Refresh to see stats once the tx confirms.
+            </Text>
+          </>
+        ) : (
+          <VoteButtons />
+        )
+      ) : (
+        <Text textAlign="center">Voting period is not active.</Text>
       )}
       {isRequestPending && (
         <Text textAlign="center">Please confirm in your wallet...</Text>
@@ -176,7 +208,7 @@ function CCIP016() {
           refund process as outlined in the CCIP.
         </Text>
       </Stack>
-      {(hasVoted || voterInfo.data) && <VoteResult />}
+      {voterInfo.data && <VoteResult />}
     </Stack>
   );
 }
