@@ -8,6 +8,7 @@
     "@emotion/styled": "^11.11.0",
     "@micro-stacks/react": "^1.0.9",
     "@stacks/stacks-blockchain-api-types": "^7.10.0",
+    "@stacks/transactions": "^7.1.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",

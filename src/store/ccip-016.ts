@@ -2,8 +2,33 @@ import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { fetchReadOnlyFunction } from "micro-stacks/api";
 import { validateStacksAddress } from "micro-stacks/crypto";
-import { standardPrincipalCV, uintCV } from "micro-stacks/clarity";
 import { stxAddressAtom } from "./stacks";
+import {
+  Cl,
+  ClarityType,
+  ClarityValue,
+  cvToValue,
+  fetchCallReadOnlyFunction,
+  principalCV,
+} from "@stacks/transactions";
+
+// helper function for tuples
+function convertClarityTuple<T>(clarityValue: ClarityValue): T {
+  if (clarityValue.type !== ClarityType.Tuple) {
+    throw new Error(
+      `Invalid format: expected tuple, got ${
+        clarityValue.type
+      }. Value: ${JSON.stringify(clarityValue)}`
+    );
+  }
+  const tupleValue = clarityValue.value;
+  return Object.fromEntries(
+    Object.entries(tupleValue).map(([key, value]) => [
+      key,
+      cvToValue(value as ClarityValue),
+    ])
+  ) as T;
+}
 
 /////////////////////////
 // TYPES
@@ -138,41 +163,55 @@ export const ccip016VoterInfoQueryAtom = atom(async (get) => {
 /////////////////////////
 
 async function getIsExecutable(): Promise<boolean> {
-  const isExecutableQuery = await fetchReadOnlyFunction<boolean>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "is-executable",
-      functionArgs: [],
-    },
-    true
-  );
+  const isExecutableQueryCV = await fetchCallReadOnlyFunction({
+    contractName: CONTRACT_NAME,
+    contractAddress: CONTRACT_ADDRESS,
+    functionName: "is-executable",
+    functionArgs: [],
+    senderAddress: CONTRACT_ADDRESS,
+  });
+  if (
+    isExecutableQueryCV.type !== ClarityType.BoolFalse &&
+    isExecutableQueryCV.type !== ClarityType.BoolTrue
+  ) {
+    throw new Error(
+      `Unexpected return type for is-executable: ${isExecutableQueryCV.type}`
+    );
+  }
+  const isExecutableQuery = cvToValue(isExecutableQueryCV) as boolean;
   return isExecutableQuery;
 }
 
 async function getIsVoteActive(): Promise<boolean> {
-  const isVoteActiveQuery = await fetchReadOnlyFunction<boolean>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "is-vote-active",
-      functionArgs: [],
-    },
-    true
-  );
+  const isVoteActiveQueryCV = await fetchCallReadOnlyFunction({
+    contractName: CONTRACT_NAME,
+    contractAddress: CONTRACT_ADDRESS,
+    functionName: "is-vote-active",
+    functionArgs: [],
+    senderAddress: CONTRACT_ADDRESS,
+  });
+  if (
+    isVoteActiveQueryCV.type !== ClarityType.BoolFalse &&
+    isVoteActiveQueryCV.type !== ClarityType.BoolTrue
+  ) {
+    throw new Error(
+      `Unexpected return type for is-vote-active: ${isVoteActiveQueryCV.type}`
+    );
+  }
+  const isVoteActiveQuery = cvToValue(isVoteActiveQueryCV) as boolean;
   return isVoteActiveQuery;
 }
 
 async function getVoteTotals(): Promise<Ccip016VoteTotals> {
-  const voteTotalsQuery = await fetchReadOnlyFunction<Ccip016VoteTotals>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-vote-totals",
-      functionArgs: [],
-    },
-    true
-  );
+  const voteTotalsQueryCV = await fetchCallReadOnlyFunction({
+    contractName: CONTRACT_NAME,
+    contractAddress: CONTRACT_ADDRESS,
+    functionName: "get-vote-totals",
+    functionArgs: [],
+    senderAddress: CONTRACT_ADDRESS,
+  });
+  const voteTotalsQuery =
+    convertClarityTuple<Ccip016VoteTotals>(voteTotalsQueryCV);
   return voteTotalsQuery;
 }
 
@@ -180,25 +219,31 @@ async function getVoterInfo(voterAddress: string): Promise<Ccip016VoterInfo> {
   if (!validateStacksAddress(voterAddress)) {
     throw new Error("Invalid STX address");
   }
-  // Assuming CCIP-016 voting contract uses ccd003-user-registry like CCIP-017
-  // TODO: Verify this assumption for the actual CCIP-016 voting contract
-  const voterIdQuery = await fetchReadOnlyFunction<number>(
-    {
-      contractAddress: CONTRACT_ADDRESS, // Or the specific user-registry if different
-      contractName: "ccd003-user-registry",
-      functionName: "get-user-id",
-      functionArgs: [standardPrincipalCV(voterAddress)],
-    },
-    true
-  );
-  const voterInfoQuery = await fetchReadOnlyFunction<Ccip016VoterInfo>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-voter-info",
-      functionArgs: [uintCV(voterIdQuery)],
-    },
-    true
-  );
+  const voterIdQueryCV = await fetchCallReadOnlyFunction({
+    contractName: "ccd003-user-registry",
+    contractAddress: CONTRACT_ADDRESS,
+    functionName: "get-user-id",
+    functionArgs: [principalCV(voterAddress)],
+    senderAddress: CONTRACT_ADDRESS,
+  });
+  if (voterIdQueryCV.type !== ClarityType.UInt) {
+    throw new Error(
+      `Unexpected return type for get-user-id: ${voterIdQueryCV.type}`
+    );
+  }
+  const voterInfoQueryCV = await fetchCallReadOnlyFunction({
+    contractName: CONTRACT_NAME,
+    contractAddress: CONTRACT_ADDRESS,
+    functionName: "get-voter-info",
+    functionArgs: [voterIdQueryCV],
+    senderAddress: CONTRACT_ADDRESS,
+  });
+  if (voterInfoQueryCV.type !== ClarityType.Tuple) {
+    throw new Error(
+      `Unexpected return type for get-voter-info: ${voterInfoQueryCV.type}`
+    );
+  }
+  const voterInfoQuery =
+    convertClarityTuple<Ccip016VoterInfo>(voterInfoQueryCV);
   return voterInfoQuery;
 }
