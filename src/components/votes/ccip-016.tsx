@@ -3,11 +3,9 @@ import {
   Button,
   Link,
   List,
-  ListItem,
   Separator,
   Stack,
   Stat,
-  StatLabel,
   Text,
 } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
@@ -58,12 +56,12 @@ function VoteResult() {
     <Stack gap={4}>
       <Text fontWeight="bold">Your Vote:</Text>
       <List.Root>
-        <ListItem>
+        <List.Item>
           Recorded Vote: {voterInfo.data?.vote ? "Yes" : "No"}
-        </ListItem>
+        </List.Item>
         <List.Root>
-          <ListItem>MIA: {formatMicroAmount(voterInfo.data?.mia)}</ListItem>
-          <ListItem>NYC: {formatMicroAmount(voterInfo.data?.nyc)}</ListItem>
+          <List.Item>MIA: {formatMicroAmount(voterInfo.data?.mia)}</List.Item>
+          <List.Item>NYC: {formatMicroAmount(voterInfo.data?.nyc)}</List.Item>
         </List.Root>
       </List.Root>
     </Stack>
@@ -129,23 +127,23 @@ function Ccip016() {
           mb={[2, 4]}
         >
           <Stat.Root>
-            <StatLabel>MIA Cycles</StatLabel>
+            <Stat.Label>MIA Cycles</Stat.Label>
             <Stat.ValueText>82, 83</Stat.ValueText>
           </Stat.Root>
           <Stat.Root>
-            <StatLabel>NYC Cycles</StatLabel>
+            <Stat.Label>NYC Cycles</Stat.Label>
             <Stat.ValueText>82, 83</Stat.ValueText>
           </Stat.Root>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat.Root>
-            <StatLabel>Yes Vote Count</StatLabel>
+            <Stat.Label>Yes Vote Count</Stat.Label>
             <Stat.ValueText title={`MIA ${yesVotesMia} / NYC ${yesVotesNyc}`}>
               {yesVotesTotal}
             </Stat.ValueText>
           </Stat.Root>
           <Stat.Root>
-            <StatLabel>No Vote Count</StatLabel>
+            <Stat.Label>No Vote Count</Stat.Label>
             <Stat.ValueText title={`MIA ${noVotesMia} / NYC ${noVotesNyc}`}>
               {noVotesTotal}
             </Stat.ValueText>
