@@ -1,8 +1,5 @@
 import {
   Accordion,
-  AccordionItem,
-  AccordionItemIndicator,
-  AccordionItemTrigger,
   Heading,
   Stack,
   Text,
