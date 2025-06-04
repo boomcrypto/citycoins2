@@ -9,13 +9,12 @@ import {
 } from "@chakra-ui/react";
 import VoteTitle from "../votes/vote-title";
 
-
 import CCIP016 from "../votes/ccip-016";
 
 function Voting() {
   return (
     <Stack gap={4}>
-      <Heading>CityCoins Proposals</Heading>
+      <Heading size="4xl">CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
       <Accordion.Root allowMultiple>
         <Accordion.Item>
@@ -30,8 +29,8 @@ function Voting() {
             <CCIP016 />
           </Accordion.ItemContent>
         </Accordion.Item>
-      </Accordion.Root >
-    </Stack >
+      </Accordion.Root>
+    </Stack>
   );
 }
 
