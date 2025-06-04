@@ -18,7 +18,7 @@ function CityCoinsVoteV3() {
   const noTotal = 144037303000000;
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Box
         textAlign={["left", "center"]}
         bg={useColorModeValue("gray.200", "gray.900")}
@@ -80,7 +80,7 @@ function CityCoinsVoteV3() {
           CCIP-011
         </Link>
       </Stack>
-      <Stack spacing={2}>
+      <Stack gap={2}>
         <Text fontWeight="bold">Details:</Text>
         <Text>
           Over the summer, CityCoiners have been working on a plan to stabilize

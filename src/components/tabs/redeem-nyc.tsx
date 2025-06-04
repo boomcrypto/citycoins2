@@ -156,7 +156,7 @@ function RedeemNYC() {
 
   if (!stxAddress) {
     return (
-      <Stack spacing={4}>
+      <Stack gap={4}>
         <Heading>CityCoins NYC Redemption</Heading>
         <Text>Wallet connection required to access redemption.</Text>
         <SignIn />
@@ -165,7 +165,7 @@ function RedeemNYC() {
   }
 
   return (
-    <VStack spacing={8} align="stretch">
+    <VStack gap={8} align="stretch">
       <Heading>User Redemption Info</Heading>
 
       <Button leftIcon={<LuRepeat />} onClick={refreshBalances}>
@@ -212,7 +212,7 @@ function RedeemNYC() {
         </Stat>
       </StatGroup>
 
-      <Stack spacing={4} direction={["column", null, "row"]}>
+      <Stack gap={4} direction={["column", null, "row"]}>
         {ccd012TxId === null ? (
           <>
             <Button
@@ -247,7 +247,7 @@ function RedeemNYC() {
         {redemptionInfo ? (
           // sample object
           // {"blockHeight":"156958","contractBalance":"15519436600244","currentContractBalance":"10790341594479","redemptionRatio":"291064","redemptionsEnabled":true,"totalRedeemed":"4729095005765","totalSupply":"5331965209999999"}
-          <Stack spacing={4}>
+          <Stack gap={4}>
             <Button leftIcon={<LuRepeat />} onClick={setRedemptionInfo}>
               Refresh Redemption Info
             </Button>
@@ -317,7 +317,7 @@ function RedeemNYC() {
         {nycTotalSupply ? (
           // sample object
           // {"blockHeight":"156958","contractBalance":"15519436600244","currentContractBalance":"10790341594479","redemptionRatio":"291064","redemptionsEnabled":true,"totalRedeemed":"4729095005765","totalSupply":"5331965209999999"}
-          <Stack spacing={4}>
+          <Stack gap={4}>
             <Button leftIcon={<LuRepeat />} onClick={setNycTotalSupply}>
               Refresh Token Info
             </Button>
@@ -387,7 +387,7 @@ function RedeemNYC() {
               risks for stSTX or liSTX before continuing.
             </Text>
             <Divider my={4} />
-            <VStack align="stretch" spacing={2}>
+            <VStack align="stretch" gap={2}>
               <Text fontWeight="bold">Official StackingDAO Resources</Text>
               <Link href="https://www.stackingdao.com/" isExternal>
                 <HStack>
@@ -426,7 +426,7 @@ function RedeemNYC() {
               I acknowledge StackingDAO and LISA are not affiliated with
               CityCoins and that I am responsible for my own actions.
             </Checkbox>
-            <Stack spacing={4} direction={["column", null, "row"]} width="full">
+            <Stack gap={4} direction={["column", null, "row"]} width="full">
               <Button onClick={onClose} width="full">
                 Go Back
               </Button>

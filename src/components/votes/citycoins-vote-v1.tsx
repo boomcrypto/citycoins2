@@ -18,7 +18,7 @@ function CityCoinsVoteV1() {
   const noTotal = 5204049000000;
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Box
         textAlign={["left", "center"]}
         bg={useColorModeValue("gray.200", "gray.900")}
@@ -96,7 +96,7 @@ function CityCoinsVoteV1() {
           CCIP-011
         </Link>
       </Stack>
-      <Stack spacing={2}>
+      <Stack gap={2}>
         <Text fontWeight="bold">Details:</Text>
         <Text>
           The CityCoins community is proposing an update to the emissions

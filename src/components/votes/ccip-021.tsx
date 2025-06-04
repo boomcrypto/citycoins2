@@ -19,7 +19,7 @@ function VoteResult() {
   const voterInfo = useCcip021VoteData("voterInfo");
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Text fontWeight="bold">Your Vote:</Text>
       <UnorderedList>
         <ListItem>
@@ -46,7 +46,7 @@ function CCIP021() {
   const noTotal = 0;
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Box
         textAlign={["left", "center"]}
         bg={useColorModeValue("gray.200", "gray.900")}
@@ -108,7 +108,7 @@ function CCIP021() {
           CCIP-015
         </Link>
       </Stack>
-      <Stack spacing={2}>
+      <Stack gap={2}>
         <Text fontWeight="bold">Details:</Text>
         <Text>
           When the ccd001-direct-execute Clarity contract was deployed, a sunset

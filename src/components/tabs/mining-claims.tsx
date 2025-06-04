@@ -9,7 +9,7 @@ function MiningClaims() {
 
   if (!stxAddress) {
     return (
-      <Stack spacing={4}>
+      <Stack gap={4}>
         <Heading>CityCoins Mining Claims</Heading>
         <Text>Wallet connection required to access mining claims.</Text>
         <SignIn />
@@ -18,7 +18,7 @@ function MiningClaims() {
   }
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Heading>CityCoins Mining Claims</Heading>
       <ComingSoon />
     </Stack>

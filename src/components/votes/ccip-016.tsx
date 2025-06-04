@@ -30,7 +30,7 @@ function VoteButtons() {
   return (
     <>
       <Text fontWeight="bold">{hasVoted ? "Change vote" : "Voting"}:</Text>
-      <Stack direction={["column", "row"]} spacing={4}>
+      <Stack direction={["column", "row"]} gap={4}>
         <Button
           onClick={voteYes}
           colorScheme="green"
@@ -54,7 +54,7 @@ function VoteResult() {
   const voterInfo = useCcip016VoteData("voterInfo");
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Text fontWeight="bold">Your Vote:</Text>
       <List.Root>
         <ListItem>
@@ -117,7 +117,7 @@ function Ccip016() {
   };
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Box
         textAlign={["left", "center"]}
         bg={useColorModeValue("gray.200", "gray.900")}
@@ -185,7 +185,7 @@ function Ccip016() {
           CCIP-015
         </Link>
       </Stack>
-      <Stack spacing={2}>
+      <Stack gap={2}>
         <Text fontWeight="bold">Details:</Text>
         <Text>
           The stacking contract ccd007-citycoin-stacking has a bug that sometimes incorrectly returns 0 STX rewards for a cycle.

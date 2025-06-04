@@ -1,8 +1,17 @@
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
-import { fetchReadOnlyFunction } from "micro-stacks/api";
-import { validateStacksAddress } from "micro-stacks/crypto";
-import { standardPrincipalCV, uintCV } from "@stacks/transactions";
+import {
+  ClarityType,
+  ClarityValue,
+  cvToJSON,
+  fetchCallReadOnlyFunction,
+  standardPrincipalCV,
+  TupleCV,
+  TupleData,
+  UIntCV,
+  uintCV,
+  validateStacksAddress,
+} from "@stacks/transactions";
 import { stxAddressAtom } from "./stacks";
 
 /////////////////////////
@@ -143,65 +152,55 @@ export const ccip016VoterInfoQueryAtom = atom(async (get) => {
 /////////////////////////
 
 async function getIsExecutable(): Promise<boolean> {
-  const isExecutableQuery = await fetchReadOnlyFunction<boolean>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "is-executable",
-      functionArgs: [],
-    },
-    true
-  );
-  return isExecutableQuery;
+  const isExecutableQuery = await fetchCallReadOnlyFunction({
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "is-executable",
+    functionArgs: [],
+    senderAddress: CONTRACT_ADDRESS,
+  });
+  return isExecutableQuery.type === ClarityType.BoolTrue;
 }
 
 async function getIsVoteActive(): Promise<boolean> {
-  const isVoteActiveQuery = await fetchReadOnlyFunction<boolean>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "is-vote-active",
-      functionArgs: [],
-    },
-    true
-  );
-  return isVoteActiveQuery;
+  const isVoteActiveQuery = await fetchCallReadOnlyFunction({
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "is-vote-active",
+    functionArgs: [],
+    senderAddress: CONTRACT_ADDRESS,
+  });
+  return isVoteActiveQuery.type === ClarityType.BoolTrue;
 }
 
 async function getVoteTotals(): Promise<Ccip016VoteTotals> {
-  const voteTotalsQuery = await fetchReadOnlyFunction<Ccip016VoteTotals>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-vote-totals",
-      functionArgs: [],
-    },
-    true
-  );
-  return voteTotalsQuery;
+  const voteTotalsQuery = (await fetchCallReadOnlyFunction({
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "get-vote-totals",
+    functionArgs: [],
+    senderAddress: CONTRACT_ADDRESS,
+  })) as unknown as TupleCV<{ mia: UIntCV; nyc: UIntCV; totals: UIntCV }>;
+  return cvToJSON(voteTotalsQuery) as Ccip016VoteTotals;
 }
 
 async function getVoterInfo(voterAddress: string): Promise<Ccip016VoterInfo> {
   if (!validateStacksAddress(voterAddress)) {
     throw new Error("Invalid STX address");
   }
-  const voterIdQuery = await fetchReadOnlyFunction<number>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: "ccd003-user-registry",
-      functionName: "get-user-id",
-      functionArgs: [standardPrincipalCV(voterAddress)],
-    },
-    true
-  );
-  const voterInfoQuery = await fetchReadOnlyFunction<Ccip016VoterInfo>(
-    {
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: "get-voter-info",
-      functionArgs: [uintCV(voterIdQuery)],
-    },
-    true
-  );
-  return voterInfoQuery;
+  const voterIdQuery = await fetchCallReadOnlyFunction({
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: "ccd003-user-registry",
+    functionName: "get-user-id",
+    functionArgs: [standardPrincipalCV(voterAddress)],
+    senderAddress: CONTRACT_ADDRESS,
+  });
+  const voterInfoQuery = (await fetchCallReadOnlyFunction({
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "get-voter-info",
+    functionArgs: [voterIdQuery],
+    senderAddress: CONTRACT_ADDRESS,
+  })) as unknown as TupleCV<{ mia: UIntCV; nyc: UIntCV; totals: UIntCV }>;
+  return cvToJSON(voterInfoQuery) as Ccip016VoterInfo;
 }

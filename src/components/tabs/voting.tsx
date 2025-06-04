@@ -23,7 +23,7 @@ import CCIP016 from "../votes/ccip-016";
 
 function Voting() {
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Heading>CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
       <Accordion allowMultiple>

@@ -1,5 +1,4 @@
 import { atomWithStorage } from "jotai/utils";
-import { fetchCoreApiInfo } from "micro-stacks/api";
 import {
   AddressTransactionsWithTransfersListResponse,
   Transaction,
@@ -137,16 +136,19 @@ export const blockHeightsQueryAtom = atom(async () => {
 
 async function getBlockHeights(): Promise<BlockHeights | undefined> {
   try {
-    const v2InfoResponse = await fetchCoreApiInfo({
-      url: `${HIRO_API}/v2/info`,
-    });
-    const blockHeights: BlockHeights = {
-      btc: v2InfoResponse.burn_block_height,
-      stx: v2InfoResponse.stacks_tip_height,
-    };
-    return blockHeights;
+    const v2InfoResponse = await fetch(`${HIRO_API}/v2/info`);
+    const v2Info = await v2InfoResponse.json();
+    if (!v2Info.burn_block_height || !v2Info.stacks_tip_height) {
+      const blockHeights: BlockHeights = {
+        btc: v2Info.burn_block_height,
+        stx: v2Info.stacks_tip_height,
+      };
+      return blockHeights;
+    } else {
+      throw new Error("Incomplete v2-info response: missing block heights");
+    }
   } catch (error) {
-    throw new Error(`Failed to fetch v2-info in micro-stacks: ${error}`);
+    throw new Error(`Failed to fetch v2-info: ${error}`);
   }
 }
 

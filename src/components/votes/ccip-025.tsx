@@ -33,7 +33,7 @@ function VoteButtons() {
   return (
     <>
       <Text fontWeight="bold">{hasVoted ? "Change vote" : "Voting"}:</Text>
-      <Stack direction={["column", "row"]} spacing={4}>
+      <Stack direction={["column", "row"]} gap={4}>
         <Button
           onClick={voteYes}
           colorScheme="green"
@@ -59,7 +59,7 @@ function VoteResult() {
   const voterInfo = useCcip025VoteData("voterInfo");
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Text fontWeight="bold">Your Vote:</Text>
       <UnorderedList>
         <ListItem>
@@ -107,7 +107,7 @@ function CCIP025() {
   };
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Box
         textAlign={["left", "center"]}
         bg={useColorModeValue("gray.200", "gray.900")}
@@ -182,7 +182,7 @@ function CCIP025() {
           CCIP-015
         </Link>
       </Stack>
-      <Stack spacing={2}>
+      <Stack gap={2}>
         <Text fontWeight="bold">Details:</Text>
         <Text>
           When the ccd001-direct-execute1 Clarity contract was deployed, a

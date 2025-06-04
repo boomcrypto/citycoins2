@@ -48,7 +48,7 @@ function Dashboard() {
 
   if (!stxAddress) {
     return (
-      <Stack spacing={4}>
+      <Stack gap={4}>
         <Heading>CityCoins Dashboard</Heading>
         <Text>Wallet connection required to access dashboard.</Text>
         <SignIn />
@@ -57,14 +57,14 @@ function Dashboard() {
   }
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Heading>CityCoins Dashboard</Heading>
 
       <Stack
         direction={["column", null, "row"]}
         alignItems="center"
         justifyContent="space-between"
-        spacing={2}
+        gap={2}
       >
         <Text fontWeight="bold">{stxAddress}</Text>
         <Text size="sm">{`${transactions.length} transactions detected`}</Text>
@@ -75,7 +75,7 @@ function Dashboard() {
       <Stack
         direction={["column", null, "row"]}
         justifyContent="space-between"
-        spacing={2}
+        gap={2}
       >
         <Stack
           direction="row"

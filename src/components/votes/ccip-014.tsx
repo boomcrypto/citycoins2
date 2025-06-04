@@ -18,7 +18,7 @@ function CCIP014() {
   const noTotal = 0;
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Box
         textAlign={["left", "center"]}
         bg={useColorModeValue("gray.200", "gray.900")}
@@ -88,7 +88,7 @@ function CCIP014() {
           CCIP-015
         </Link>
       </Stack>
-      <Stack spacing={2}>
+      <Stack gap={2}>
         <Text fontWeight="bold">Details:</Text>
         <Text>
           The city treasury contracts used with mining directly call the .pox

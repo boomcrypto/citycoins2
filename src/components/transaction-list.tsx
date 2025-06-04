@@ -48,7 +48,7 @@ function TransactionList({ transactions }: TransactionListProps) {
   };
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Stack direction="row" alignItems="center" minH="2em">
         <Box
           w={3}
@@ -109,7 +109,7 @@ function TransactionList({ transactions }: TransactionListProps) {
 function TransactionItem({ tx }: TransactionItemProps) {
   return (
     <Box borderWidth="1px" borderRadius="lg" p={4} mb={4}>
-      <Stack spacing={2}>
+      <Stack gap={2}>
         <Text fontWeight="bold" fontSize="lg">
           TXID: {tx.tx_id}
         </Text>
@@ -144,7 +144,7 @@ function TransactionFunctionArgs({
   return (
     <Stack>
       <Text fontWeight="bold">Function Arguments</Text>
-      <List spacing={2}>
+      <List gap={2}>
         {functionArgs.map((arg) => (
           <ListItem key={arg.hex}>
             <Text>Name: {arg.name}</Text>
