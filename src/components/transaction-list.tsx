@@ -84,12 +84,13 @@ function TransactionList({ transactions }: TransactionListProps) {
                 : "No transactions loaded yet"}
             </Text>
             <IconButton
-              icon={<IoMdRefresh />}
               aria-label="Refresh Transactions"
               title="Refresh Transactions"
               size="sm"
               onClick={fetchTransactions}
-            />
+            >
+              <IoMdRefresh />
+            </IconButton>
           </Stack>
         )}
       </Stack>

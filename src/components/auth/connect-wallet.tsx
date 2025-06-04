@@ -7,11 +7,11 @@ function ConnectWallet() {
       <Heading>Wallet Connection Required</Heading>
       <Text>
         A{" "}
-        <Link href="https://leather.io" isExternal>
+        <Link href="https://leather.io" target="_blank" rel="noopener noreferrer">
           Leather
         </Link>{" "}
         or{" "}
-        <Link href="https://xverse.app" isExternal>
+        <Link href="https://xverse.app" target="_blank" rel="noopener noreferrer">
           Xverse
         </Link>{" "}
         wallet connection is required to use this website.

@@ -18,7 +18,7 @@ function VoteProgressBarCCIP022({ props }: VoteProgressBarCCIP022Props) {
         value={yesVotePercentage}
         size="lg"
         bgColor={useColorModeValue("red.500", "red.200")}
-        colorScheme="green"
+        colorPalette="green"
       />
       <Box display="flex" flexWrap="wrap" justifyContent="space-between" mt={2}>
         <Text

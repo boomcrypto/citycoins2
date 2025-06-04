@@ -16,7 +16,7 @@ function VoteProgressBarV2({ props }: VoteProgressBarV2Props) {
       <Progress.Root
         value={yesVotePercentage}
         size="lg"
-        colorScheme="green"
+        colorPalette="green"
       />
       <Box display="flex" flexWrap="wrap" justifyContent="space-between" mt={2}>
         <Text

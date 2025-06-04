@@ -6,13 +6,13 @@ function ComingSoon() {
       <Text fontWeight="bold">Coming Soon!</Text>
       <Text>
         Old interface available at{" "}
-        <Link isExternal href="https://minecitycoins.com">
+        <Link href="https://minecitycoins.com" target="_blank" rel="noopener noreferrer">
           minecitycoins.com
         </Link>
       </Text>
       <Text>
         Alternate interface available at{" "}
-        <Link isExternal href="https://jing.cash">
+        <Link href="https://jing.cash" target="_blank" rel="noopener noreferrer">
           jing.cash
         </Link>
       </Text>

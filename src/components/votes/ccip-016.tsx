@@ -34,14 +34,14 @@ function VoteButtons() {
       <Stack direction={["column", "row"]} gap={4}>
         <Button
           onClick={voteYes}
-          colorScheme="green"
+          colorPalette="green"
           size="lg"
         >
           Vote Yes
         </Button>
         <Button
           onClick={voteNo}
-          colorScheme="red"
+          colorPalette="red"
           size="lg"
         >
           Vote No
