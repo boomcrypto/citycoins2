@@ -35,7 +35,7 @@ function VoteTitle(props: { title: string; status: VoteStatus }) {
       <Badge
         minW={100}
         textAlign="center"
-        colorScheme={getStatusColor(props.status)}
+        colorPalette={getStatusColor(props.status)}
         p={[2, 4]}
       >
         {props.status}

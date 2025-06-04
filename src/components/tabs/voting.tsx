@@ -13,8 +13,8 @@ function Voting() {
     <Stack gap={4}>
       <Heading size="4xl">CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
-      <Accordion.Root allowMultiple>
-        <Accordion.Item>
+      <Accordion.Root multiple>
+        <Accordion.Item value="ccip-016-vote">
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 12: Mising Payouts (CCIP-016)"
