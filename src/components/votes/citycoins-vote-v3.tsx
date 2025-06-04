@@ -2,6 +2,7 @@ import {
   Box,
   Divider,
   Link,
+  Separator,
   Stack,
   Stat,
   StatLabel,
@@ -29,28 +30,28 @@ function CityCoinsVoteV3() {
           justifyContent="space-between"
           mb={[2, 4]}
         >
-          <Stat>
+          <Stat.Root>
             <StatLabel>MIA Cycles</StatLabel>
             <StatNumber>24, 25</StatNumber>
-          </Stat>
-          <Stat>
+          </Stat.Root>
+          <Stat.Root>
             <StatLabel>NYC Cycles</StatLabel>
             <StatNumber>18, 19</StatNumber>
-          </Stat>
+          </Stat.Root>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
-          <Stat>
+          <Stat.Root>
             <StatLabel>Yes Vote Count</StatLabel>
             <StatNumber>{yesVotes}</StatNumber>
-          </Stat>
-          <Stat>
+          </Stat.Root>
+          <Stat.Root>
             <StatLabel>No Vote Count</StatLabel>
             <StatNumber>{noVotes}</StatNumber>
-          </Stat>
+          </Stat.Root>
         </Stack>
       </Box>
       <VoteProgressBar yesTotal={yesTotal} noTotal={noTotal} />
-      <Divider />
+      <Separator />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
         <Box>

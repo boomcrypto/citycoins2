@@ -4,6 +4,7 @@ import {
   Link,
   List,
   ListItem,
+  Separator,
   Stack,
   Stat,
   StatLabel,
@@ -12,7 +13,7 @@ import {
 import { useAtomValue } from "jotai";
 import { useCcip016VoteActions } from "../../hooks/use-ccip-016-vote-actions";
 import { useCcip016VoteData } from "../../hooks/use-ccip-016-vote-data";
-import { Ccip016VoteTotals, hasVotedAtom } from "../../store/ccip-016";
+import { Ccip016VoteTotals, CONTRACT_FQ_NAME, CONTRACT_NAME, hasVotedAtom } from "../../store/ccip-016";
 import { formatMicroAmount } from "../../store/common";
 import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
@@ -120,7 +121,6 @@ function Ccip016() {
     <Stack gap={4}>
       <Box
         textAlign={["left", "center"]}
-        bg={useColorModeValue("gray.200", "gray.900")}
         p={4}
       >
         <Stack
@@ -130,35 +130,35 @@ function Ccip016() {
         >
           <Stat.Root>
             <StatLabel>MIA Cycles</StatLabel>
-            <StatNumber>82, 83</StatNumber>
+            <Stat.ValueText>82, 83</Stat.ValueText>
           </Stat.Root>
           <Stat.Root>
             <StatLabel>NYC Cycles</StatLabel>
-            <StatNumber>82, 83</StatNumber>
+            <Stat.ValueText>82, 83</Stat.ValueText>
           </Stat.Root>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat.Root>
             <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber title={`MIA ${yesVotesMia} / NYC ${yesVotesNyc}`}>
+            <Stat.ValueText title={`MIA ${yesVotesMia} / NYC ${yesVotesNyc}`}>
               {yesVotesTotal}
-            </StatNumber>
+            </Stat.ValueText>
           </Stat.Root>
           <Stat.Root>
             <StatLabel>No Vote Count</StatLabel>
-            <StatNumber title={`MIA ${noVotesMia} / NYC ${noVotesNyc}`}>
+            <Stat.ValueText title={`MIA ${noVotesMia} / NYC ${noVotesNyc}`}>
               {noVotesTotal}
-            </StatNumber>
+            </Stat.ValueText>
           </Stat.Root>
         </Stack>
       </Box>
       <VoteProgressBarV2 props={voteTotalsObject} />
-      <Divider />
+      <Separator />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
         <Box>
           <Link
-            href="https://github.com/citycoins/governance/blob/feat/add-ccip-025/ccips/ccip-025/ccip-025-extend-direct-execute-sunset-period-3.md"
+            href="https://github.com/citycoins/governance/blob/main/ccips/ccip-016/ccip-016-refund-incorrect-ccd007-payouts.md"
             isExternal
           >
             CCIP-016
@@ -169,10 +169,10 @@ function Ccip016() {
         <Text fontWeight="bold">Related Contracts:</Text>
         <Box textAlign="end">
           <Link
-            href="https://explorer.hiro.so/txid/SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.ccip016-missed-payouts?chain=mainnet"
+            href={`https://explorer.hiro.so/txid/${CONTRACT_FQ_NAME}?chain=mainnet`}
             isExternal
           >
-            ccip016-extend-sunset-period-3
+            {CONTRACT_NAME}
           </Link>
         </Box>
       </Stack>
@@ -195,7 +195,7 @@ function Ccip016() {
 
       {isVoteActive.data && hasVoted ? (
         <>
-          <Divider />
+          <Separator />
           <Text fontWeight="bold">Vote recorded, thank you!</Text>
           <Text>Refresh to see stats once the tx confirms.</Text>
         </>

@@ -1,13 +1,9 @@
 import { useCallback } from "react";
 import { WritableAtom } from "jotai";
 import { RESET, useAtomCallback } from "jotai/utils";
-import { ccd012LocalStorageAtoms } from "../store/ccd-012";
-import { ccip017LocalStorageAtoms } from "../store/ccip-017";
-import { ccip020LocalStorageAtoms } from "../store/ccip-020";
-import { ccip021LocalStorageAtoms } from "../store/ccip-021";
-import { ccip022LocalStorageAtoms } from "../store/ccip-022";
 import { commonLocalStorageAtoms } from "../store/common";
 import { stacksLocalStorageAtoms } from "../store/stacks";
+import { ccip016LocalStorageAtoms } from "../store/ccip-016";
 
 type AnyWritableAtom = WritableAtom<any, any, any>;
 
@@ -20,11 +16,7 @@ export const useClearUserData = () => {
 
       // combine all localstorage atoms
       const allLocalStorageAtoms = [
-        ...ccd012LocalStorageAtoms,
-        ...ccip017LocalStorageAtoms,
-        ...ccip020LocalStorageAtoms,
-        ...ccip021LocalStorageAtoms,
-        ...ccip022LocalStorageAtoms,
+        ...ccip016LocalStorageAtoms,
         ...commonLocalStorageAtoms,
         ...stacksLocalStorageAtoms,
       ];

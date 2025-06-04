@@ -1,14 +1,14 @@
-import { ChakraProvider, Divider, Flex } from "@chakra-ui/react";
-import theme from "./theme";
-import Header from "./components/layout/page-header";
+import { Flex, Separator } from "@chakra-ui/react";
 import Content from "./components/layout/page-content";
 import Footer from "./components/layout/page-footer";
+import Header from "./components/layout/page-header";
+import { Provider } from "./components/ui/provider";
 
 export const App = () => (
-  <ChakraProvider theme={theme}>
+  <Provider>
     <Flex direction="column" minH="100vh">
       <Header />
-      <Divider />
+      <Separator />
       <Flex
         flex="1"
         alignItems="flex-start"
@@ -18,8 +18,8 @@ export const App = () => (
       >
         <Content />
       </Flex>
-      <Divider />
+      <Separator />
       <Footer />
     </Flex>
-  </ChakraProvider>
+  </Provider>
 );

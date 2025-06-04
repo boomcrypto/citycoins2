@@ -5,6 +5,8 @@ import {
   ClarityValue,
   cvToJSON,
   fetchCallReadOnlyFunction,
+  OptionalCV,
+  SomeCV,
   standardPrincipalCV,
   TupleCV,
   TupleData,
@@ -48,7 +50,7 @@ export type Ccip016VoterInfo = {
 /////////////////////////
 
 export const CONTRACT_ADDRESS = "SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9";
-export const CONTRACT_NAME = "ccip016-missed-payouts";
+export const CONTRACT_NAME = "ccip016-missed-payouts-v3";
 export const CONTRACT_FQ_NAME = `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`;
 
 /////////////////////////
@@ -126,6 +128,7 @@ export const ccip016IsVoteActiveQueryAtom = atom(async () => {
 export const ccip016VoteTotalsQueryAtom = atom(async () => {
   try {
     const voteTotals = await getVoteTotals();
+    console.log(voteTotals, "voteTotals");
     return voteTotals;
   } catch (error) {
     throw new Error(
@@ -173,6 +176,13 @@ async function getIsVoteActive(): Promise<boolean> {
   return isVoteActiveQuery.type === ClarityType.BoolTrue;
 }
 
+type VoteCV = TupleCV<{
+  totalAmountYes: UIntCV;
+  totalAmountNo: UIntCV;
+  totalVotesYes: UIntCV;
+  totalVotesNo: UIntCV;
+}>;
+
 async function getVoteTotals(): Promise<Ccip016VoteTotals> {
   const voteTotalsQuery = (await fetchCallReadOnlyFunction({
     contractAddress: CONTRACT_ADDRESS,
@@ -180,8 +190,53 @@ async function getVoteTotals(): Promise<Ccip016VoteTotals> {
     functionName: "get-vote-totals",
     functionArgs: [],
     senderAddress: CONTRACT_ADDRESS,
-  })) as unknown as TupleCV<{ mia: UIntCV; nyc: UIntCV; totals: UIntCV }>;
-  return cvToJSON(voteTotalsQuery) as Ccip016VoteTotals;
+  })) as unknown as SomeCV<
+    TupleCV<{ mia: VoteCV; nyc: VoteCV; totals: VoteCV }>
+  >;
+  return {
+    mia: {
+      totalAmountYes: Number(
+        voteTotalsQuery.value.value.mia.value.totalAmountYes.value
+      ),
+      totalAmountNo: Number(
+        voteTotalsQuery.value.value.mia.value.totalAmountNo.value
+      ),
+      totalVotesYes: Number(
+        voteTotalsQuery.value.value.mia.value.totalVotesYes.value
+      ),
+      totalVotesNo: Number(
+        voteTotalsQuery.value.value.mia.value.totalVotesNo.value
+      ),
+    },
+    nyc: {
+      totalAmountYes: Number(
+        voteTotalsQuery.value.value.nyc.value.totalAmountYes.value
+      ),
+      totalAmountNo: Number(
+        voteTotalsQuery.value.value.nyc.value.totalAmountNo.value
+      ),
+      totalVotesYes: Number(
+        voteTotalsQuery.value.value.nyc.value.totalVotesYes.value
+      ),
+      totalVotesNo: Number(
+        voteTotalsQuery.value.value.nyc.value.totalVotesNo.value
+      ),
+    },
+    totals: {
+      totalAmountYes: Number(
+        voteTotalsQuery.value.value.totals.value.totalAmountYes.value
+      ),
+      totalAmountNo: Number(
+        voteTotalsQuery.value.value.totals.value.totalAmountNo.value
+      ),
+      totalVotesYes: Number(
+        voteTotalsQuery.value.value.totals.value.totalVotesYes.value
+      ),
+      totalVotesNo: Number(
+        voteTotalsQuery.value.value.totals.value.totalVotesNo.value
+      ),
+    },
+  } as Ccip016VoteTotals;
 }
 
 async function getVoterInfo(voterAddress: string): Promise<Ccip016VoterInfo> {

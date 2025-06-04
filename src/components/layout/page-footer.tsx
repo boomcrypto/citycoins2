@@ -11,24 +11,22 @@ function Footer() {
         </Heading>
       </Flex>
       <Button
-        as="a"
+        asChild
         title="About"
         variant="ghost"
-        href="https://citycoins.co"
-        target="_blank"
-        rel="noopener noreferrer"
       >
-        About
+        <a href="https://citycoins.co" target="_blank" rel="noopener noreferrer">
+          About
+        </a>
       </Button>
       <Button
-        as="a"
+        asChild
         title="GitHub"
         variant="ghost"
-        href="https://github.com/citycoins"
-        target="_blank"
-        rel="noopener noreferrer"
       >
-        GitHub
+        <a href="https://github.com/citycoins" target="_blank" rel="noopener noreferrer">
+          GitHub
+        </a>
       </Button>
     </Flex>
   );

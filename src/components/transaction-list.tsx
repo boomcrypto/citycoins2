@@ -47,6 +47,7 @@ function TransactionList({ transactions }: TransactionListProps) {
     }
   };
 
+  console.log("TransactionList rendered with transactions:", transactions);
   return (
     <Stack gap={4}>
       <Stack direction="row" alignItems="center" minH="2em">
@@ -95,11 +96,11 @@ function TransactionList({ transactions }: TransactionListProps) {
       <Stack>
         {transactions?.length === 0 && <Text>No transactions found.</Text>}
         {transactions?.length > 0 && (
-          <List>
+          <List.Root>
             {transactions.map((tx) => (
               <TransactionItem key={tx.tx_id} tx={tx} />
             ))}
-          </List>
+          </List.Root>
         )}
       </Stack>
     </Stack>
@@ -144,7 +145,7 @@ function TransactionFunctionArgs({
   return (
     <Stack>
       <Text fontWeight="bold">Function Arguments</Text>
-      <List gap={2}>
+      <List.Root gap={2}>
         {functionArgs.map((arg) => (
           <ListItem key={arg.hex}>
             <Text>Name: {arg.name}</Text>
@@ -152,7 +153,7 @@ function TransactionFunctionArgs({
             <Text>Repr: {arg.repr}</Text>
           </ListItem>
         ))}
-      </List>
+      </List.Root>
     </Stack>
   );
 }
