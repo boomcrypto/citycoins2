@@ -3,6 +3,7 @@ import {
   Button,
   Link,
   List,
+  ListItem,
   Separator,
   Stack,
   Stat,
@@ -57,12 +58,12 @@ function VoteResult() {
     <Stack gap={4}>
       <Text fontWeight="bold">Your Vote:</Text>
       <List.Root>
-        <List.Item>
+        <ListItem>
           Recorded Vote: {voterInfo.data?.vote ? "Yes" : "No"}
-        </List.Item>
+        </ListItem>
         <List.Root>
-          <List.Item>MIA: {formatMicroAmount(voterInfo.data?.mia)}</List.Item>
-          <List.Item>NYC: {formatMicroAmount(voterInfo.data?.nyc)}</List.Item>
+          <ListItem>MIA: {formatMicroAmount(voterInfo.data?.mia)}</ListItem>
+          <ListItem>NYC: {formatMicroAmount(voterInfo.data?.nyc)}</ListItem>
         </List.Root>
       </List.Root>
     </Stack>
@@ -158,7 +159,7 @@ function Ccip016() {
         <Box>
           <Link
             href="https://github.com/citycoins/governance/blob/main/ccips/ccip-016/ccip-016-refund-incorrect-ccd007-payouts.md"
-            target="_blank" rel="noopener noreferrer"
+            isExternal
           >
             CCIP-016
           </Link>
@@ -169,7 +170,7 @@ function Ccip016() {
         <Box textAlign="end">
           <Link
             href={`https://explorer.hiro.so/txid/${CONTRACT_FQ_NAME}?chain=mainnet`}
-            target="_blank" rel="noopener noreferrer"
+            isExternal
           >
             {CONTRACT_NAME}
           </Link>
@@ -179,7 +180,7 @@ function Ccip016() {
         <Text fontWeight="bold">Voting Method:</Text>
         <Link
           href="https://github.com/citycoins/governance/blob/main/ccips/ccip-015/ccip-015-community-proposal-voting-process.md"
-          target="_blank" rel="noopener noreferrer"
+          isExternal
         >
           CCIP-015
         </Link>
