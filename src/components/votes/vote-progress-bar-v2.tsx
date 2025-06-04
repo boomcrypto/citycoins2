@@ -13,11 +13,11 @@ function VoteProgressBarV2({ props }: VoteProgressBarV2Props) {
 
   return (
     <Box width="100%">
-      <Progress.Root
-        value={yesVotePercentage}
-        size="lg"
-        colorPalette="green"
-      />
+      <Progress.Root value={yesVotePercentage} size="lg" colorPalette="green">
+        <Progress.Track>
+          <Progress.Range />
+        </Progress.Track>
+      </Progress.Root>
       <Box display="flex" flexWrap="wrap" justifyContent="space-between" mt={2}>
         <Text
           title={`MIA ${formatMicroAmount(
