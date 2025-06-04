@@ -1,9 +1,4 @@
-import {
-  Accordion,
-  Heading,
-  Stack,
-  Text,
-} from "@chakra-ui/react";
+import { Accordion, Heading, Stack, Text } from "@chakra-ui/react";
 import VoteTitle from "../votes/vote-title";
 
 import CCIP016 from "../votes/ccip-016";
@@ -14,7 +9,7 @@ function Voting() {
       <Heading size="4xl">CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
       <Accordion.Root multiple>
-        <Accordion.Item value="ccip-016-vote">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 12: Mising Payouts (CCIP-016)"

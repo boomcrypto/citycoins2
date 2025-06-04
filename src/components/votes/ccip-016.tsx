@@ -11,7 +11,12 @@ import {
 import { useAtomValue } from "jotai";
 import { useCcip016VoteActions } from "../../hooks/use-ccip-016-vote-actions";
 import { useCcip016VoteData } from "../../hooks/use-ccip-016-vote-data";
-import { Ccip016VoteTotals, CONTRACT_FQ_NAME, CONTRACT_NAME, hasVotedAtom } from "../../store/ccip-016";
+import {
+  Ccip016VoteTotals,
+  CONTRACT_FQ_NAME,
+  CONTRACT_NAME,
+  hasVotedAtom,
+} from "../../store/ccip-016";
 import { formatMicroAmount } from "../../store/common";
 import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
@@ -30,18 +35,10 @@ function VoteButtons() {
     <>
       <Text fontWeight="bold">{hasVoted ? "Change vote" : "Voting"}:</Text>
       <Stack direction={["column", "row"]} gap={4}>
-        <Button
-          onClick={voteYes}
-          colorPalette="green"
-          size="lg"
-        >
+        <Button onClick={voteYes} colorPalette="green" size="lg" mb={4}>
           Vote Yes
         </Button>
-        <Button
-          onClick={voteNo}
-          colorPalette="red"
-          size="lg"
-        >
+        <Button onClick={voteNo} colorPalette="red" size="lg">
           Vote No
         </Button>
       </Stack>
@@ -70,14 +67,9 @@ function VoteResult() {
 
 function Ccip016() {
   const voterInfo = useCcip016VoteData("voterInfo");
-
-
-
-
   const isVoteActive = useCcip016VoteData("isVoteActive");
   const voteTotals = useCcip016VoteData("voteTotals");
   const hasVoted = useAtomValue(hasVotedAtom);
-
 
   const yesVoteAmountMia = voteTotals.data?.mia.totalAmountYes || 0;
   const yesVoteAmountNyc = voteTotals.data?.nyc.totalAmountYes || 0;
@@ -90,6 +82,7 @@ function Ccip016() {
   const yesVotesMia = voteTotals.data?.mia.totalVotesYes || 0;
   const yesVotesNyc = voteTotals.data?.nyc.totalVotesYes || 0;
   const yesVotesTotal = yesVotesMia + yesVotesNyc;
+
   const noVotesMia = voteTotals.data?.mia.totalVotesNo || 0;
   const noVotesNyc = voteTotals.data?.nyc.totalVotesNo || 0;
   const noVotesTotal = noVotesMia + noVotesNyc;
@@ -117,10 +110,7 @@ function Ccip016() {
 
   return (
     <Stack gap={4}>
-      <Box
-        textAlign={["left", "center"]}
-        p={4}
-      >
+      <Box textAlign={["left", "center"]} p={4}>
         <Stack
           direction={["column", "row"]}
           justifyContent="space-between"
@@ -157,7 +147,8 @@ function Ccip016() {
         <Box>
           <Link
             href="https://github.com/citycoins/governance/blob/main/ccips/ccip-016/ccip-016-refund-incorrect-ccd007-payouts.md"
-            isExternal
+            rel="noopener noreferrer"
+            target="_blank"
           >
             CCIP-016
           </Link>
@@ -168,7 +159,8 @@ function Ccip016() {
         <Box textAlign="end">
           <Link
             href={`https://explorer.hiro.so/txid/${CONTRACT_FQ_NAME}?chain=mainnet`}
-            isExternal
+            rel="noopener noreferrer"
+            target="_blank"
           >
             {CONTRACT_NAME}
           </Link>
@@ -178,7 +170,8 @@ function Ccip016() {
         <Text fontWeight="bold">Voting Method:</Text>
         <Link
           href="https://github.com/citycoins/governance/blob/main/ccips/ccip-015/ccip-015-community-proposal-voting-process.md"
-          isExternal
+          rel="noopener noreferrer"
+          target="_blank"
         >
           CCIP-015
         </Link>
@@ -186,8 +179,10 @@ function Ccip016() {
       <Stack gap={2}>
         <Text fontWeight="bold">Details:</Text>
         <Text>
-          The stacking contract ccd007-citycoin-stacking has a bug that sometimes incorrectly returns 0 STX rewards for a cycle.
-          The the propsal sends stacking rewards to those stackers that were affected by this bug.
+          The stacking contract ccd007-citycoin-stacking has a bug that
+          sometimes incorrectly returns 0 STX rewards for a cycle. The the
+          propsal sends stacking rewards to those stackers that were affected by
+          this bug.
         </Text>
       </Stack>
 
@@ -199,8 +194,7 @@ function Ccip016() {
         </>
       ) : (
         <VoteButtons />
-      )
-      }
+      )}
 
       {voterInfo.data && <VoteResult />}
     </Stack>
