@@ -1,19 +1,15 @@
 import {
   Button,
-  Divider,
   Heading,
   IconButton,
+  Separator,
   Stack,
   Stat,
   StatLabel,
-  StatNumber,
   Text,
 } from "@chakra-ui/react";
-import { MdFilterList } from "react-icons/md";
-import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
 import { useAtom, useAtomValue } from "jotai";
-import SignIn from "../auth/sign-in";
-import TransactionList from "../transaction-list";
+import { MdFilterList } from "react-icons/md";
 import {
   TransactionTypes,
   miningClaimTransactionsAtom,
@@ -24,6 +20,9 @@ import {
   stackingTransactionsAtom,
   votingTransactionsAtom,
 } from "../../store/citycoins";
+import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
+import SignIn from "../auth/sign-in";
+import TransactionList from "../transaction-list";
 
 function Dashboard() {
   const stxAddress = useAtomValue(stxAddressAtom);
@@ -48,7 +47,7 @@ function Dashboard() {
 
   if (!stxAddress) {
     return (
-      <Stack spacing={4}>
+      <Stack gap={4}>
         <Heading>CityCoins Dashboard</Heading>
         <Text>Wallet connection required to access dashboard.</Text>
         <SignIn />
@@ -57,35 +56,35 @@ function Dashboard() {
   }
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Heading>CityCoins Dashboard</Heading>
 
       <Stack
         direction={["column", null, "row"]}
         alignItems="center"
         justifyContent="space-between"
-        spacing={2}
+        gap={2}
       >
         <Text fontWeight="bold">{stxAddress}</Text>
         <Text size="sm">{`${transactions.length} transactions detected`}</Text>
         <Button onClick={() => selectTransactions("all")}>Show All</Button>
       </Stack>
-      <Divider />
+      <Separator />
       {/* Transaction Stats and Filters */}
       <Stack
         direction={["column", null, "row"]}
         justifyContent="space-between"
-        spacing={2}
+        gap={2}
       >
         <Stack
           direction="row"
           alignContent="center"
           justifyContent="space-between"
         >
-          <Stat>
+          <Stat.Root>
             <StatLabel>Mining TXs</StatLabel>
-            <StatNumber>{miningTransactions.length}</StatNumber>
-          </Stat>
+            <Stat.Label>{miningTransactions.length}</Stat.Label>
+          </Stat.Root>
           <IconButton
             colorScheme={selectedTransactionType === "mining" ? "blue" : "gray"}
             icon={<MdFilterList />}
@@ -100,10 +99,10 @@ function Dashboard() {
           alignContent="center"
           justifyContent="space-between"
         >
-          <Stat>
+          <Stat.Root>
             <StatLabel>Mining Claim TXs</StatLabel>
-            <StatNumber>{miningClaimTransactions.length}</StatNumber>
-          </Stat>
+            <Stat.Label>{miningClaimTransactions.length}</Stat.Label>
+          </Stat.Root>
           <IconButton
             colorScheme={
               selectedTransactionType === "mining-claims" ? "blue" : "gray"
@@ -120,10 +119,10 @@ function Dashboard() {
           alignContent="center"
           justifyContent="space-between"
         >
-          <Stat>
+          <Stat.Root>
             <StatLabel>Stacking TXs</StatLabel>
-            <StatNumber>{stackingTransactions.length}</StatNumber>
-          </Stat>
+            <Stat.Label>{stackingTransactions.length}</Stat.Label>
+          </Stat.Root>
           <IconButton
             colorScheme={
               selectedTransactionType === "stacking" ? "blue" : "gray"
@@ -140,10 +139,10 @@ function Dashboard() {
           alignContent="center"
           justifyContent="space-between"
         >
-          <Stat>
+          <Stat.Root>
             <StatLabel>Stacking Claim TXs</StatLabel>
-            <StatNumber>{stackingClaimTransactions.length}</StatNumber>
-          </Stat>
+            <Stat.Label>{stackingClaimTransactions.length}</Stat.Label>
+          </Stat.Root>
           <IconButton
             colorScheme={
               selectedTransactionType === "stacking-claims" ? "blue" : "gray"
@@ -160,10 +159,10 @@ function Dashboard() {
           alignContent="center"
           justifyContent="space-between"
         >
-          <Stat>
+          <Stat.Root>
             <StatLabel>Voting TXs</StatLabel>
-            <StatNumber>{votingTransactions.length}</StatNumber>
-          </Stat>
+            <Stat.Label>{votingTransactions.length}</Stat.Label>
+          </Stat.Root>
           <IconButton
             colorScheme={selectedTransactionType === "voting" ? "blue" : "gray"}
             icon={<MdFilterList />}
@@ -174,7 +173,7 @@ function Dashboard() {
           />
         </Stack>
       </Stack>
-      <Divider />
+      <Separator />
       <TransactionList transactions={selectedTransactions} />
     </Stack>
   );

@@ -4,22 +4,19 @@ import {
   IconButton,
   Stack,
   Text,
-  useColorMode,
 } from "@chakra-ui/react";
-import { useAccount } from "@micro-stacks/react";
-import CityCoinsLogo from "./citycoins-logo";
+import { getLocalStorage } from "@stacks/connect";
+import { FaMoon, FaSun } from "react-icons/fa";
+import ClearData from "../auth/clear-data";
 import SignIn from "../auth/sign-in";
 import SignOut from "../auth/sign-out";
-import ClearData from "../auth/clear-data";
+import CityCoinsLogo from "./citycoins-logo";
+import { useAtom, useAtomValue } from "jotai";
 import { stxAddressAtom } from "../../store/stacks";
-import { useAtom } from "jotai";
-import { FaMoon, FaSun } from "react-icons/fa";
 
 function Header() {
-  const { stxAddress } = useAccount();
-  const { colorMode, toggleColorMode } = useColorMode();
-  const [storedStxAddress] = useAtom(stxAddressAtom);
-
+  const stxAddress = useAtomValue(stxAddressAtom);
+  console.log("STX Address:", stxAddress);
   return (
     <Stack align="center" direction={["column", "row"]} p={4}>
       <Flex flexGrow="1" align="center">
@@ -30,24 +27,16 @@ function Header() {
       </Flex>
       <Stack direction={["column", "row"]} alignItems="center">
         <Text fontWeight="semibold" fontSize="md">
-          {stxAddress === undefined && storedStxAddress
-            ? `${storedStxAddress.slice(0, 5)}...${storedStxAddress.slice(-5)}`
-            : stxAddress
+          {stxAddress
             ? `${stxAddress.slice(0, 5)}...${stxAddress.slice(-5)}`
             : ""}
         </Text>
         <ClearData variant="outline" />
-        {stxAddress === undefined ? (
+        {!stxAddress ? (
           <SignIn variant="outline" />
         ) : (
           <SignOut variant="outline" />
         )}
-        <IconButton
-          aria-label="Learn More"
-          title="Learn More"
-          icon={colorMode === "light" ? <FaMoon /> : <FaSun />}
-          onClick={toggleColorMode}
-        />
       </Stack>
     </Stack>
   );

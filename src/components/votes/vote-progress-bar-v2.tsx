@@ -1,29 +1,28 @@
-import { Box, Progress, Text, useColorModeValue } from "@chakra-ui/react";
+import { Box, Progress, Text } from "@chakra-ui/react";
 import { formatMicroAmount } from "../../store/common";
-import { Ccip020VoteTotals } from "../../store/ccip-020";
+import { Ccip016VoteTotals } from "../../store/ccip-016";
 
 interface VoteProgressBarV2Props {
-  props: Ccip020VoteTotals;
+  props: Ccip016VoteTotals;
 }
 
 function VoteProgressBarV2({ props }: VoteProgressBarV2Props) {
+  console.log("VoteProgressBarV2 props:", props);
   const totalVotes = props.totals.totalAmountYes + props.totals.totalAmountNo;
   const yesVotePercentage = (props.totals.totalAmountYes / totalVotes) * 100;
 
   return (
     <Box width="100%">
-      <Progress
-        value={yesVotePercentage}
-        size="lg"
-        bgColor={useColorModeValue("red.500", "red.200")}
-        colorScheme="green"
-      />
+      <Progress.Root value={yesVotePercentage} size="lg" colorPalette="green">
+        <Progress.Track>
+          <Progress.Range />
+        </Progress.Track>
+      </Progress.Root>
       <Box display="flex" flexWrap="wrap" justifyContent="space-between" mt={2}>
         <Text
           title={`MIA ${formatMicroAmount(
             props.mia.totalAmountYes
           )} / NYC ${formatMicroAmount(props.nyc.totalAmountYes)}`}
-          color={useColorModeValue("green.500", "green.200")}
         >{`Yes: ${formatMicroAmount(
           props.totals.totalAmountYes
         )} CityCoins`}</Text>
@@ -31,7 +30,6 @@ function VoteProgressBarV2({ props }: VoteProgressBarV2Props) {
           title={`MIA ${formatMicroAmount(
             props.mia.totalAmountNo
           )} / NYC ${formatMicroAmount(props.nyc.totalAmountNo)}`}
-          color={useColorModeValue("red.500", "red.200")}
         >{`No: ${formatMicroAmount(
           props.totals.totalAmountNo
         )} CityCoins`}</Text>

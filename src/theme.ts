@@ -1,57 +1,16 @@
-import {
-  extendTheme,
-  type StyleFunctionProps,
-  type ThemeConfig,
-  createMultiStyleConfigHelpers,
-} from "@chakra-ui/react";
-import { tabsAnatomy } from "@chakra-ui/anatomy";
-import { mode } from "@chakra-ui/theme-tools";
-
-const { definePartsStyle, defineMultiStyleConfig } =
-  createMultiStyleConfigHelpers(tabsAnatomy.keys);
-
-// Chakra theme configuration
-const config: ThemeConfig = {
-  initialColorMode: "light",
-  useSystemColorMode: true,
-  cssVarPrefix: "citycoin",
-};
+import { createSystem, defaultConfig } from "@chakra-ui/react";
 
 const fonts = {
-  heading: "Open Sans, sans-serif",
-  body: "Open Sans, sans-serif",
+  heading: { value: "Open Sans, sans-serif" },
+  body: { value: "Open Sans, sans-serif" },
 };
 
-const linkStyles = {
-  baseStyle: (props: StyleFunctionProps) => ({
-    color: mode("blue.600", "blue.300")(props),
-    _hover: {
-      textDecoration: "underline",
+const config = {
+  theme: {
+    tokens: {
+      fonts,
     },
-  }),
+  },
 };
 
-// Define the base component styles
-const tabsBaseStyle = definePartsStyle({
-  tab: {
-    fontWeight: "semibold",
-    _selected: (props: StyleFunctionProps) => ({
-      borderTop: "5px solid",
-      color: mode("blue.600", "blue.300")(props),
-    }),
-  },
-});
-
-// Export the component theme
-export const tabsTheme = defineMultiStyleConfig({ baseStyle: tabsBaseStyle });
-
-const theme = extendTheme({
-  config,
-  components: {
-    Link: linkStyles,
-    Tabs: tabsTheme,
-  },
-  fonts,
-});
-
-export default theme;
+export default createSystem(defaultConfig, config);

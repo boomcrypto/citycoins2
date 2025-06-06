@@ -1,37 +1,25 @@
 import { Button } from "@chakra-ui/react";
-import { useAuth } from "@micro-stacks/react";
-import { useAtom } from "jotai";
+import { connect, getLocalStorage } from "@stacks/connect";
 import { stxAddressAtom } from "../../store/stacks";
-import { useClearUserData } from "../../hooks/use-clear-user-data";
+import { useSetAtom } from "jotai";
 
 function SignIn(props: { variant?: string }) {
-  const { openAuthRequest, isRequestPending } = useAuth();
-  const clearUserData = useClearUserData();
-  const [stxAddress, setStxAddress] = useAtom(stxAddressAtom);
-
+  const setStxAddress = useSetAtom(stxAddressAtom);
   return (
     <Button
       variant={props.variant || "solid"}
       title="Connect Wallet"
-      isLoading={isRequestPending}
-      onClick={() =>
-        void openAuthRequest({
-          onFinish: (session) => {
-            if (session.addresses.mainnet !== stxAddress) {
-              // clear locally stored data
-              clearUserData();
-              // set STX address
-              setStxAddress(session.addresses.mainnet);
-            }
-          },
-          onCancel: () => {
-            // console.log("sign-in: user cancelled auth request");
-          },
-        })
-      }
+      onClick={async () => {
+        await connect();
+        const userData = getLocalStorage();
+        const stxAddress = userData?.addresses.stx[0].address
+        console.log("User Data:", userData);
+        console.log("STX Address:", stxAddress);
+        setStxAddress(stxAddress || null);
+      }}
     >
       Connect Wallet
-    </Button>
+    </Button >
   );
 }
 

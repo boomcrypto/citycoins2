@@ -2,6 +2,7 @@ import {
   Box,
   Divider,
   Link,
+  Separator,
   Stack,
   Stat,
   StatLabel,
@@ -18,7 +19,7 @@ function CityCoinsVoteV1() {
   const noTotal = 5204049000000;
 
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Box
         textAlign={["left", "center"]}
         bg={useColorModeValue("gray.200", "gray.900")}
@@ -29,28 +30,28 @@ function CityCoinsVoteV1() {
           justifyContent="space-between"
           mb={[2, 4]}
         >
-          <Stat>
+          <Stat.Root>
             <StatLabel>MIA Cycles</StatLabel>
             <StatNumber>12, 13</StatNumber>
-          </Stat>
-          <Stat>
+          </Stat.Root>
+          <Stat.Root>
             <StatLabel>NYC Cycles</StatLabel>
             <StatNumber>6, 7</StatNumber>
-          </Stat>
+          </Stat.Root>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
-          <Stat>
+          <Stat.Root>
             <StatLabel>Yes Vote Count</StatLabel>
             <StatNumber>{yesVotes}</StatNumber>
-          </Stat>
-          <Stat>
+          </Stat.Root>
+          <Stat.Root>
             <StatLabel>No Vote Count</StatLabel>
             <StatNumber>{noVotes}</StatNumber>
-          </Stat>
+          </Stat.Root>
         </Stack>
       </Box>
       <VoteProgressBar yesTotal={yesTotal} noTotal={noTotal} />
-      <Divider />
+      <Separator />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
         <Box>
@@ -96,7 +97,7 @@ function CityCoinsVoteV1() {
           CCIP-011
         </Link>
       </Stack>
-      <Stack spacing={2}>
+      <Stack gap={2}>
         <Text fontWeight="bold">Details:</Text>
         <Text>
           The CityCoins community is proposing an update to the emissions

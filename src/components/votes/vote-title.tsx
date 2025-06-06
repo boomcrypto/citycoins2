@@ -34,11 +34,12 @@ function VoteTitle(props: { title: string; status: VoteStatus }) {
       </Text>
       <Badge
         minW={100}
-        textAlign="center"
-        colorScheme={getStatusColor(props.status)}
+        fontWeight="bold"
+        colorPalette={getStatusColor(props.status)}
+        justifyContent="center"
         p={[2, 4]}
       >
-        {props.status}
+        {props.status.toUpperCase()}
       </Badge>
     </Box>
   );

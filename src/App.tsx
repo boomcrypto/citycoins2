@@ -1,34 +1,25 @@
-import { ChakraProvider, Divider, Flex } from "@chakra-ui/react";
-import { ClientProvider } from "@micro-stacks/react";
-import theme from "./theme";
-import Header from "./components/layout/page-header";
+import { Flex, Separator } from "@chakra-ui/react";
 import Content from "./components/layout/page-content";
 import Footer from "./components/layout/page-footer";
-import { useNoWalletFound } from "./hooks/use-no-wallet-found";
+import Header from "./components/layout/page-header";
+import { Provider } from "./components/ui/provider";
 
 export const App = () => (
-  <ChakraProvider theme={theme}>
-    <ClientProvider
-      appName="CityCoins"
-      network="mainnet"
-      appIconUrl={`${window.origin}/citycoins-logo-circle-512.png`}
-      onNoWalletFound={useNoWalletFound()}
-    >
-      <Flex direction="column" minH="100vh">
-        <Header />
-        <Divider />
-        <Flex
-          flex="1"
-          alignItems="flex-start"
-          justifyContent="center"
-          my={16}
-          mx={[2, 8]}
-        >
-          <Content />
-        </Flex>
-        <Divider />
-        <Footer />
+  <Provider>
+    <Flex direction="column" minH="100vh">
+      <Header />
+      <Separator />
+      <Flex
+        flex="1"
+        alignItems="flex-start"
+        justifyContent="center"
+        my={16}
+        mx={[2, 8]}
+      >
+        <Content />
       </Flex>
-    </ClientProvider>
-  </ChakraProvider>
+      <Separator />
+      <Footer />
+    </Flex>
+  </Provider>
 );

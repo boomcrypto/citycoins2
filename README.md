@@ -6,7 +6,7 @@ Upgraded front-end for CityCoins.
 
 This repository uses React + Vite with:
 
-- [micro-stacks](https://micro-stacks.dev/) for wallet auth
+- [connect](https://docs.hiro.so/stacks/connect) for wallet auth
 - [Chakra UI](https://chakra-ui.com/) for components
 - [Jotai](https://jotai.org/) for state management
 

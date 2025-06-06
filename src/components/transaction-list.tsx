@@ -47,8 +47,9 @@ function TransactionList({ transactions }: TransactionListProps) {
     }
   };
 
+  console.log("TransactionList rendered with transactions:", transactions);
   return (
-    <Stack spacing={4}>
+    <Stack gap={4}>
       <Stack direction="row" alignItems="center" minH="2em">
         <Box
           w={3}
@@ -83,23 +84,24 @@ function TransactionList({ transactions }: TransactionListProps) {
                 : "No transactions loaded yet"}
             </Text>
             <IconButton
-              icon={<IoMdRefresh />}
               aria-label="Refresh Transactions"
               title="Refresh Transactions"
               size="sm"
               onClick={fetchTransactions}
-            />
+            >
+              <IoMdRefresh />
+            </IconButton>
           </Stack>
         )}
       </Stack>
       <Stack>
         {transactions?.length === 0 && <Text>No transactions found.</Text>}
         {transactions?.length > 0 && (
-          <List>
+          <List.Root>
             {transactions.map((tx) => (
               <TransactionItem key={tx.tx_id} tx={tx} />
             ))}
-          </List>
+          </List.Root>
         )}
       </Stack>
     </Stack>
@@ -109,7 +111,7 @@ function TransactionList({ transactions }: TransactionListProps) {
 function TransactionItem({ tx }: TransactionItemProps) {
   return (
     <Box borderWidth="1px" borderRadius="lg" p={4} mb={4}>
-      <Stack spacing={2}>
+      <Stack gap={2}>
         <Text fontWeight="bold" fontSize="lg">
           TXID: {tx.tx_id}
         </Text>
@@ -144,7 +146,7 @@ function TransactionFunctionArgs({
   return (
     <Stack>
       <Text fontWeight="bold">Function Arguments</Text>
-      <List spacing={2}>
+      <List.Root gap={2}>
         {functionArgs.map((arg) => (
           <ListItem key={arg.hex}>
             <Text>Name: {arg.name}</Text>
@@ -152,7 +154,7 @@ function TransactionFunctionArgs({
             <Text>Repr: {arg.repr}</Text>
           </ListItem>
         ))}
-      </List>
+      </List.Root>
     </Stack>
   );
 }

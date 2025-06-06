@@ -1,8 +1,10 @@
 import { Button } from "@chakra-ui/react";
-import { useAuth } from "@micro-stacks/react";
+import { disconnect } from "@stacks/connect";
+import { useSetAtom } from "jotai";
+import { stxAddressAtom } from "../../store/stacks";
 
 function SignOut(props: { variant?: string }) {
-  const { signOut } = useAuth();
+  const setStxAddress = useSetAtom(stxAddressAtom);
   return (
     <Button
       variant={props.variant || "solid"}
@@ -10,7 +12,8 @@ function SignOut(props: { variant?: string }) {
       onClick={() => {
         // sign out of the wallet
         try {
-          signOut();
+          disconnect();
+          setStxAddress(null); // Clear the STX address in the store
         } catch (error) {
           console.error("Error while signing out: ", error);
         }
