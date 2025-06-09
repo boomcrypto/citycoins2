@@ -23,7 +23,7 @@ function Voting() {
         <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
-              title="Vote 1: CityCoins Protocol V2 (CCIP-008, CCIP-009, CCIP-010)"
+              title="Vote 1: Update emissions schedule"
               status="passed"
             />
             <Accordion.ItemIndicator />
@@ -35,7 +35,7 @@ function Voting() {
         <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
-              title="Vote 2: Stabilize Emissions and Treasuries (CCIP-012)"
+              title="Vote 2: Stabilize protocol part 1"
               status="passed"
             />
             <Accordion.ItemIndicator />
@@ -47,7 +47,7 @@ function Voting() {
         <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
-              title="Vote 3: Stabilize Protocol and Simplify Contracts (CCIP-013)"
+              title="Vote 3: Stabilize protocol part 2"
               status="passed"
             />
             <Accordion.ItemIndicator />
@@ -59,7 +59,7 @@ function Voting() {
         <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
-              title="Vote 11: Upgrade to PoX-3 (CCIP-014)"
+              title="Vote 4: Upgrade to pox-3"
               status="passed"
             />
             <Accordion.ItemIndicator />
@@ -71,7 +71,7 @@ function Voting() {
         <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
-              title="Vote 13: Extend Sunset Period (CCIP-017)"
+              title="Vote 5: Extend sunset period"
               status="passed"
             />
             <Accordion.ItemIndicator />
@@ -83,31 +83,7 @@ function Voting() {
         <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
-              title="Vote 14: MIA PoX-4 Stacking (CCIP-019)"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <Ccip019 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 15: Graceful Protocol Shutdown (CCIP-020)"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <Ccip020 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 16: Extend Sunset Period 2 (CCIP-021)"
+              title="Vote 6: Extend sunset period 2"
               status="passed"
             />
             <Accordion.ItemIndicator />
@@ -119,7 +95,19 @@ function Voting() {
         <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
-              title="Vote 17: NYC Treasury Redemption (CCIP-022)"
+              title="Vote 7: Graceful Protocol Shutdown"
+              status="passed"
+            />
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <Ccip020 />
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <VoteTitle
+              title="Vote 8: Treasury Redemption NYC"
               status="passed"
             />
             <Accordion.ItemIndicator />
@@ -131,7 +119,19 @@ function Voting() {
         <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
-              title="Vote 18: MIA Signal Vote (CCIP-024)"
+              title="Vote 9: Stacking with PoX-4"
+              status="passed"
+            />
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <Ccip019 />
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <VoteTitle
+              title="Vote 10: MiamiCoin Signal Vote"
               status="passed"
             />
             <Accordion.ItemIndicator />
@@ -143,7 +143,7 @@ function Voting() {
         <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
-              title="Vote 19: Extend Sunset Period 3 (CCIP-025)"
+              title="Vote 11: Extend Direct Execute Sunset Period 3"
               status="passed"
             />
             <Accordion.ItemIndicator />
