@@ -3,6 +3,7 @@ import VoteTitle from "../votes/vote-title";
 
 import Ccip014 from "../votes/ccip-014";
 import Ccip017 from "../votes/ccip-017";
+import Ccip019 from "../votes/ccip-019";
 import CCIP016 from "../votes/ccip-016";
 
 function Voting() {
@@ -33,6 +34,18 @@ function Voting() {
           </Accordion.ItemTrigger>
           <Accordion.ItemContent>
             <Ccip017 />
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <VoteTitle
+              title="Vote 14: MIA PoX-4 Stacking (CCIP-019)"
+              status="passed"
+            />
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <Ccip019 />
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item>
