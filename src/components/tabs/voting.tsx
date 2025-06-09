@@ -6,6 +6,7 @@ import Ccip017 from "../votes/ccip-017";
 import Ccip019 from "../votes/ccip-019";
 import Ccip020 from "../votes/ccip-020";
 import Ccip021 from "../votes/ccip-021";
+import Ccip022 from "../votes/ccip-022";
 import CCIP016 from "../votes/ccip-016";
 
 function Voting() {
@@ -72,6 +73,18 @@ function Voting() {
           </Accordion.ItemTrigger>
           <Accordion.ItemContent>
             <Ccip021 />
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <VoteTitle
+              title="Vote 17: NYC Treasury Redemption (CCIP-022)"
+              status="passed"
+            />
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <Ccip022 />
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item>
