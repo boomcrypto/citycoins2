@@ -1,6 +1,5 @@
 import {
   Box,
-  Divider,
   Link,
   Separator,
   Stack,
@@ -51,22 +50,22 @@ function CityCoinsVoteV1() {
           mb={[2, 4]}
         >
           <Stat.Root>
-            <StatLabel>MIA Cycles</StatLabel>
-            <StatNumber>12, 13</StatNumber>
+            <Stat.Label>MIA Cycles</Stat.Label>
+            <Stat.ValueText>12, 13</Stat.ValueText>
           </Stat.Root>
           <Stat.Root>
-            <StatLabel>NYC Cycles</StatLabel>
-            <StatNumber>6, 7</StatNumber>
+            <Stat.Label>NYC Cycles</Stat.Label>
+            <Stat.ValueText>6, 7</Stat.ValueText>
           </Stat.Root>
         </Stack>
         <Stack direction={["column", "row"]} justifyContent="space-between">
           <Stat.Root>
-            <StatLabel>Yes Vote Count</StatLabel>
-            <StatNumber>{yesVotes}</StatNumber>
+            <Stat.Label>Yes Vote Count</Stat.Label>
+            <Stat.ValueText>{yesVotes}</Stat.ValueText>
           </Stat.Root>
           <Stat.Root>
-            <StatLabel>No Vote Count</StatLabel>
-            <StatNumber>{noVotes}</StatNumber>
+            <Stat.Label>No Vote Count</Stat.Label>
+            <Stat.ValueText>{noVotes}</Stat.ValueText>
           </Stat.Root>
         </Stack>
       </Box>
