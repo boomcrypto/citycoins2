@@ -4,6 +4,7 @@ import VoteTitle from "../votes/vote-title";
 import Ccip014 from "../votes/ccip-014";
 import Ccip017 from "../votes/ccip-017";
 import Ccip019 from "../votes/ccip-019";
+import Ccip020 from "../votes/ccip-020";
 import CCIP016 from "../votes/ccip-016";
 
 function Voting() {
@@ -46,6 +47,18 @@ function Voting() {
           </Accordion.ItemTrigger>
           <Accordion.ItemContent>
             <Ccip019 />
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <VoteTitle
+              title="Vote 15: Graceful Protocol Shutdown (CCIP-020)"
+              status="passed"
+            />
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <Ccip020 />
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item>
