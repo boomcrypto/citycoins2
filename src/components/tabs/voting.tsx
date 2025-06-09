@@ -2,6 +2,7 @@ import { Accordion, Heading, Stack, Text } from "@chakra-ui/react";
 import VoteTitle from "../votes/vote-title";
 
 import Ccip014 from "../votes/ccip-014";
+import Ccip017 from "../votes/ccip-017";
 import CCIP016 from "../votes/ccip-016";
 
 function Voting() {
@@ -20,6 +21,18 @@ function Voting() {
           </Accordion.ItemTrigger>
           <Accordion.ItemContent>
             <Ccip014 />
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <VoteTitle
+              title="Vote 13: Extend Sunset Period (CCIP-017)"
+              status="passed"
+            />
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <Ccip017 />
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item>
