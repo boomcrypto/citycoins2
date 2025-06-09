@@ -5,6 +5,7 @@ import Ccip014 from "../votes/ccip-014";
 import Ccip017 from "../votes/ccip-017";
 import Ccip019 from "../votes/ccip-019";
 import Ccip020 from "../votes/ccip-020";
+import Ccip021 from "../votes/ccip-021";
 import CCIP016 from "../votes/ccip-016";
 
 function Voting() {
@@ -59,6 +60,18 @@ function Voting() {
           </Accordion.ItemTrigger>
           <Accordion.ItemContent>
             <Ccip020 />
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <VoteTitle
+              title="Vote 16: Extend Sunset Period 2 (CCIP-021)"
+              status="passed"
+            />
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <Ccip021 />
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item>
