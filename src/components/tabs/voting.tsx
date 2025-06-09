@@ -94,7 +94,7 @@ function Voting() {
     <Stack gap={4}>
       <Heading size="4xl">CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
-      <Accordion.Root multiple>
+      <Accordion.Root collapsible defaultValue={["ccip016"]}>
         {voteItems.map((item) => (
           <Accordion.Item key={item.id} value={item.id}>
             <Accordion.ItemTrigger>
