@@ -1,6 +1,9 @@
 import { Accordion, Heading, Stack, Text } from "@chakra-ui/react";
 import VoteTitle from "../votes/vote-title";
 
+import CityCoinsVoteV1 from "../votes/citycoins-vote-v1";
+import CityCoinsVoteV2 from "../votes/citycoins-vote-v2";
+import CityCoinsVoteV3 from "../votes/citycoins-vote-v3";
 import Ccip014 from "../votes/ccip-014";
 import Ccip017 from "../votes/ccip-017";
 import Ccip019 from "../votes/ccip-019";
@@ -17,6 +20,42 @@ function Voting() {
       <Heading size="4xl">CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
       <Accordion.Root multiple>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <VoteTitle
+              title="Vote 1: CityCoins Protocol V2 (CCIP-008, CCIP-009, CCIP-010)"
+              status="passed"
+            />
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <CityCoinsVoteV1 />
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <VoteTitle
+              title="Vote 2: Stabilize Emissions and Treasuries (CCIP-012)"
+              status="passed"
+            />
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <CityCoinsVoteV2 />
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <VoteTitle
+              title="Vote 3: Stabilize Protocol and Simplify Contracts (CCIP-013)"
+              status="passed"
+            />
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <CityCoinsVoteV3 />
+          </Accordion.ItemContent>
+        </Accordion.Item>
         <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle

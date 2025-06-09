@@ -8,9 +8,9 @@ import {
   StatLabel,
   StatNumber,
   Text,
-  useColorModeValue,
 } from "@chakra-ui/react";
-import VoteProgressBar from "./vote-progress-bar";
+import VoteProgressBarV2 from "./vote-progress-bar-v2";
+import { Ccip016VoteTotals } from "../../store/ccip-016";
 
 function CityCoinsVoteV3() {
   const yesVotes = 58;
@@ -18,11 +18,31 @@ function CityCoinsVoteV3() {
   const yesTotal = 2275972984000000;
   const noTotal = 144037303000000;
 
+  const voteTotalsObject: Ccip016VoteTotals = {
+    mia: {
+      totalAmountYes: 0,
+      totalAmountNo: 0,
+      totalVotesYes: 0,
+      totalVotesNo: 0,
+    },
+    nyc: {
+      totalAmountYes: 0,
+      totalAmountNo: 0,
+      totalVotesYes: 0,
+      totalVotesNo: 0,
+    },
+    totals: {
+      totalAmountYes: yesTotal,
+      totalAmountNo: noTotal,
+      totalVotesYes: yesVotes,
+      totalVotesNo: noVotes,
+    },
+  };
+
   return (
     <Stack gap={4}>
       <Box
         textAlign={["left", "center"]}
-        bg={useColorModeValue("gray.200", "gray.900")}
         p={4}
       >
         <Stack
@@ -50,14 +70,15 @@ function CityCoinsVoteV3() {
           </Stat.Root>
         </Stack>
       </Box>
-      <VoteProgressBar yesTotal={yesTotal} noTotal={noTotal} />
+      <VoteProgressBarV2 props={voteTotalsObject} />
       <Separator />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
         <Box>
           <Link
             href="https://github.com/citycoins/governance/blob/main/ccips/ccip-013/ccip-013-stabilize-protocol-and-simplify-contracts.md"
-            isExternal
+            rel="noopener noreferrer"
+            target="_blank"
           >
             CCIP-013
           </Link>
@@ -67,7 +88,8 @@ function CityCoinsVoteV3() {
         <Text fontWeight="bold">Related Contracts:</Text>
         <Link
           href="https://explorer.hiro.so/txid/SP5X6BFPYXTZ8C63EYYPA02X2VQTG4V43XNPGAPF.citycoins-vote-v3?chain=mainnet"
-          isExternal
+          rel="noopener noreferrer"
+          target="_blank"
         >
           citycoins-vote-v3
         </Link>
@@ -76,7 +98,8 @@ function CityCoinsVoteV3() {
         <Text fontWeight="bold">Voting Method:</Text>
         <Link
           href="https://github.com/citycoins/governance/blob/main/ccips/ccip-011/ccip-011-citycoins-stacked-tokens-voting.md"
-          isExternal
+          rel="noopener noreferrer"
+          target="_blank"
         >
           CCIP-011
         </Link>
@@ -96,7 +119,8 @@ function CityCoinsVoteV3() {
         <Text>
           <Link
             href="https://github.com/citycoins/governance/blob/main/ccips/ccip-013/ccip-013-stabilize-protocol-and-simplify-contracts.md"
-            isExternal
+            rel="noopener noreferrer"
+            target="_blank"
           >
             CCIP-013
           </Link>{" "}
