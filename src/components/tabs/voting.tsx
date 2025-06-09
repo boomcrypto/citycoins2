@@ -1,6 +1,7 @@
 import { Accordion, Heading, Stack, Text } from "@chakra-ui/react";
 import VoteTitle from "../votes/vote-title";
 
+import Ccip014 from "../votes/ccip-014";
 import CCIP016 from "../votes/ccip-016";
 
 function Voting() {
@@ -12,7 +13,19 @@ function Voting() {
         <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
-              title="Vote 12: Mising Payouts (CCIP-016)"
+              title="Vote 11: Upgrade to PoX-3 (CCIP-014)"
+              status="passed"
+            />
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <Ccip014 />
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <VoteTitle
+              title="Vote 12: Missing Payouts (CCIP-016)"
               status="active"
             />
             <Accordion.ItemIndicator />
