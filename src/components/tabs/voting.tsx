@@ -15,155 +15,97 @@ import Ccip025 from "../votes/ccip-025";
 import CCIP016 from "../votes/ccip-016";
 
 function Voting() {
+  const voteItems = [
+    {
+      id: "ccip016",
+      title: "Vote 12: Missing Payouts (CCIP-016)",
+      status: "active" as const,
+      Component: CCIP016,
+    },
+    {
+      id: "ccip025",
+      title: "Vote 11: Extend Direct Execute Sunset Period 3",
+      status: "passed" as const,
+      Component: Ccip025,
+    },
+    {
+      id: "ccip024",
+      title: "Vote 10: MiamiCoin Signal Vote",
+      status: "passed" as const,
+      Component: Ccip024,
+    },
+    {
+      id: "ccip019",
+      title: "Vote 9: Stacking with PoX-4",
+      status: "passed" as const,
+      Component: Ccip019,
+    },
+    {
+      id: "ccip022",
+      title: "Vote 8: Treasury Redemption NYC",
+      status: "passed" as const,
+      Component: Ccip022,
+    },
+    {
+      id: "ccip020",
+      title: "Vote 7: Graceful Protocol Shutdown",
+      status: "passed" as const,
+      Component: Ccip020,
+    },
+    {
+      id: "ccip021",
+      title: "Vote 6: Extend sunset period 2",
+      status: "passed" as const,
+      Component: Ccip021,
+    },
+    {
+      id: "ccip017",
+      title: "Vote 5: Extend sunset period",
+      status: "passed" as const,
+      Component: Ccip017,
+    },
+    {
+      id: "ccip014",
+      title: "Vote 4: Upgrade to pox-3",
+      status: "passed" as const,
+      Component: Ccip014,
+    },
+    {
+      id: "vote-v3",
+      title: "Vote 3: Stabilize protocol part 2",
+      status: "passed" as const,
+      Component: CityCoinsVoteV3,
+    },
+    {
+      id: "vote-v2",
+      title: "Vote 2: Stabilize protocol part 1",
+      status: "passed" as const,
+      Component: CityCoinsVoteV2,
+    },
+    {
+      id: "vote-v1",
+      title: "Vote 1: Update emissions schedule",
+      status: "passed" as const,
+      Component: CityCoinsVoteV1,
+    },
+  ];
+
   return (
     <Stack gap={4}>
       <Heading size="4xl">CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
       <Accordion.Root multiple>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 12: Missing Payouts (CCIP-016)"
-              status="active"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <CCIP016 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 11: Extend Direct Execute Sunset Period 3"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <Ccip025 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 10: MiamiCoin Signal Vote"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <Ccip024 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 9: Stacking with PoX-4"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <Ccip019 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 8: Treasury Redemption NYC"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <Ccip022 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 7: Graceful Protocol Shutdown"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <Ccip020 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 6: Extend sunset period 2"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <Ccip021 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 5: Extend sunset period"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <Ccip017 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 4: Upgrade to pox-3"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <Ccip014 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 3: Stabilize protocol part 2"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <CityCoinsVoteV3 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 2: Stabilize protocol part 1"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <CityCoinsVoteV2 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item>
-          <Accordion.ItemTrigger>
-            <VoteTitle
-              title="Vote 1: Update emissions schedule"
-              status="passed"
-            />
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
-            <CityCoinsVoteV1 />
-          </Accordion.ItemContent>
-        </Accordion.Item>
+        {voteItems.map((item) => (
+          <Accordion.Item key={item.id} value={item.id}>
+            <Accordion.ItemTrigger>
+              <VoteTitle title={item.title} status={item.status} />
+              <Accordion.ItemIndicator />
+            </Accordion.ItemTrigger>
+            <Accordion.ItemContent>
+              <item.Component />
+            </Accordion.ItemContent>
+          </Accordion.Item>
+        ))}
       </Accordion.Root>
     </Stack>
   );
