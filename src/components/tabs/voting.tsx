@@ -19,8 +19,8 @@ function Voting() {
     <Stack gap={4}>
       <Heading size="4xl">CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
-      <Accordion.Root collapsible defaultValue={["ccip016"]}>
-        <Accordion.Item key="ccip016" value="ccip016">
+      <Accordion.Root multiple>
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 12: Missing Payouts (CCIP-016)"
@@ -32,7 +32,7 @@ function Voting() {
             <CCIP016 />
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item key="ccip025" value="ccip025">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 11: Extend Direct Execute Sunset Period 3"
@@ -44,7 +44,7 @@ function Voting() {
             <Ccip025 />
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item key="ccip024" value="ccip024">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 10: MiamiCoin Signal Vote"
@@ -56,7 +56,7 @@ function Voting() {
             <Ccip024 />
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item key="ccip019" value="ccip019">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 9: Stacking with PoX-4"
@@ -68,7 +68,7 @@ function Voting() {
             <Ccip019 />
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item key="ccip022" value="ccip022">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 8: Treasury Redemption NYC"
@@ -80,7 +80,7 @@ function Voting() {
             <Ccip022 />
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item key="ccip020" value="ccip020">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 7: Graceful Protocol Shutdown"
@@ -92,7 +92,7 @@ function Voting() {
             <Ccip020 />
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item key="ccip021" value="ccip021">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 6: Extend sunset period 2"
@@ -104,7 +104,7 @@ function Voting() {
             <Ccip021 />
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item key="ccip017" value="ccip017">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 5: Extend sunset period"
@@ -116,7 +116,7 @@ function Voting() {
             <Ccip017 />
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item key="ccip014" value="ccip014">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 4: Upgrade to pox-3"
@@ -128,7 +128,7 @@ function Voting() {
             <Ccip014 />
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item key="vote-v3" value="vote-v3">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 3: Stabilize protocol part 2"
@@ -140,7 +140,7 @@ function Voting() {
             <CityCoinsVoteV3 />
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item key="vote-v2" value="vote-v2">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 2: Stabilize protocol part 1"
@@ -152,7 +152,7 @@ function Voting() {
             <CityCoinsVoteV2 />
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item key="vote-v1" value="vote-v1">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <VoteTitle
               title="Vote 1: Update emissions schedule"
