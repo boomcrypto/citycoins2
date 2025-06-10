@@ -180,9 +180,9 @@ function Ccip016() {
         <Text fontWeight="bold">Details:</Text>
         <Text>
           The stacking contract ccd007-citycoin-stacking has a bug that
-          sometimes incorrectly returns 0 STX rewards for a cycle. The the
-          propsal sends stacking rewards to those stackers that were affected by
-          this bug.
+          sometimes incorrectly returns 0 STX rewards for a cycle. This proposal
+          sends stacking rewards to those stackers that were affected by this
+          bug.
         </Text>
       </Stack>
 
