@@ -19,7 +19,7 @@ function Voting() {
     {
       id: "ccip016",
       title: "Vote 12: Missing Payouts (CCIP-016)",
-      status: "active" as const,
+      status: "passed" as const,
       Component: CCIP016,
     },
     {

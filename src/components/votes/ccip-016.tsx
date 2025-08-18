@@ -186,16 +186,6 @@ function Ccip016() {
         </Text>
       </Stack>
 
-      {isVoteActive.data && hasVoted ? (
-        <>
-          <Separator />
-          <Text fontWeight="bold">Vote recorded, thank you!</Text>
-          <Text>Refresh to see stats once the tx confirms.</Text>
-        </>
-      ) : (
-        <VoteButtons />
-      )}
-
       {voterInfo.data && <VoteResult />}
     </Stack>
   );
