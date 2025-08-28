@@ -1,7 +1,6 @@
-import { Heading, Stack, Text } from "@chakra-ui/react";
+import { Accordion, Button, Heading, Stack, Text } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
 import { stxAddressAtom } from "../../store/stacks";
-import ComingSoon from "../coming-soon";
 import SignIn from "../auth/sign-in";
 
 function Mia() {
@@ -10,8 +9,8 @@ function Mia() {
   if (!stxAddress) {
     return (
       <Stack gap={4}>
-        <Heading>MIA Utilities</Heading>
-        <Text>Wallet connection required to access MIA utilities.</Text>
+        <Heading size="4xl">Tools and Utilities for MIA</Heading>
+        <Text>Wallet connection required to access tools and utilities for MIA.</Text>
         <SignIn />
       </Stack>
     );
@@ -19,8 +18,22 @@ function Mia() {
 
   return (
     <Stack gap={4}>
-      <Heading>MIA Utilities</Heading>
-      <ComingSoon />
+      <Heading size="4xl">Tools and Utilities for MIA</Heading>
+      <Text>Access tools and utilities for MIA below.</Text>
+      <Accordion.Root collapsible defaultValue={["redeem-mia"]}>
+        <Accordion.Item value="redeem-mia">
+          <Accordion.ItemTrigger>
+            <Heading size="xl">Redeem MIA</Heading>
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <Stack gap={4}>
+              <Button>Check Eligibility</Button>
+              <Button>Execute Redemption</Button>
+            </Stack>
+          </Accordion.ItemContent>
+        </Accordion.Item>
+      </Accordion.Root>
     </Stack>
   );
 }

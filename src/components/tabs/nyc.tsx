@@ -1,7 +1,6 @@
-import { Heading, Stack, Text } from "@chakra-ui/react";
+import { Accordion, Button, Heading, Stack, Text } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
 import { stxAddressAtom } from "../../store/stacks";
-import ComingSoon from "../coming-soon";
 import SignIn from "../auth/sign-in";
 
 function Nyc() {
@@ -10,8 +9,8 @@ function Nyc() {
   if (!stxAddress) {
     return (
       <Stack gap={4}>
-        <Heading>NYC Utilities</Heading>
-        <Text>Wallet connection required to access NYC utilities.</Text>
+        <Heading size="4xl">Tools and Utilities for NYC</Heading>
+        <Text>Wallet connection required to access tools and utilities for NYC.</Text>
         <SignIn />
       </Stack>
     );
@@ -19,8 +18,22 @@ function Nyc() {
 
   return (
     <Stack gap={4}>
-      <Heading>NYC Utilities</Heading>
-      <ComingSoon />
+      <Heading size="4xl">Tools and Utilities for NYC</Heading>
+      <Text>Access tools and utilities for NYC below.</Text>
+      <Accordion.Root collapsible defaultValue={["redeem-nyc"]}>
+        <Accordion.Item value="redeem-nyc">
+          <Accordion.ItemTrigger>
+            <Heading size="xl">Redeem NYC</Heading>
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <Stack gap={4}>
+              <Button>Check Eligibility</Button>
+              <Button>Execute Redemption</Button>
+            </Stack>
+          </Accordion.ItemContent>
+        </Accordion.Item>
+      </Accordion.Root>
     </Stack>
   );
 }
