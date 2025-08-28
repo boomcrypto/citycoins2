@@ -27,9 +27,9 @@ function Nyc() {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent>
-            <Stack gap={4}>
-              <Button>Check Eligibility</Button>
-              <Button>Execute Redemption</Button>
+            <Stack direction="row" gap={4}>
+              <Button variant="outline">Check Eligibility</Button>
+              <Button variant="outline">Execute Redemption</Button>
             </Stack>
           </Accordion.ItemContent>
         </Accordion.Item>
