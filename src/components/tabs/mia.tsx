@@ -35,9 +35,9 @@ function Mia() {
               >
                 CCIP-026
               </Link>
-              .
+              .{" "}
+              <Text as="span" color="gray.500">Pending approval.</Text>
             </Text>
-            <Text mb={4}>This functionality is pending approval via CCIP-026.</Text>
             <Stack direction="row" gap={4}>
               <Button variant="outline" disabled>Check Eligibility</Button>
               <Button variant="outline" disabled>Execute Redemption</Button>
