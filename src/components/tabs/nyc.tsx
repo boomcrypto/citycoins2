@@ -9,8 +9,8 @@ function Nyc() {
   if (!stxAddress) {
     return (
       <Stack gap={4}>
-        <Heading size="4xl">Tools and Utilities for NYC</Heading>
-        <Text>Wallet connection required to access tools and utilities for NYC.</Text>
+        <Heading size="4xl">NYC Tools</Heading>
+        <Text>Wallet connection required to access tools and utilities for NewYorkCityCoin (NYC).</Text>
         <SignIn />
       </Stack>
     );
@@ -18,8 +18,8 @@ function Nyc() {
 
   return (
     <Stack gap={4}>
-      <Heading size="4xl">Tools and Utilities for NYC</Heading>
-      <Text>Access tools and utilities for NYC below.</Text>
+      <Heading size="4xl">NYC Tools</Heading>
+      <Text>Access tools and utilities for NewYorkCityCoin (NYC) below.</Text>
       <Accordion.Root collapsible defaultValue={["redeem-nyc"]}>
         <Accordion.Item value="redeem-nyc">
           <Accordion.ItemTrigger>

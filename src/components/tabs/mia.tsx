@@ -9,8 +9,8 @@ function Mia() {
   if (!stxAddress) {
     return (
       <Stack gap={4}>
-        <Heading size="4xl">Tools and Utilities for MIA</Heading>
-        <Text>Wallet connection required to access tools and utilities for MIA.</Text>
+        <Heading size="4xl">MIA Tools</Heading>
+        <Text>Wallet connection required to access tools and utilities for MiamiCoin (MIA).</Text>
         <SignIn />
       </Stack>
     );
@@ -18,8 +18,8 @@ function Mia() {
 
   return (
     <Stack gap={4}>
-      <Heading size="4xl">Tools and Utilities for MIA</Heading>
-      <Text>Access tools and utilities for MIA below.</Text>
+      <Heading size="4xl">MIA Tools</Heading>
+      <Text>Access tools and utilities for MiamiCoin (MIA) below.</Text>
       <Accordion.Root collapsible defaultValue={["redeem-mia"]}>
         <Accordion.Item value="redeem-mia">
           <Accordion.ItemTrigger>
