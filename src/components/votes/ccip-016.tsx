@@ -1,108 +1,41 @@
 import {
   Box,
-  Button,
   Link,
-  List,
   Separator,
   Stack,
   Stat,
   Text,
 } from "@chakra-ui/react";
-import { useAtomValue } from "jotai";
-import { useCcip016VoteActions } from "../../hooks/use-ccip-016-vote-actions";
-import { useCcip016VoteData } from "../../hooks/use-ccip-016-vote-data";
-import {
-  Ccip016VoteTotals,
-  CONTRACT_FQ_NAME,
-  CONTRACT_NAME,
-  hasVotedAtom,
-} from "../../store/ccip-016";
-import { formatMicroAmount } from "../../store/common";
-import { stxAddressAtom } from "../../store/stacks";
-import SignIn from "../auth/sign-in";
+import { Ccip016VoteTotals } from "../../store/ccip-016";
 import VoteProgressBarV2 from "./vote-progress-bar-v2";
 
-function VoteButtons() {
-  const { voteYes, voteNo } = useCcip016VoteActions();
-  const hasVoted = useAtomValue(hasVotedAtom);
-  const stxAddress = useAtomValue(stxAddressAtom);
 
-  if (!stxAddress) {
-    return <SignIn />;
-  }
-
-  return (
-    <>
-      <Text fontWeight="bold">{hasVoted ? "Change vote" : "Voting"}:</Text>
-      <Stack direction={["column", "row"]} gap={4}>
-        <Button onClick={voteYes} colorPalette="green" size="lg" mb={4}>
-          Vote Yes
-        </Button>
-        <Button onClick={voteNo} colorPalette="red" size="lg">
-          Vote No
-        </Button>
-      </Stack>
-    </>
-  );
-}
-
-function VoteResult() {
-  const voterInfo = useCcip016VoteData("voterInfo");
-
-  return (
-    <Stack gap={4}>
-      <Text fontWeight="bold">Your Vote:</Text>
-      <List.Root>
-        <List.Item>
-          Recorded Vote: {voterInfo.data?.vote ? "Yes" : "No"}
-        </List.Item>
-        <List.Root>
-          <List.Item>MIA: {formatMicroAmount(voterInfo.data?.mia)}</List.Item>
-          <List.Item>NYC: {formatMicroAmount(voterInfo.data?.nyc)}</List.Item>
-        </List.Root>
-      </List.Root>
-    </Stack>
-  );
-}
 
 function Ccip016() {
-  const voterInfo = useCcip016VoteData("voterInfo");
-  const isVoteActive = useCcip016VoteData("isVoteActive");
-  const voteTotals = useCcip016VoteData("voteTotals");
-  const hasVoted = useAtomValue(hasVotedAtom);
+  const yesVotesMia = 33;
+  const yesVotesNyc = 33;
+  const yesVotesTotal = 66;
 
-  const yesVoteAmountMia = voteTotals.data?.mia.totalAmountYes || 0;
-  const yesVoteAmountNyc = voteTotals.data?.nyc.totalAmountYes || 0;
-  const yesVoteAmountTotal = yesVoteAmountMia + yesVoteAmountNyc;
-
-  const noVoteAmountMia = voteTotals.data?.mia.totalAmountNo || 0;
-  const noVoteAmountNyc = voteTotals.data?.nyc.totalAmountNo || 0;
-  const noVoteAmountTotal = noVoteAmountMia + noVoteAmountNyc;
-
-  const yesVotesMia = voteTotals.data?.mia.totalVotesYes || 0;
-  const yesVotesNyc = voteTotals.data?.nyc.totalVotesYes || 0;
-  const yesVotesTotal = yesVotesMia + yesVotesNyc;
-
-  const noVotesMia = voteTotals.data?.mia.totalVotesNo || 0;
-  const noVotesNyc = voteTotals.data?.nyc.totalVotesNo || 0;
-  const noVotesTotal = noVotesMia + noVotesNyc;
+  const noVotesMia = 0;
+  const noVotesNyc = 0;
+  const noVotesTotal = 0;
 
   const voteTotalsObject: Ccip016VoteTotals = {
     mia: {
-      totalAmountYes: yesVoteAmountMia,
-      totalAmountNo: noVoteAmountMia,
+      totalAmountYes: 1573458694000000,
+      totalAmountNo: 0,
       totalVotesYes: yesVotesMia,
       totalVotesNo: noVotesMia,
     },
     nyc: {
-      totalAmountYes: yesVoteAmountNyc,
-      totalAmountNo: noVoteAmountNyc,
+      totalAmountYes: 1768793837000000,
+      totalAmountNo: 0,
       totalVotesYes: yesVotesNyc,
       totalVotesNo: noVotesNyc,
     },
     totals: {
-      totalAmountYes: yesVoteAmountTotal,
-      totalAmountNo: noVoteAmountTotal,
+      totalAmountYes: 3342252531000000,
+      totalAmountNo: 0,
       totalVotesYes: yesVotesTotal,
       totalVotesNo: noVotesTotal,
     },
@@ -158,11 +91,11 @@ function Ccip016() {
         <Text fontWeight="bold">Related Contracts:</Text>
         <Box textAlign="end">
           <Link
-            href={`https://explorer.hiro.so/txid/${CONTRACT_FQ_NAME}?chain=mainnet`}
+            href={`https://explorer.hiro.so/txid/SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.ccip016-missed-payouts-v3?chain=mainnet`}
             rel="noopener noreferrer"
             target="_blank"
           >
-            {CONTRACT_NAME}
+            ccip016-missed-payouts-v3
           </Link>
         </Box>
       </Stack>
@@ -185,18 +118,6 @@ function Ccip016() {
           bug.
         </Text>
       </Stack>
-
-      {isVoteActive.data && hasVoted ? (
-        <>
-          <Separator />
-          <Text fontWeight="bold">Vote recorded, thank you!</Text>
-          <Text>Refresh to see stats once the tx confirms.</Text>
-        </>
-      ) : (
-        <VoteButtons />
-      )}
-
-      {voterInfo.data && <VoteResult />}
     </Stack>
   );
 }
