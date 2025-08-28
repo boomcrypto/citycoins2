@@ -2,9 +2,6 @@ import { Box } from "@chakra-ui/react";
 import { Tabs } from "@chakra-ui/react";
 import { useAtom } from "jotai";
 import { activeTabAtom } from "../../store/common";
-import Dashboard from "../tabs/dashboard";
-import MiningClaims from "../tabs/mining-claims";
-import StackingClaims from "../tabs/stacking-claims";
 import Voting from "../tabs/voting";
 import Mia from "../tabs/mia";
 import Nyc from "../tabs/nyc";
@@ -14,18 +11,12 @@ function Content() {
 
   return (
     <Box width="100%" maxW="1200px">
-      <Tabs.Root value={activeTab} onValueChange={(e) => setActiveTab(e.value)} variant="enclosed">
+      <Tabs.Root value={activeTab} onValueChange={(e) => setActiveTab(e.value)} variant="outline" fitted>
         <Tabs.List>
-          <Tabs.Trigger value="dashboard">Dashboard</Tabs.Trigger>
-          <Tabs.Trigger value="mining-claims">Mining Claims</Tabs.Trigger>
-          <Tabs.Trigger value="stacking-claims">Stacking Claims</Tabs.Trigger>
           <Tabs.Trigger value="voting">Voting</Tabs.Trigger>
           <Tabs.Trigger value="mia">MIA</Tabs.Trigger>
           <Tabs.Trigger value="nyc">NYC</Tabs.Trigger>
         </Tabs.List>
-        <Tabs.Content value="dashboard"><Dashboard /></Tabs.Content>
-        <Tabs.Content value="mining-claims"><MiningClaims /></Tabs.Content>
-        <Tabs.Content value="stacking-claims"><StackingClaims /></Tabs.Content>
         <Tabs.Content value="voting"><Voting /></Tabs.Content>
         <Tabs.Content value="mia"><Mia /></Tabs.Content>
         <Tabs.Content value="nyc"><Nyc /></Tabs.Content>
