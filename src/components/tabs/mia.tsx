@@ -1,4 +1,4 @@
-import { Accordion, Button, Heading, Stack, Text } from "@chakra-ui/react";
+import { Accordion, Button, Heading, Link, Stack, Text } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
 import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
@@ -26,10 +26,21 @@ function Mia() {
             <Heading size="xl">Redeem MIA</Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
-          <Accordion.ItemContent>
+          <Accordion.ItemContent p={4}>
+            <Text mb={4}>
+              Burn MIA to receive STX per{" "}
+              <Link
+                href="https://github.com/citycoins/governance/pull/50"
+                isExternal
+              >
+                CCIP-026
+              </Link>
+              .
+            </Text>
+            <Text mb={4}>This functionality is pending approval via CCIP-026.</Text>
             <Stack direction="row" gap={4}>
-              <Button variant="outline">Check Eligibility</Button>
-              <Button variant="outline">Execute Redemption</Button>
+              <Button variant="outline" disabled>Check Eligibility</Button>
+              <Button variant="outline" disabled>Execute Redemption</Button>
             </Stack>
           </Accordion.ItemContent>
         </Accordion.Item>
