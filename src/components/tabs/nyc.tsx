@@ -9,6 +9,12 @@ import { openContractCall } from "@stacks/connect";
 function Nyc() {
   const stxAddress = useAtomValue(stxAddressAtom);
 
+  const [hasChecked, setHasChecked] = useState(false);
+  const [isEligible, setIsEligible] = useState(false);
+  const [balanceV1, setBalanceV1] = useState(0);
+  const [balanceV2, setBalanceV2] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
   if (!stxAddress) {
     return (
       <Stack gap={4}>
@@ -18,12 +24,6 @@ function Nyc() {
       </Stack>
     );
   }
-
-  const [hasChecked, setHasChecked] = useState(false);
-  const [isEligible, setIsEligible] = useState(false);
-  const [balanceV1, setBalanceV1] = useState(0);
-  const [balanceV2, setBalanceV2] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
 
   const NYC_V1_CONTRACT = "placeholder.v1::newyorkcitycoin"; // TODO: Replace with actual contract
   const NYC_V2_CONTRACT = "placeholder.v2::newyorkcitycoin"; // TODO: Replace with actual contract
