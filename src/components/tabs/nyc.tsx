@@ -12,6 +12,7 @@ import SignIn from "../auth/sign-in";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
 import { openContractCall } from "@stacks/connect";
+import { Pc, PostCondition } from "@stacks/transactions";
 
 function Nyc() {
   const stxAddress = useAtomValue(stxAddressAtom);
@@ -72,14 +73,17 @@ function Nyc() {
 
   const executeRedemption = () => {
     const [address, name] = NYC_REDEMPTION_CONTRACT.split(".");
+    const postConditions: PostCondition[] = [];
+    const v1PostCondition = balanceV1 ? Pc.principal(stxAddress).willSendEq(balanceV1).ft(NYC_V1_CONTRACT, "newyorkcitycoin") : undefined;
+    const v2PostCondition = balanceV2 ? Pc.principal(stxAddress).willSendEq(balanceV2).ft(NYC_V2_CONTRACT, "newyorkcitycoin") : undefined;
+    if (v1PostCondition) { postConditions.push(v1PostCondition) };
+    if (v2PostCondition) { postConditions.push(v2PostCondition) };
     openContractCall({
       contractAddress: address,
       contractName: name,
-      functionName: "redeem",
-      functionArgs: [
-        // TODO: Use @stacks/transactions to create clarity values, e.g., uintCV(totalBalance)
-        // uintCV(totalBalance),
-      ],
+      functionName: "redeem-nyc",
+      functionArgs: [],
+      postConditions: postConditions,
       onFinish: (data) => {
         console.log("Transaction finished:", data);
       },
