@@ -1,4 +1,11 @@
-import { Accordion, Button, Heading, Link, Stack, Text } from "@chakra-ui/react";
+import {
+  Accordion,
+  Button,
+  Heading,
+  Link,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
 import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
@@ -19,14 +26,21 @@ function Nyc() {
     return (
       <Stack gap={4}>
         <Heading size="4xl">NYC Tools</Heading>
-        <Text>Wallet connection required to access tools and utilities for NewYorkCityCoin (NYC).</Text>
+        <Text>
+          Wallet connection required to access tools and utilities for
+          NewYorkCityCoin (NYC).
+        </Text>
         <SignIn />
       </Stack>
     );
   }
 
-  const NYC_V1_CONTRACT = "placeholder.v1::newyorkcitycoin"; // TODO: Replace with actual contract
-  const NYC_V2_CONTRACT = "placeholder.v2::newyorkcitycoin"; // TODO: Replace with actual contract
+  const NYC_V1_CONTRACT =
+    "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token";
+  const NYC_V2_CONTRACT =
+    "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2";
+  const NYC_REDEMPTION_CONTRACT =
+    "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd012-redemption-nyc";
 
   const checkEligibility = async () => {
     if (!stxAddress) return;
@@ -35,8 +49,14 @@ function Nyc() {
     try {
       const url = `${HIRO_API}/extended/v1/address/${stxAddress}/balances`;
       const data = await fancyFetch<any>(url);
-      const v1Balance = parseInt(data.fungible_tokens?.[NYC_V1_CONTRACT]?.balance || "0", 10);
-      const v2Balance = parseInt(data.fungible_tokens?.[NYC_V2_CONTRACT]?.balance || "0", 10);
+      const v1Balance = parseInt(
+        data.fungible_tokens?.[NYC_V1_CONTRACT]?.balance || "0",
+        10
+      );
+      const v2Balance = parseInt(
+        data.fungible_tokens?.[NYC_V2_CONTRACT]?.balance || "0",
+        10
+      );
 
       setBalanceV1(v1Balance);
       setBalanceV2(v2Balance);
@@ -50,14 +70,11 @@ function Nyc() {
     }
   };
 
-  const executeRedemption = async () => {
-    // TODO: Implement actual redemption logic with real contract details
-    // Assuming the function requires an amount argument, stub with total balance
-    const totalBalance = balanceV1 + balanceV2;
-
-    await openContractCall({
-      contractAddress: "placeholder.address",
-      contractName: "placeholder-name",
+  const executeRedemption = () => {
+    const [address, name] = NYC_REDEMPTION_CONTRACT.split(".");
+    openContractCall({
+      contractAddress: address,
+      contractName: name,
       functionName: "redeem",
       functionArgs: [
         // TODO: Use @stacks/transactions to create clarity values, e.g., uintCV(totalBalance)
@@ -94,7 +111,11 @@ function Nyc() {
               .
             </Text>
             <Stack direction="row" gap={4}>
-              <Button variant="outline" onClick={checkEligibility} isLoading={isLoading}>
+              <Button
+                variant="outline"
+                onClick={checkEligibility}
+                isLoading={isLoading}
+              >
                 Check Eligibility
               </Button>
               <Button
@@ -110,7 +131,9 @@ function Nyc() {
                 <Text>NYC v1 Balance: {balanceV1}</Text>
                 <Text>NYC v2 Balance: {balanceV2}</Text>
                 <Text>
-                  {isEligible ? "You are eligible for redemption." : "You are not eligible for redemption."}
+                  {isEligible
+                    ? "You are eligible for redemption."
+                    : "You are not eligible for redemption."}
                 </Text>
               </Stack>
             )}
