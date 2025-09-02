@@ -11,8 +11,9 @@ import { stxAddressAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
-import { openContractCall } from "@stacks/connect";
+import { openContractCall, request } from "@stacks/connect";
 import { Pc, PostCondition, PostConditionMode } from "@stacks/transactions";
+import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
 
 function Nyc() {
   const stxAddress = useAtomValue(stxAddressAtom);
@@ -36,10 +37,12 @@ function Nyc() {
     );
   }
 
+  const NYC_ASSET_ID = "newyorkcitycoin";
   const NYC_V1_CONTRACT =
     "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token";
   const NYC_V2_CONTRACT =
     "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2";
+
   const NYC_REDEMPTION_CONTRACT =
     "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd012-redemption-nyc";
 
@@ -49,13 +52,17 @@ function Nyc() {
     setIsLoading(true);
     try {
       const url = `${HIRO_API}/extended/v1/address/${stxAddress}/balances`;
-      const data = await fancyFetch<any>(url);
+      const data = await fancyFetch<AddressBalanceResponse>(url);
+      //console.log("fetched balance data from Hiro:");
+      //console.log(JSON.stringify(data, null, 2));
       const v1Balance = parseInt(
-        data.fungible_tokens?.[NYC_V1_CONTRACT]?.balance || "0",
+        data.fungible_tokens?.[`${NYC_V1_CONTRACT}::${NYC_ASSET_ID}`]
+          ?.balance || "0",
         10
       );
       const v2Balance = parseInt(
-        data.fungible_tokens?.[NYC_V2_CONTRACT]?.balance || "0",
+        data.fungible_tokens?.[`${NYC_V2_CONTRACT}::${NYC_ASSET_ID}`]
+          ?.balance || "0",
         10
       );
 
@@ -64,6 +71,7 @@ function Nyc() {
       const eligible = v1Balance > 0 || v2Balance > 0;
       setIsEligible(eligible);
       setHasChecked(true);
+      console.log("Eligibility checked:", { v1Balance, v2Balance, eligible });
     } catch (error) {
       console.error("Error checking eligibility:", error);
     } finally {
@@ -71,7 +79,8 @@ function Nyc() {
     }
   };
 
-  const executeRedemption = () => {
+  const executeRedemption = async () => {
+    console.log("Executing redemption...");
     const [address, name] = NYC_REDEMPTION_CONTRACT.split(".");
     /* Need to double check post conditions required here
     - also add a contract will transfer? look up amount for balance?
@@ -81,20 +90,16 @@ function Nyc() {
     if (v1PostCondition) { postConditions.push(v1PostCondition) };
     if (v2PostCondition) { postConditions.push(v2PostCondition) };
     */
-    openContractCall({
-      contractAddress: address,
-      contractName: name,
-      functionName: "redeem-nyc",
-      functionArgs: [],
-      // postConditions: postConditions,
-      postConditionMode: PostConditionMode.Allow,
-      onFinish: (data) => {
-        console.log("Transaction finished:", data);
-      },
-      onCancel: () => {
-        console.log("Transaction cancelled");
-      },
-    });
+    try {
+      await request("stx_callContract", {
+        contract: `${address}.${name}`,
+        functionName: "redeem-nyc",
+        functionArgs: [],
+        postConditionMode: "allow",
+      });
+    } catch (error) {
+      console.error("Error executing redemption:", error);
+    }
   };
 
   return (
@@ -122,14 +127,14 @@ function Nyc() {
               <Button
                 variant="outline"
                 onClick={checkEligibility}
-                isLoading={isLoading}
+                loading={isLoading}
               >
                 Check Eligibility
               </Button>
               <Button
                 variant="outline"
                 onClick={executeRedemption}
-                isDisabled={!hasChecked || !isEligible || isLoading}
+                disabled={!hasChecked || !isEligible || isLoading}
               >
                 Execute Redemption
               </Button>
@@ -137,7 +142,7 @@ function Nyc() {
             {hasChecked && (
               <Stack mt={4}>
                 <Text>NYC v1 Balance: {balanceV1}</Text>
-                <Text>NYC v2 Balance: {balanceV2}</Text>
+                <Text>NYC v2 Balance: {balanceV2 / 1000000}</Text>
                 <Text>
                   {isEligible
                     ? "You are eligible for redemption."

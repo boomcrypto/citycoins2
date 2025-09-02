@@ -1,5 +1,5 @@
 import { request } from "@stacks/connect";
-import { boolCV } from "@stacks/transactions";
+import { boolCV, PostConditionMode } from "@stacks/transactions";
 import {
   CONTRACT_ADDRESS,
   CONTRACT_NAME,
@@ -12,13 +12,12 @@ export const useCcip016VoteActions = () => {
 
   const voteYes = async () => {
     try {
-      await request('stx_callContract', {
+      await request("stx_callContract", {
         contract: `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`,
         functionName: "vote-on-proposal",
         functionArgs: [boolCV(true)],
       });
       setCcip016HasVoted(true);
-
     } catch (error) {
       console.error("Error voting Yes on CCIP-016:", error);
     }
@@ -26,7 +25,7 @@ export const useCcip016VoteActions = () => {
 
   const voteNo = async () => {
     try {
-      await request('stx_callContract', {
+      await request("stx_callContract", {
         contract: `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`,
         functionName: "vote-on-proposal",
         functionArgs: [boolCV(false)],
@@ -34,7 +33,7 @@ export const useCcip016VoteActions = () => {
       setCcip016HasVoted(true);
     } catch (error) {
       console.error("Error voting No on CCIP-016:", error);
-    };
+    }
   };
 
   return { voteYes, voteNo };
