@@ -25,9 +25,9 @@ export type LoadableDataset<T> = {
 // LOCAL STORAGE ATOMS
 /////////////////////////
 
-export const activeTabAtom = atomWithStorage<number>(
+export const activeTabAtom = atomWithStorage<string>(
   "citycoins-ui-activeTab",
-  4 // default: Voting
+  "voting" // default: Voting
 );
 
 export const commonLocalStorageAtoms = [activeTabAtom];
