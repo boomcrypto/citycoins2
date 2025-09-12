@@ -29,7 +29,8 @@ function Nyc() {
       contract:
         "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1",
       functions: [
-        "mine",
+        "mine-tokens",
+        "mine-many",
         "claim-mining-reward",
         "stack-tokens",
         "claim-stacking-reward",
@@ -46,7 +47,7 @@ function Nyc() {
       functions: [
         "mine",
         "claim-mining-reward",
-        "stack-tokens",
+        "stack",
         "claim-stacking-reward",
       ],
     },

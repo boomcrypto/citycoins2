@@ -28,7 +28,8 @@ function Mia() {
     {
       contract: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1",
       functions: [
-        "mine",
+        "mine-tokens",
+        "mine-many",
         "claim-mining-reward",
         "stack-tokens",
         "claim-stacking-reward",
@@ -39,16 +40,16 @@ function Mia() {
       functions: ["transfer"],
     },
     {
-      contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634EY.miamicoin-core-v2",
+      contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2",
       functions: [
         "mine",
         "claim-mining-reward",
-        "stack-tokens",
+        "stack",
         "claim-stacking-reward",
       ],
     },
     {
-      contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634EY.miamicoin-token-v2",
+      contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-token-v2",
       functions: ["transfer"],
     },
     // add more as needed
@@ -81,7 +82,7 @@ function Mia() {
   const MIA_V1_CONTRACT =
     "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token";
   const MIA_V2_CONTRACT =
-    "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634EY.miamicoin-token-v2";
+    "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-token-v2";
 
   const MIA_REDEMPTION_CONTRACT =
     "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd013-redemption-mia";
