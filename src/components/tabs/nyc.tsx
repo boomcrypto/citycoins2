@@ -102,6 +102,35 @@ function Nyc() {
     }
   };
 
+  const NYC_TX_FILTER: { contract: string; functions: string[] }[] = [
+    {
+      contract: "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1",
+      functions: ["mine", "claim-mining-reward", "stack-tokens", "claim-stacking-reward"],
+    },
+    {
+      contract: "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token",
+      functions: ["transfer"],
+    },
+    {
+      contract: "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2",
+      functions: ["mine", "claim-mining-reward", "stack-tokens", "claim-stacking-reward"],
+    },
+    {
+      contract: "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2",
+      functions: ["transfer"],
+    },
+    // add more as needed
+  ];
+
+  const filteredTransactions = useAtomValue(transactionsAtom).filter((tx) => {
+    if (tx.tx_type !== "contract_call") return false;
+    const contractId = tx.contract_call.contract_id;
+    const func = tx.contract_call.function_name;
+    return NYC_TX_FILTER.some(
+      (filter) => filter.contract === contractId && filter.functions.includes(func)
+    );
+  });
+
   return (
     <Stack gap={4}>
       <Heading size="4xl">NYC Tools</Heading>
@@ -153,6 +182,8 @@ function Nyc() {
           </Accordion.ItemContent>
         </Accordion.Item>
       </Accordion.Root>
+      <Heading size="xl">NYC Transactions</Heading>
+      <TransactionList transactions={filteredTransactions} />
     </Stack>
   );
 }
