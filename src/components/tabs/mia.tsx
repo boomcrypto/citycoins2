@@ -1,4 +1,11 @@
-import { Accordion, Button, Heading, Link, Stack, Text } from "@chakra-ui/react";
+import {
+  Accordion,
+  Button,
+  Heading,
+  Link,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
 import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
@@ -21,7 +28,10 @@ function Mia() {
     return (
       <Stack gap={4}>
         <Heading size="4xl">MIA Tools</Heading>
-        <Text>Wallet connection required to access tools and utilities for MiamiCoin (MIA).</Text>
+        <Text>
+          Wallet connection required to access tools and utilities for MiamiCoin
+          (MIA).
+        </Text>
         <SignIn />
       </Stack>
     );
@@ -85,7 +95,12 @@ function Mia() {
   const MIA_TX_FILTER: { contract: string; functions: string[] }[] = [
     {
       contract: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1",
-      functions: ["mine", "claim-mining-reward", "stack-tokens", "claim-stacking-reward"],
+      functions: [
+        "mine",
+        "claim-mining-reward",
+        "stack-tokens",
+        "claim-stacking-reward",
+      ],
     },
     {
       contract: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token",
@@ -93,7 +108,12 @@ function Mia() {
     },
     {
       contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634EY.miamicoin-core-v2",
-      functions: ["mine", "claim-mining-reward", "stack-tokens", "claim-stacking-reward"],
+      functions: [
+        "mine",
+        "claim-mining-reward",
+        "stack-tokens",
+        "claim-stacking-reward",
+      ],
     },
     {
       contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634EY.miamicoin-token-v2",
@@ -107,7 +127,8 @@ function Mia() {
     const contractId = tx.contract_call.contract_id;
     const func = tx.contract_call.function_name;
     return MIA_TX_FILTER.some(
-      (filter) => filter.contract === contractId && filter.functions.includes(func)
+      (filter) =>
+        filter.contract === contractId && filter.functions.includes(func)
     );
   });
 
@@ -131,7 +152,9 @@ function Mia() {
                 CCIP-026
               </Link>
               .{" "}
-              <Text as="span" color="gray.500">Pending approval.</Text>
+              <Text as="span" color="gray.500">
+                Pending approval.
+              </Text>
             </Text>
             <Stack direction="row" gap={4}>
               <Button
@@ -139,12 +162,16 @@ function Mia() {
                 onClick={checkEligibility}
                 isLoading={isLoading}
                 isDisabled
-              >Check Eligibility</Button>
+              >
+                Check Eligibility
+              </Button>
               <Button
                 variant="outline"
                 onClick={executeRedemption}
                 isDisabled={!hasChecked || !isEligible || isLoading}
-              >Execute Redemption</Button>
+              >
+                Execute Redemption
+              </Button>
             </Stack>
             {hasChecked && (
               <Stack mt={4}>
