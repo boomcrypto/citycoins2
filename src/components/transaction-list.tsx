@@ -47,7 +47,6 @@ function TransactionList({ transactions }: TransactionListProps) {
     }
   };
 
-  console.log("TransactionList rendered with transactions:", transactions);
   return (
     <Stack gap={4}>
       <Stack direction="row" alignItems="center" minH="2em">
