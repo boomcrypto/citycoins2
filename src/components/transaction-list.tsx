@@ -10,6 +10,7 @@ import {
   Portal,
   CloseButton,
   useDisclosure,
+  Button,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -180,14 +181,13 @@ function TransactionItem({ tx, onOpenDetails }: TransactionItemProps) {
       borderRadius="lg"
       p={4}
       mb={2}
-      cursor="pointer"
-      onClick={() => onOpenDetails(tx)}
     >
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Text>{tx.tx_id.slice(0, 6)}...{tx.tx_id.slice(-4)}</Text>
         <Text>{category}</Text>
         <Text>{tx.tx_status === "success" ? "✅" : "❌"}</Text>
         <Text>{formatDate(tx.block_time_iso)}</Text>
+        <Button size="sm" onClick={() => onOpenDetails(tx)}>Details</Button>
       </Stack>
     </ListItem>
   );
