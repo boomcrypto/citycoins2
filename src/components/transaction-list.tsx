@@ -6,13 +6,21 @@ import {
   Spinner,
   Box,
   IconButton,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
 import { formatDate } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { selectedTransactionsAtom } from "../store/citycoins";
+import { useState } from "react";
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -20,6 +28,7 @@ interface TransactionListProps {
 
 interface TransactionItemProps {
   tx: Transaction;
+  onOpenDetails: (tx: Transaction) => void;
 }
 
 interface TransactionFunctionArgsProps {
@@ -31,12 +40,21 @@ interface TransactionFunctionArgsProps {
   }[];
 }
 
+interface TransactionDetailsModalProps {
+  tx: Transaction | null;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 function TransactionList({ transactions }: TransactionListProps) {
   const [allTransactions, updateTransactions] = useAtom(transactionsAtom);
-  const selectedTransactions = useAtomValue(selectedTransactionsAtom);
+  const setSelectedTransactions = useSetAtom(selectedTransactionsAtom);
   const { isLoading, error, progress } = useAtomValue(
     transactionFetchStatusAtom
   );
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   const fetchTransactions = async () => {
     if (isLoading) return;
@@ -46,6 +64,29 @@ function TransactionList({ transactions }: TransactionListProps) {
       console.error("Failed to fetch transactions:", error);
     }
   };
+
+  const handleOpenDetails = (tx: Transaction) => {
+    setSelectedTx(tx);
+    onOpen();
+  };
+
+  // Compute summaries
+  const summaries = transactions.reduce(
+    (acc, tx) => {
+      if (tx.tx_type === "contract_call") {
+        const func = tx.contract_call.function_name;
+        if (["mine-tokens", "mine-many", "mine", "claim-mining-reward"].includes(func)) {
+          acc.mining++;
+        } else if (["stack-tokens", "stack", "claim-stacking-reward"].includes(func)) {
+          acc.stacking++;
+        } else if (func === "transfer") {
+          acc.transfer++;
+        }
+      }
+      return acc;
+    },
+    { mining: 0, stacking: 0, transfer: 0 }
+  );
 
   return (
     <Stack gap={4}>
@@ -79,7 +120,7 @@ function TransactionList({ transactions }: TransactionListProps) {
           >
             <Text>
               {transactions?.length > 0
-                ? `Transactions loaded successfully (${selectedTransactions.length})`
+                ? `Transactions loaded successfully (${transactions.length})`
                 : "No transactions loaded yet"}
             </Text>
             <IconButton
@@ -93,49 +134,55 @@ function TransactionList({ transactions }: TransactionListProps) {
           </Stack>
         )}
       </Stack>
+      <Stack direction="row" gap={4}>
+        <Text>Mining Actions: {summaries.mining}</Text>
+        <Text>Stacking Actions: {summaries.stacking}</Text>
+        <Text>Transfers: {summaries.transfer}</Text>
+      </Stack>
       <Stack>
         {transactions?.length === 0 && <Text>No transactions found.</Text>}
         {transactions?.length > 0 && (
           <List.Root>
             {transactions.map((tx) => (
-              <TransactionItem key={tx.tx_id} tx={tx} />
+              <TransactionItem key={tx.tx_id} tx={tx} onOpenDetails={handleOpenDetails} />
             ))}
           </List.Root>
         )}
       </Stack>
+      <TransactionDetailsModal tx={selectedTx} isOpen={isOpen} onClose={onClose} />
     </Stack>
   );
 }
 
-function TransactionItem({ tx }: TransactionItemProps) {
-  return (
-    <Box borderWidth="1px" borderRadius="lg" p={4} mb={4}>
-      <Stack gap={2}>
-        <Text fontWeight="bold" fontSize="lg">
-          TXID: {tx.tx_id}
-        </Text>
-        <Text>
-          Status: {tx.tx_status === "success" ? "✅ Success" : "❌ Failed"}
-        </Text>
-        <Text>Block Height: {tx.block_height}</Text>
-        <Text>Block Time: {formatDate(tx.block_time_iso)}</Text>
-        <Text>Sender Address: {tx.sender_address}</Text>
-        <Text>Fee Rate: {tx.fee_rate}</Text>
-        {tx.tx_type === "contract_call" && (
-          <>
-            <Text fontWeight="bold">Contract Call Details</Text>
-            <Text>Contract ID: {tx.contract_call.contract_id}</Text>
-            <Text>Function Name: {tx.contract_call.function_name}</Text>
+function TransactionItem({ tx, onOpenDetails }: TransactionItemProps) {
+  let category = "Other";
+  if (tx.tx_type === "contract_call") {
+    const func = tx.contract_call.function_name;
+    if (["mine-tokens", "mine-many", "mine", "claim-mining-reward"].includes(func)) {
+      category = "Mining";
+    } else if (["stack-tokens", "stack", "claim-stacking-reward"].includes(func)) {
+      category = "Stacking";
+    } else if (func === "transfer") {
+      category = "Transfer";
+    }
+  }
 
-            {tx.contract_call.function_args && (
-              <TransactionFunctionArgs
-                functionArgs={tx.contract_call.function_args}
-              />
-            )}
-          </>
-        )}
+  return (
+    <ListItem
+      borderWidth="1px"
+      borderRadius="lg"
+      p={4}
+      mb={2}
+      cursor="pointer"
+      onClick={() => onOpenDetails(tx)}
+    >
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Text>{tx.tx_id.slice(0, 6)}...{tx.tx_id.slice(-4)}</Text>
+        <Text>{category}</Text>
+        <Text>{tx.tx_status === "success" ? "✅" : "❌"}</Text>
+        <Text>{formatDate(tx.block_time_iso)}</Text>
       </Stack>
-    </Box>
+    </ListItem>
   );
 }
 
@@ -155,6 +202,47 @@ function TransactionFunctionArgs({
         ))}
       </List.Root>
     </Stack>
+  );
+}
+
+function TransactionDetailsModal({ tx, isOpen, onClose }: TransactionDetailsModalProps) {
+  if (!tx) return null;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Transaction Details</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <Stack gap={2}>
+            <Text fontWeight="bold" fontSize="lg">
+              TXID: {tx.tx_id}
+            </Text>
+            <Text>
+              Status: {tx.tx_status === "success" ? "✅ Success" : "❌ Failed"}
+            </Text>
+            <Text>Block Height: {tx.block_height}</Text>
+            <Text>Block Time: {formatDate(tx.block_time_iso)}</Text>
+            <Text>Sender Address: {tx.sender_address}</Text>
+            <Text>Fee Rate: {tx.fee_rate}</Text>
+            {tx.tx_type === "contract_call" && (
+              <>
+                <Text fontWeight="bold">Contract Call Details</Text>
+                <Text>Contract ID: {tx.contract_call.contract_id}</Text>
+                <Text>Function Name: {tx.contract_call.function_name}</Text>
+
+                {tx.contract_call.function_args && (
+                  <TransactionFunctionArgs
+                    functionArgs={tx.contract_call.function_args}
+                  />
+                )}
+              </>
+            )}
+          </Stack>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
   );
 }
 
