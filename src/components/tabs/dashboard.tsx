@@ -20,7 +20,7 @@ import {
   stackingTransactionsAtom,
   votingTransactionsAtom,
 } from "../../store/citycoins";
-import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
+import { stxAddressAtom, transactionFetchStatusAtom, transactionsAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import TransactionList from "../transaction-list";
 
@@ -36,6 +36,8 @@ function Dashboard() {
     selectedTransactionTypeAtom
   );
   const selectedTransactions = useAtomValue(selectedTransactionsAtom);
+  const [allTransactions, updateTransactions] = useAtom(transactionsAtom);
+  const fetchStatus = useAtomValue(transactionFetchStatusAtom);
 
   const selectTransactions = (type: TransactionTypes) => {
     if (type === selectedTransactionType) {
@@ -174,6 +176,9 @@ function Dashboard() {
         </Stack>
       </Stack>
       <Separator />
+      {fetchStatus.isLoading && <Text>Loading transactions... {fetchStatus.progress}%</Text>}
+      {fetchStatus.error && <Text color="red.500">Error: {fetchStatus.error}</Text>}
+      <Button onClick={() => updateTransactions(allTransactions)}>Refresh Transactions</Button>
       <TransactionList transactions={selectedTransactions} />
     </Stack>
   );
