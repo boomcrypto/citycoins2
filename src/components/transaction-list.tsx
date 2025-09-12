@@ -46,12 +46,11 @@ interface TransactionDetailsDrawerProps {
 
 function TransactionList({ transactions }: TransactionListProps) {
   const [allTransactions, updateTransactions] = useAtom(transactionsAtom);
-  const setSelectedTransactions = useSetAtom(selectedTransactionsAtom);
   const { isLoading, error, progress } = useAtomValue(
     transactionFetchStatusAtom
   );
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { open: isOpen, onOpen, onClose } = useDisclosure();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   const fetchTransactions = async () => {
@@ -148,12 +147,20 @@ function TransactionList({ transactions }: TransactionListProps) {
         {transactions?.length > 0 && (
           <List.Root>
             {transactions.map((tx) => (
-              <TransactionItem key={tx.tx_id} tx={tx} onOpenDetails={handleOpenDetails} />
+              <TransactionItem
+                key={tx.tx_id}
+                tx={tx}
+                onOpenDetails={handleOpenDetails}
+              />
             ))}
           </List.Root>
         )}
       </Stack>
-      <TransactionDetailsDrawer tx={selectedTx} isOpen={isOpen} onClose={onClose} />
+      <TransactionDetailsDrawer
+        tx={selectedTx}
+        isOpen={isOpen}
+        onClose={onClose}
+      />
     </Stack>
   );
 }
@@ -176,18 +183,17 @@ function TransactionItem({ tx, onOpenDetails }: TransactionItemProps) {
   }
 
   return (
-    <ListItem
-      borderWidth="1px"
-      borderRadius="lg"
-      p={4}
-      mb={2}
-    >
+    <ListItem borderWidth="1px" borderRadius="lg" p={4} mb={2}>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Text>{tx.tx_id.slice(0, 6)}...{tx.tx_id.slice(-4)}</Text>
+        <Text>
+          {tx.tx_id.slice(0, 6)}...{tx.tx_id.slice(-4)}
+        </Text>
         <Text>{category}</Text>
         <Text>{tx.tx_status === "success" ? "✅" : "❌"}</Text>
         <Text>{formatDate(tx.block_time_iso)}</Text>
-        <Button size="sm" onClick={() => onOpenDetails(tx)}>Details</Button>
+        <Button size="sm" onClick={() => onOpenDetails(tx)}>
+          Details
+        </Button>
       </Stack>
     </ListItem>
   );
@@ -212,11 +218,22 @@ function TransactionFunctionArgs({
   );
 }
 
-function TransactionDetailsDrawer({ tx, isOpen, onClose }: TransactionDetailsDrawerProps) {
+function TransactionDetailsDrawer({
+  tx,
+  isOpen,
+  onClose,
+}: TransactionDetailsDrawerProps) {
   if (!tx) return null;
 
   return (
-    <Drawer.Root open={isOpen} onOpenChange={(details) => { if (!details.open) onClose(); }} placement="bottom" size="lg">
+    <Drawer.Root
+      open={isOpen}
+      onOpenChange={(details) => {
+        if (!details.open) onClose();
+      }}
+      placement="bottom"
+      size="lg"
+    >
       <Portal>
         <Drawer.Backdrop />
         <Drawer.Positioner>
@@ -233,7 +250,8 @@ function TransactionDetailsDrawer({ tx, isOpen, onClose }: TransactionDetailsDra
                   TXID: {tx.tx_id}
                 </Text>
                 <Text>
-                  Status: {tx.tx_status === "success" ? "✅ Success" : "❌ Failed"}
+                  Status:{" "}
+                  {tx.tx_status === "success" ? "✅ Success" : "❌ Failed"}
                 </Text>
                 <Text>Block Height: {tx.block_height}</Text>
                 <Text>Block Time: {formatDate(tx.block_time_iso)}</Text>
