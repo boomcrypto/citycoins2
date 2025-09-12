@@ -11,6 +11,7 @@ import {
   CloseButton,
   useDisclosure,
   Button,
+  Grid,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -184,7 +185,7 @@ function TransactionItem({ tx, onOpenDetails }: TransactionItemProps) {
 
   return (
     <ListItem borderWidth="1px" borderRadius="lg" p={4} mb={2}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Grid templateColumns="2fr 2fr 1fr 3fr 2fr" gap={4} alignItems="center">
         <Text>
           {tx.tx_id.slice(0, 6)}...{tx.tx_id.slice(-4)}
         </Text>
@@ -194,7 +195,7 @@ function TransactionItem({ tx, onOpenDetails }: TransactionItemProps) {
         <Button size="sm" onClick={() => onOpenDetails(tx)}>
           Details
         </Button>
-      </Stack>
+      </Grid>
     </ListItem>
   );
 }
