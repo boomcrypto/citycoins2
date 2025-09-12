@@ -24,6 +24,46 @@ function Mia() {
   const [balanceV2, setBalanceV2] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
+  const MIA_TX_FILTER: { contract: string; functions: string[] }[] = [
+    {
+      contract: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1",
+      functions: [
+        "mine",
+        "claim-mining-reward",
+        "stack-tokens",
+        "claim-stacking-reward",
+      ],
+    },
+    {
+      contract: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token",
+      functions: ["transfer"],
+    },
+    {
+      contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634EY.miamicoin-core-v2",
+      functions: [
+        "mine",
+        "claim-mining-reward",
+        "stack-tokens",
+        "claim-stacking-reward",
+      ],
+    },
+    {
+      contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634EY.miamicoin-token-v2",
+      functions: ["transfer"],
+    },
+    // add more as needed
+  ];
+
+  const filteredTransactions = useAtomValue(transactionsAtom).filter((tx) => {
+    if (tx.tx_type !== "contract_call") return false;
+    const contractId = tx.contract_call.contract_id;
+    const func = tx.contract_call.function_name;
+    return MIA_TX_FILTER.some(
+      (filter) =>
+        filter.contract === contractId && filter.functions.includes(func)
+    );
+  });
+
   if (!stxAddress) {
     return (
       <Stack gap={4}>
@@ -91,46 +131,6 @@ function Mia() {
       console.error("Error executing redemption:", error);
     }
   };
-
-  const MIA_TX_FILTER: { contract: string; functions: string[] }[] = [
-    {
-      contract: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1",
-      functions: [
-        "mine",
-        "claim-mining-reward",
-        "stack-tokens",
-        "claim-stacking-reward",
-      ],
-    },
-    {
-      contract: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token",
-      functions: ["transfer"],
-    },
-    {
-      contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634EY.miamicoin-core-v2",
-      functions: [
-        "mine",
-        "claim-mining-reward",
-        "stack-tokens",
-        "claim-stacking-reward",
-      ],
-    },
-    {
-      contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634EY.miamicoin-token-v2",
-      functions: ["transfer"],
-    },
-    // add more as needed
-  ];
-
-  const filteredTransactions = useAtomValue(transactionsAtom).filter((tx) => {
-    if (tx.tx_type !== "contract_call") return false;
-    const contractId = tx.contract_call.contract_id;
-    const func = tx.contract_call.function_name;
-    return MIA_TX_FILTER.some(
-      (filter) =>
-        filter.contract === contractId && filter.functions.includes(func)
-    );
-  });
 
   return (
     <Stack gap={4}>
