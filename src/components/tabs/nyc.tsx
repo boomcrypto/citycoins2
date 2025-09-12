@@ -196,9 +196,16 @@ function Nyc() {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
+        <Accordion.Item value="transactions">
+          <Accordion.ItemTrigger>
+            <Heading size="xl">NYC Transactions</Heading>
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent p={4}>
+            <TransactionList transactions={filteredTransactions} />
+          </Accordion.ItemContent>
+        </Accordion.Item>
       </Accordion.Root>
-      <Heading size="xl">NYC Transactions</Heading>
-      <TransactionList transactions={filteredTransactions} />
     </Stack>
   );
 }
