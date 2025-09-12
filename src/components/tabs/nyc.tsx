@@ -7,13 +7,13 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
-import { stxAddressAtom } from "../../store/stacks";
+import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
-import { openContractCall, request } from "@stacks/connect";
-import { Pc, PostCondition, PostConditionMode } from "@stacks/transactions";
+import { request } from "@stacks/connect";
 import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
+import TransactionList from "../transaction-list";
 
 function Nyc() {
   const stxAddress = useAtomValue(stxAddressAtom);
@@ -104,19 +104,33 @@ function Nyc() {
 
   const NYC_TX_FILTER: { contract: string; functions: string[] }[] = [
     {
-      contract: "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1",
-      functions: ["mine", "claim-mining-reward", "stack-tokens", "claim-stacking-reward"],
+      contract:
+        "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1",
+      functions: [
+        "mine",
+        "claim-mining-reward",
+        "stack-tokens",
+        "claim-stacking-reward",
+      ],
     },
     {
-      contract: "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token",
+      contract:
+        "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token",
       functions: ["transfer"],
     },
     {
-      contract: "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2",
-      functions: ["mine", "claim-mining-reward", "stack-tokens", "claim-stacking-reward"],
+      contract:
+        "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2",
+      functions: [
+        "mine",
+        "claim-mining-reward",
+        "stack-tokens",
+        "claim-stacking-reward",
+      ],
     },
     {
-      contract: "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2",
+      contract:
+        "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2",
       functions: ["transfer"],
     },
     // add more as needed
@@ -127,7 +141,8 @@ function Nyc() {
     const contractId = tx.contract_call.contract_id;
     const func = tx.contract_call.function_name;
     return NYC_TX_FILTER.some(
-      (filter) => filter.contract === contractId && filter.functions.includes(func)
+      (filter) =>
+        filter.contract === contractId && filter.functions.includes(func)
     );
   });
 
