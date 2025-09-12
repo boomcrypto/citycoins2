@@ -121,8 +121,8 @@ function TransactionList({ transactions }: TransactionListProps) {
             w="100%"
           >
             <Text>
-              {transactions?.length > 0
-                ? `Transactions loaded successfully (${transactions.length})`
+              {allTransactions.length > 0
+                ? `Filtered transactions: ${transactions.length} / ${allTransactions.length}`
                 : "No transactions loaded yet"}
             </Text>
             <IconButton
