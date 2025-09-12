@@ -72,17 +72,21 @@ function TransactionList({ transactions }: TransactionListProps) {
     (acc, tx) => {
       if (tx.tx_type === "contract_call") {
         const func = tx.contract_call.function_name;
-        if (["mine-tokens", "mine-many", "mine", "claim-mining-reward"].includes(func)) {
+        if (["mine-tokens", "mine-many", "mine"].includes(func)) {
           acc.mining++;
-        } else if (["stack-tokens", "stack", "claim-stacking-reward"].includes(func)) {
+        } else if (func === "claim-mining-reward") {
+          acc.miningClaims++;
+        } else if (["stack-tokens", "stack"].includes(func)) {
           acc.stacking++;
+        } else if (func === "claim-stacking-reward") {
+          acc.stackingClaims++;
         } else if (func === "transfer") {
-          acc.transfer++;
+          acc.transfers++;
         }
       }
       return acc;
     },
-    { mining: 0, stacking: 0, transfer: 0 }
+    { mining: 0, miningClaims: 0, stacking: 0, stackingClaims: 0, transfers: 0 }
   );
 
   return (
@@ -132,9 +136,11 @@ function TransactionList({ transactions }: TransactionListProps) {
         )}
       </Stack>
       <Stack direction="row" gap={4}>
-        <Text>Mining Actions: {summaries.mining}</Text>
-        <Text>Stacking Actions: {summaries.stacking}</Text>
-        <Text>Transfers: {summaries.transfer}</Text>
+        <Text>Mining: {summaries.mining}</Text>
+        <Text>Mining Claims: {summaries.miningClaims}</Text>
+        <Text>Stacking: {summaries.stacking}</Text>
+        <Text>Stacking Claims: {summaries.stackingClaims}</Text>
+        <Text>Transfers: {summaries.transfers}</Text>
       </Stack>
       <Stack>
         {transactions?.length === 0 && <Text>No transactions found.</Text>}
@@ -155,10 +161,14 @@ function TransactionItem({ tx, onOpenDetails }: TransactionItemProps) {
   let category = "Other";
   if (tx.tx_type === "contract_call") {
     const func = tx.contract_call.function_name;
-    if (["mine-tokens", "mine-many", "mine", "claim-mining-reward"].includes(func)) {
+    if (["mine-tokens", "mine-many", "mine"].includes(func)) {
       category = "Mining";
-    } else if (["stack-tokens", "stack", "claim-stacking-reward"].includes(func)) {
+    } else if (func === "claim-mining-reward") {
+      category = "Mining Claim";
+    } else if (["stack-tokens", "stack"].includes(func)) {
       category = "Stacking";
+    } else if (func === "claim-stacking-reward") {
+      category = "Stacking Claim";
     } else if (func === "transfer") {
       category = "Transfer";
     }
