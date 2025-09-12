@@ -6,12 +6,9 @@ import {
   Spinner,
   Box,
   IconButton,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
+  Drawer,
+  Portal,
+  CloseButton,
   useDisclosure,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
@@ -40,7 +37,7 @@ interface TransactionFunctionArgsProps {
   }[];
 }
 
-interface TransactionDetailsModalProps {
+interface TransactionDetailsDrawerProps {
   tx: Transaction | null;
   isOpen: boolean;
   onClose: () => void;
@@ -149,7 +146,7 @@ function TransactionList({ transactions }: TransactionListProps) {
           </List.Root>
         )}
       </Stack>
-      <TransactionDetailsModal tx={selectedTx} isOpen={isOpen} onClose={onClose} />
+      <TransactionDetailsDrawer tx={selectedTx} isOpen={isOpen} onClose={onClose} />
     </Stack>
   );
 }
@@ -205,44 +202,52 @@ function TransactionFunctionArgs({
   );
 }
 
-function TransactionDetailsModal({ tx, isOpen, onClose }: TransactionDetailsModalProps) {
+function TransactionDetailsDrawer({ tx, isOpen, onClose }: TransactionDetailsDrawerProps) {
   if (!tx) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Transaction Details</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>
-          <Stack gap={2}>
-            <Text fontWeight="bold" fontSize="lg">
-              TXID: {tx.tx_id}
-            </Text>
-            <Text>
-              Status: {tx.tx_status === "success" ? "✅ Success" : "❌ Failed"}
-            </Text>
-            <Text>Block Height: {tx.block_height}</Text>
-            <Text>Block Time: {formatDate(tx.block_time_iso)}</Text>
-            <Text>Sender Address: {tx.sender_address}</Text>
-            <Text>Fee Rate: {tx.fee_rate}</Text>
-            {tx.tx_type === "contract_call" && (
-              <>
-                <Text fontWeight="bold">Contract Call Details</Text>
-                <Text>Contract ID: {tx.contract_call.contract_id}</Text>
-                <Text>Function Name: {tx.contract_call.function_name}</Text>
+    <Drawer.Root open={isOpen} onOpenChange={(details) => { if (!details.open) onClose(); }} placement="bottom" size="lg">
+      <Portal>
+        <Drawer.Backdrop />
+        <Drawer.Positioner>
+          <Drawer.Content>
+            <Drawer.Header>
+              <Drawer.Title>Transaction Details</Drawer.Title>
+              <Drawer.CloseTrigger asChild>
+                <CloseButton />
+              </Drawer.CloseTrigger>
+            </Drawer.Header>
+            <Drawer.Body>
+              <Stack gap={2}>
+                <Text fontWeight="bold" fontSize="lg">
+                  TXID: {tx.tx_id}
+                </Text>
+                <Text>
+                  Status: {tx.tx_status === "success" ? "✅ Success" : "❌ Failed"}
+                </Text>
+                <Text>Block Height: {tx.block_height}</Text>
+                <Text>Block Time: {formatDate(tx.block_time_iso)}</Text>
+                <Text>Sender Address: {tx.sender_address}</Text>
+                <Text>Fee Rate: {tx.fee_rate}</Text>
+                {tx.tx_type === "contract_call" && (
+                  <>
+                    <Text fontWeight="bold">Contract Call Details</Text>
+                    <Text>Contract ID: {tx.contract_call.contract_id}</Text>
+                    <Text>Function Name: {tx.contract_call.function_name}</Text>
 
-                {tx.contract_call.function_args && (
-                  <TransactionFunctionArgs
-                    functionArgs={tx.contract_call.function_args}
-                  />
+                    {tx.contract_call.function_args && (
+                      <TransactionFunctionArgs
+                        functionArgs={tx.contract_call.function_args}
+                      />
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </Stack>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+              </Stack>
+            </Drawer.Body>
+          </Drawer.Content>
+        </Drawer.Positioner>
+      </Portal>
+    </Drawer.Root>
   );
 }
 
