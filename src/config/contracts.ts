@@ -10,6 +10,7 @@ export type ContractConfig = {
     core: string;
     token: string;
   };
+  miningV1?: string; // Optional for v1 mining contract
   miningV2?: string; // Optional for advanced versions
   stackingV2?: string; // Optional
   redemption: string;
@@ -33,6 +34,7 @@ export const CONTRACTS: Record<CoinType, ContractConfig> = {
       core: 'SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2',
       token: 'SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-token-v2',
     },
+    miningV1: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining', // Placeholder if mainnet deployer unknown; update with correct address
     miningV2: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining-v2',
     stackingV2: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking',
     redemption: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd013-redemption-mia',
@@ -54,6 +56,7 @@ export const CONTRACTS: Record<CoinType, ContractConfig> = {
       core: 'SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2',
       token: 'SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2',
     },
+    miningV1: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining', // Placeholder if mainnet deployer unknown; update with correct address
     miningV2: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining-v2',
     stackingV2: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking',
     redemption: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd012-redemption-nyc',
