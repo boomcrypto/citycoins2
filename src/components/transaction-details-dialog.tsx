@@ -121,8 +121,18 @@ function TransactionDetailsDialog({
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose} size="xl" placement="center">
-      <Dialog.Backdrop />
-      <Dialog.Content>
+      <Dialog.Backdrop bg="rgba(0,0,0,0.5)" />
+      <Dialog.Content
+        bg="white"
+        border="1px solid black"
+        position="fixed"
+        top="50%"
+        left="50%"
+        transform="translate(-50%, -50%)"
+        zIndex="9999"
+        maxW="90vw"
+        maxH="90vh"
+      >
         <Dialog.Header>
           <Dialog.Title>Transaction Details</Dialog.Title>
           <Dialog.CloseTrigger />
