@@ -236,6 +236,11 @@ function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
   let decodedType = 'Unknown';
   let gridItems: { label: string; value: string }[] = [];
 
+  console.log("Decoded:", decoded);
+  console.log("typeof rewardCycle:", typeof decoded.rewardCycle);
+  console.log("rewardCycle value:", decoded.rewardCycle);
+  console.log("functionName:", decoded.functionName);
+
   if (isValidMiningTxArgs(decoded)) {
     decodedType = 'Mining';
     gridItems = [
@@ -253,10 +258,13 @@ function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
       { label: 'Miner Block Height', value: decoded.minerBlockHeight.toString() },
     ];
   } else if (isValidStackingClaimTxArgs(decoded)) {
+    console.log("Matched stacking claim");
     decodedType = 'Stacking Claim';
     gridItems = [
       { label: 'Reward Cycle', value: decoded.rewardCycle.toString() },
     ];
+  } else {
+    console.log("Type guards did not match");
   }
 
   return (

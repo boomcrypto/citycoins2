@@ -12,17 +12,17 @@ export interface MiningTxArgs {
 export interface StackingTxArgs {
   functionName: "stack-tokens";
   amountToken: bigint;
-  lockPeriod: number; // Number of cycles to lock for
+  lockPeriod: bigint; // Number of cycles to lock for
 }
 
 export interface MiningClaimTxArgs {
   functionName: "claim-mining-reward";
-  minerBlockHeight: number;
+  minerBlockHeight: bigint;
 }
 
 export interface StackingClaimTxArgs {
   functionName: "claim-stacking-reward";
-  rewardCycle: number;
+  rewardCycle: bigint;
 }
 
 export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
@@ -41,8 +41,8 @@ export function isValidStackingTxArgs(decoded: any): decoded is StackingTxArgs {
     decoded.functionName === "stack-tokens" &&
     typeof decoded.amountToken === "bigint" &&
     decoded.amountToken > 0n &&
-    typeof decoded.lockPeriod === "number" &&
-    decoded.lockPeriod > 0
+    typeof decoded.lockPeriod === "bigint" &&
+    decoded.lockPeriod > 0n
   );
 }
 
@@ -52,8 +52,8 @@ export function isValidMiningClaimTxArgs(
   return (
     typeof decoded === "object" &&
     decoded.functionName === "claim-mining-reward" &&
-    typeof decoded.minerBlockHeight === "number" &&
-    decoded.minerBlockHeight > 0
+    typeof decoded.minerBlockHeight === "bigint" &&
+    decoded.minerBlockHeight > 0n
   );
 }
 
@@ -63,8 +63,8 @@ export function isValidStackingClaimTxArgs(
   return (
     typeof decoded === "object" &&
     decoded.functionName === "claim-stacking-reward" &&
-    typeof decoded.rewardCycle === "number" &&
-    decoded.rewardCycle > 0
+    typeof decoded.rewardCycle === "bigint" &&
+    decoded.rewardCycle > 0n
   );
 }
 
@@ -109,15 +109,15 @@ export function decodeTxArgs(tx: Transaction): any | null {
     case "stack-tokens":
       // Assuming amountToken (uint), lockPeriod (uint)
       structured.amountToken = safeConvertToBigint(decodedArgs[0]);
-      structured.lockPeriod = Number(safeConvertToBigint(decodedArgs[1]));
+      structured.lockPeriod = safeConvertToBigint(decodedArgs[1]);
       break;
     case "claim-mining-reward":
       // Assuming minerBlockHeight (uint)
-      structured.minerBlockHeight = Number(safeConvertToBigint(decodedArgs[0]));
+      structured.minerBlockHeight = safeConvertToBigint(decodedArgs[0]);
       break;
     case "claim-stacking-reward":
       // Assuming rewardCycle (uint)
-      structured.rewardCycle = Number(safeConvertToBigint(decodedArgs[0]));
+      structured.rewardCycle = safeConvertToBigint(decodedArgs[0]);
       break;
     default:
       return null;
