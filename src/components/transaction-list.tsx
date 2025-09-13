@@ -225,7 +225,7 @@ function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
   try {
     decoded = decodeTxArgs(tx);
   } catch (error) {
-    return <Text>Failed to decode arguments: {error.toString()}</Text>;
+    return <Text>Failed to decode arguments: {error instanceof Error ? error.toString() : `Unknown error: ${String(error)}`}</Text>;
   }
 
   if (!decoded) {
