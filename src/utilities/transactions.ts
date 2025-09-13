@@ -113,6 +113,7 @@ export function decodeTxArgs(tx: Transaction): any | null {
       structured.amountsUstx = decodedArgs[1].map((val: any) =>
         safeConvertToBigint(val)
       );
+      console.log(`Decoded 'mine' args for tx ${tx.tx_id}: cityName=${structured.cityName}, amountsUstx=${structured.amountsUstx}`); // Debug log
       break;
     case "stack-tokens":
       // Assuming amountToken (uint), lockPeriod (uint)
