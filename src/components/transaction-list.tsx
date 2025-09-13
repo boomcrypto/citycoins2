@@ -17,6 +17,17 @@ import {
   Input,
   Badge,
   Table,
+  TableContainer,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  DrawerHeader,
+  DrawerBody,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -205,45 +216,47 @@ function TransactionList({ transactions }: TransactionListProps) {
       <Box overflowX="auto">
         {filteredTransactions.length === 0 && <Text>No transactions found.</Text>}
         {filteredTransactions.length > 0 && (
-          <Table.Root variant="line">
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader>TXID</Table.ColumnHeader>
-                <Table.ColumnHeader>Type</Table.ColumnHeader>
-                <Table.ColumnHeader>Status</Table.ColumnHeader>
-                <Table.ColumnHeader>Date</Table.ColumnHeader>
-                <Table.ColumnHeader>Actions</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {filteredTransactions.map((tx) => {
-                const category = getCategory(tx);
-                return (
-                  <Table.Row key={tx.tx_id}>
-                    <Table.Cell>
-                      <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
-                        {shortenTxId(tx.tx_id)}
-                      </Link>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Badge colorScheme={getCategoryColor(category)}>{category}</Badge>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
-                        {tx.tx_status}
-                      </Badge>
-                    </Table.Cell>
-                    <Table.Cell>{formatDate(tx.block_time_iso)}</Table.Cell>
-                    <Table.Cell>
-                      <Button size="sm" onClick={() => handleOpenDetails(tx)}>
-                        Details
-                      </Button>
-                    </Table.Cell>
-                  </Table.Row>
-                );
-              })}
-            </Table.Body>
-          </Table.Root>
+          <TableContainer>
+            <Table variant="simple">
+              <Thead>
+                <Tr>
+                  <Th>TXID</Th>
+                  <Th>Type</Th>
+                  <Th>Status</Th>
+                  <Th>Date</Th>
+                  <Th>Actions</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {filteredTransactions.map((tx) => {
+                  const category = getCategory(tx);
+                  return (
+                    <Tr key={tx.tx_id}>
+                      <Td>
+                        <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
+                          {shortenTxId(tx.tx_id)}
+                        </Link>
+                      </Td>
+                      <Td>
+                        <Badge colorScheme={getCategoryColor(category)}>{category}</Badge>
+                      </Td>
+                      <Td>
+                        <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
+                          {tx.tx_status}
+                        </Badge>
+                      </Td>
+                      <Td>{formatDate(tx.block_time_iso)}</Td>
+                      <Td>
+                        <Button size="sm" onClick={() => handleOpenDetails(tx)}>
+                          Details
+                        </Button>
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </Tbody>
+            </Table>
+          </TableContainer>
         )}
       </Box>
       <TransactionDetailsDrawer
@@ -262,7 +275,7 @@ function TransactionFunctionArgs({
   return (
     <Stack>
       <Text fontWeight="bold">Function Arguments</Text>
-      <List.Root gap={2}>
+      <List spacing={2}>
         {functionArgs.map((arg) => (
           <ListItem key={arg.hex}>
             <Text>Name: {arg.name}</Text>
@@ -270,7 +283,7 @@ function TransactionFunctionArgs({
             <Text>Repr: {arg.repr}</Text>
           </ListItem>
         ))}
-      </List.Root>
+      </List>
     </Stack>
   );
 }
@@ -336,69 +349,59 @@ function TransactionDetailsDrawer({
   if (!tx) return null;
 
   return (
-    <Drawer.Root
-      open={isOpen}
-      onOpenChange={(details) => {
-        if (!details.open) onClose();
-      }}
+    <Drawer
+      isOpen={isOpen}
       placement="bottom"
+      onClose={onClose}
       size="lg"
     >
-      <Portal>
-        <Drawer.Backdrop />
-        <Drawer.Positioner>
-          <Drawer.Content>
-            <Drawer.Header>
-              <Drawer.Title>Transaction Details</Drawer.Title>
-              <Drawer.CloseTrigger asChild>
-                <CloseButton />
-              </Drawer.CloseTrigger>
-            </Drawer.Header>
-            <Drawer.Body>
-              <Stack gap={4}>
+      <DrawerOverlay />
+      <DrawerContent>
+        <DrawerCloseButton />
+        <DrawerHeader>Transaction Details</DrawerHeader>
+        <DrawerBody>
+          <Stack gap={4}>
+            <Grid templateColumns="1fr 3fr" gap={2}>
+              <Text fontWeight="bold">TXID:</Text>
+              <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
+                {tx.tx_id}
+              </Link>
+              <Text fontWeight="bold">Status:</Text>
+              <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
+                {tx.tx_status}
+              </Badge>
+              <Text fontWeight="bold">Block Height:</Text>
+              <Link href={`https://explorer.hiro.so/block/${tx.block_height}`} isExternal>
+                {tx.block_height}
+              </Link>
+              <Text fontWeight="bold">Block Time:</Text>
+              <Text>{formatDate(tx.block_time_iso)}</Text>
+              <Text fontWeight="bold">Sender Address:</Text>
+              <Text>{shortenPrincipal(tx.sender_address)}</Text>
+              <Text fontWeight="bold">Fee:</Text>
+              <Text>{formatMicroAmount(parseFloat(tx.fee_rate))} STX</Text>
+            </Grid>
+            {tx.tx_type === "contract_call" && (
+              <Stack gap={2}>
+                <Text fontWeight="bold" fontSize="lg">Contract Call Details</Text>
                 <Grid templateColumns="1fr 3fr" gap={2}>
-                  <Text fontWeight="bold">TXID:</Text>
-                  <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
-                    {tx.tx_id}
-                  </Link>
-                  <Text fontWeight="bold">Status:</Text>
-                  <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
-                    {tx.tx_status}
-                  </Badge>
-                  <Text fontWeight="bold">Block Height:</Text>
-                  <Link href={`https://explorer.hiro.so/block/${tx.block_height}`} isExternal>
-                    {tx.block_height}
-                  </Link>
-                  <Text fontWeight="bold">Block Time:</Text>
-                  <Text>{formatDate(tx.block_time_iso)}</Text>
-                  <Text fontWeight="bold">Sender Address:</Text>
-                  <Text>{shortenPrincipal(tx.sender_address)}</Text>
-                  <Text fontWeight="bold">Fee:</Text>
-                  <Text>{formatMicroAmount(parseFloat(tx.fee_rate))} STX</Text>
+                  <Text fontWeight="bold">Contract ID:</Text>
+                  <Text>{shortenPrincipal(tx.contract_call.contract_id)}</Text>
+                  <Text fontWeight="bold">Function Name:</Text>
+                  <Text>{tx.contract_call.function_name}</Text>
                 </Grid>
-                {tx.tx_type === "contract_call" && (
-                  <Stack gap={2}>
-                    <Text fontWeight="bold" fontSize="lg">Contract Call Details</Text>
-                    <Grid templateColumns="1fr 3fr" gap={2}>
-                      <Text fontWeight="bold">Contract ID:</Text>
-                      <Text>{shortenPrincipal(tx.contract_call.contract_id)}</Text>
-                      <Text fontWeight="bold">Function Name:</Text>
-                      <Text>{tx.contract_call.function_name}</Text>
-                    </Grid>
-                    {tx.contract_call.function_args && (
-                      <TransactionFunctionArgs
-                        functionArgs={tx.contract_call.function_args}
-                      />
-                    )}
-                    <DecodedFunctionArgs tx={tx} />
-                  </Stack>
+                {tx.contract_call.function_args && (
+                  <TransactionFunctionArgs
+                    functionArgs={tx.contract_call.function_args}
+                  />
                 )}
+                <DecodedFunctionArgs tx={tx} />
               </Stack>
-            </Drawer.Body>
-          </Drawer.Content>
-        </Drawer.Positioner>
-      </Portal>
-    </Drawer.Root>
+            )}
+          </Stack>
+        </DrawerBody>
+      </DrawerContent>
+    </Drawer>
   );
 }
 
