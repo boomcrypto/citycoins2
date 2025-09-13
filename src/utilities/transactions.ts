@@ -76,7 +76,7 @@ export function decodeTxArgs(tx: Transaction): any | null {
   const decodedArgs: any[] = [];
   for (const arg of rawArgs) {
     try {
-      const cv: ClarityValue = deserializeCV(Buffer.from(arg.hex, "hex"));
+      const cv: ClarityValue = deserializeCV(Buffer.from(arg.hex.replace(/^0x/, ''), "hex"));
       console.log("Deserialized CV for arg " + arg.name + ":", cv);
       const decoded = decodeClarityValues(cv);
       console.log("Decoded value for arg " + arg.name + ":", decoded);
