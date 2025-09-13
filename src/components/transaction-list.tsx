@@ -17,11 +17,6 @@ import {
   Input,
   Badge,
   Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -210,45 +205,45 @@ function TransactionList({ transactions }: TransactionListProps) {
       <Box overflowX="auto">
         {filteredTransactions.length === 0 && <Text>No transactions found.</Text>}
         {filteredTransactions.length > 0 && (
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th>TXID</Th>
-                <Th>Type</Th>
-                <Th>Status</Th>
-                <Th>Date</Th>
-                <Th>Actions</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
+          <Table.Root variant="line">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>TXID</Table.ColumnHeader>
+                <Table.ColumnHeader>Type</Table.ColumnHeader>
+                <Table.ColumnHeader>Status</Table.ColumnHeader>
+                <Table.ColumnHeader>Date</Table.ColumnHeader>
+                <Table.ColumnHeader>Actions</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
               {filteredTransactions.map((tx) => {
                 const category = getCategory(tx);
                 return (
-                  <Tr key={tx.tx_id}>
-                    <Td>
+                  <Table.Row key={tx.tx_id}>
+                    <Table.Cell>
                       <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
                         {shortenTxId(tx.tx_id)}
                       </Link>
-                    </Td>
-                    <Td>
+                    </Table.Cell>
+                    <Table.Cell>
                       <Badge colorScheme={getCategoryColor(category)}>{category}</Badge>
-                    </Td>
-                    <Td>
+                    </Table.Cell>
+                    <Table.Cell>
                       <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
                         {tx.tx_status}
                       </Badge>
-                    </Td>
-                    <Td>{formatDate(tx.block_time_iso)}</Td>
-                    <Td>
+                    </Table.Cell>
+                    <Table.Cell>{formatDate(tx.block_time_iso)}</Table.Cell>
+                    <Table.Cell>
                       <Button size="sm" onClick={() => handleOpenDetails(tx)}>
                         Details
                       </Button>
-                    </Td>
-                  </Tr>
+                    </Table.Cell>
+                  </Table.Row>
                 );
               })}
-            </Tbody>
-          </Table>
+            </Table.Body>
+          </Table.Root>
         )}
       </Box>
       <TransactionDetailsDrawer
