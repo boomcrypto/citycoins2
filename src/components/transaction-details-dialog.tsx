@@ -25,46 +25,28 @@ function shortenPrincipal(addr: string): string {
   return `${addr.slice(0, 5)}...${addr.slice(-5)}`;
 }
 
-function TransactionFunctionArgs({
-  functionArgs,
-}: {
-  functionArgs: {
-    hex: string;
-    repr: string;
-    name: string;
-    type: string;
-  }[];
-}) {
-  return (
-    <Box>
-      <Heading size="md" mb={3}>Function Arguments</Heading>
-      <List.Root gap={3}>
-        {functionArgs.map((arg, index) => (
-          <List.Item key={arg.hex} p={3} bg="gray.50" borderRadius="md">
-            <Stack gap={1}>
-              <Text fontWeight="bold" fontSize="sm" color="gray.600">Argument {index + 1}</Text>
-              <Text><strong>Name:</strong> {arg.name}</Text>
-              <Text><strong>Type:</strong> {arg.type}</Text>
-              <Text><strong>Repr:</strong> {arg.repr}</Text>
-              <Text fontSize="xs" color="gray.500"><strong>Hex:</strong> {arg.hex}</Text>
-            </Stack>
-          </List.Item>
-        ))}
-      </List.Root>
-    </Box>
-  );
-}
-
-function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
+function TransactionArguments({ tx }: { tx: Transaction }) {
   let decoded;
   try {
     decoded = decodeTxArgs(tx);
   } catch (error) {
+    // If decoding fails, show raw arguments
     return (
-      <Box p={3} bg="red.50" borderRadius="md">
-        <Text color="red.600">
-          Failed to decode arguments: {error instanceof Error ? error.message : `Unknown error: ${String(error)}`}
-        </Text>
+      <Box>
+        <Heading size="md" mb={3}>Function Arguments</Heading>
+        <List.Root gap={3}>
+          {tx.contract_call.function_args.map((arg, index) => (
+            <List.Item key={arg.hex} p={3} bg="gray.50" borderRadius="md">
+              <Stack gap={1}>
+                <Text fontWeight="bold" fontSize="sm" color="gray.600">Argument {index + 1}</Text>
+                <Text><strong>Name:</strong> {arg.name}</Text>
+                <Text><strong>Type:</strong> {arg.type}</Text>
+                <Text><strong>Repr:</strong> {arg.repr}</Text>
+                <Text fontSize="xs" color="gray.500"><strong>Hex:</strong> {arg.hex}</Text>
+              </Stack>
+            </List.Item>
+          ))}
+        </List.Root>
       </Box>
     );
   }
@@ -213,12 +195,8 @@ function TransactionDetailsDialog({
                       <Text fontWeight="medium">{tx.contract_call.function_name}</Text>
                     </Grid>
                     {tx.contract_call.function_args && tx.contract_call.function_args.length > 0 && (
-                      <>
-                        <TransactionFunctionArgs functionArgs={tx.contract_call.function_args} />
-                        <Separator my={4} />
-                      </>
+                      <TransactionArguments tx={tx} />
                     )}
-                    <DecodedFunctionArgs tx={tx} />
                   </Box>
                 )}
               </Stack>
