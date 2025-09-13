@@ -31,7 +31,9 @@ export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
     (decoded.functionName === "mine-tokens" ||
       decoded.functionName === "mine-many") &&
     Array.isArray(decoded.amountsUstx) &&
-    decoded.amountsUstx.every((amt) => typeof amt === "bigint" && amt > 0n) // Basic validation: positive bigints
+    decoded.amountsUstx.every(
+      (amt: Number) => typeof amt === "bigint" && amt > 0n
+    ) // Basic validation: positive bigints
   );
 }
 
