@@ -120,14 +120,14 @@ function TransactionDetailsDialog({
   if (!tx) return null;
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onClose} size="full">
+    <Dialog.Root open={isOpen} onOpenChange={onClose} size="xl">
       <Dialog.Backdrop />
       <Dialog.Content>
         <Dialog.Header>
           <Dialog.Title>Transaction Details</Dialog.Title>
           <Dialog.CloseTrigger />
         </Dialog.Header>
-        <Dialog.Body>
+        <Dialog.Body overflow="auto">
           <Stack gap={4}>
             <Grid templateColumns="1fr 3fr" gap={2}>
               <Text fontWeight="bold">TXID:</Text>
