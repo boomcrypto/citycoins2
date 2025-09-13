@@ -14,8 +14,13 @@ import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
 import { request } from "@stacks/connect";
 import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
+import { Transaction } from "@stacks/stacks-blockchain-api-types";
 
-function Mia() {
+interface MiaProps {
+  onOpenDetails: (tx: Transaction) => void;
+}
+
+function Mia({ onOpenDetails }: MiaProps) {
   const stxAddress = useAtomValue(stxAddressAtom);
 
   const [hasChecked, setHasChecked] = useState(false);
@@ -194,7 +199,7 @@ function Mia() {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            <TransactionList transactions={filteredTransactions} />
+            <TransactionList transactions={filteredTransactions} onOpenDetails={onOpenDetails} />
           </Accordion.ItemContent>
         </Accordion.Item>
       </Accordion.Root>

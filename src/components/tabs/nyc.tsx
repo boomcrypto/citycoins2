@@ -14,8 +14,13 @@ import { fancyFetch, HIRO_API } from "../../store/common";
 import { request } from "@stacks/connect";
 import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
 import TransactionList from "../transaction-list";
+import { Transaction } from "@stacks/stacks-blockchain-api-types";
 
-function Nyc() {
+interface NycProps {
+  onOpenDetails: (tx: Transaction) => void;
+}
+
+function Nyc({ onOpenDetails }: NycProps) {
   const stxAddress = useAtomValue(stxAddressAtom);
 
   const [hasChecked, setHasChecked] = useState(false);
@@ -204,7 +209,7 @@ function Nyc() {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            <TransactionList transactions={filteredTransactions} />
+            <TransactionList transactions={filteredTransactions} onOpenDetails={onOpenDetails} />
           </Accordion.ItemContent>
         </Accordion.Item>
       </Accordion.Root>
