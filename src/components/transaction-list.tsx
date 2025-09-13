@@ -1,23 +1,21 @@
 import {
   Stack,
   Text,
-  List,
-  ListItem,
   Spinner,
   Box,
   IconButton,
-  Drawer,
-  useDisclosure,
+  Portal,
   Button,
   Grid,
   Link,
-  Select,
   Input,
   Badge,
   Table,
+  Select,
+  createListCollection,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
 import { formatDate, formatMicroAmount } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
@@ -80,6 +78,26 @@ function getCategoryColor(category: string): string {
   }
 }
 
+const filterTypeCollection = createListCollection({
+  items: [
+    { label: "All Types", value: "All" },
+    { label: "Mining", value: "Mining" },
+    { label: "Mining Claim", value: "Mining Claim" },
+    { label: "Stacking", value: "Stacking" },
+    { label: "Stacking Claim", value: "Stacking Claim" },
+    { label: "Transfer", value: "Transfer" },
+    { label: "Other", value: "Other" },
+  ],
+});
+
+const filterStatusCollection = createListCollection({
+  items: [
+    { label: "All Statuses", value: "All" },
+    { label: "Success", value: "success" },
+    { label: "Failed", value: "failed" },
+  ],
+});
+
 function TransactionList({ transactions }: TransactionListProps) {
   const [allTransactions, updateTransactions] = useAtom(transactionsAtom);
   const { isLoading, error, progress } = useAtomValue(
@@ -98,7 +116,7 @@ function TransactionList({ transactions }: TransactionListProps) {
     return true;
   });
 
-  const { open: isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   const fetchTransactions = async () => {
@@ -183,26 +201,70 @@ function TransactionList({ transactions }: TransactionListProps) {
         <Badge colorScheme="yellow" variant="outline">Transfers: {summaries.transfers}</Badge>
       </Stack>
       <Stack direction="row" gap={4} flexWrap="wrap">
-        <Select value={filterType} onChange={e => setFilterType(e.target.value)} w="auto">
-          <option value="All">All Types</option>
-          <option value="Mining">Mining</option>
-          <option value="Mining Claim">Mining Claim</option>
-          <option value="Stacking">Stacking</option>
-          <option value="Stacking Claim">Stacking Claim</option>
-          <option value="Transfer">Transfer</option>
-          <option value="Other">Other</option>
-        </Select>
-        <Select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} w="auto">
-          <option value="All">All Statuses</option>
-          <option value="success">Success</option>
-          <option value="failed">Failed</option>
-        </Select>
+        <Select.Root
+          collection={filterTypeCollection}
+          value={[filterType]}
+          onValueChange={(e) => setFilterType(e.value[0])}
+          size="sm"
+          w="auto"
+        >
+          <Select.HiddenSelect />
+          <Select.Control>
+            <Select.Trigger>
+              <Select.ValueText placeholder="All Types" />
+            </Select.Trigger>
+            <Select.IndicatorGroup>
+              <Select.Indicator />
+            </Select.IndicatorGroup>
+          </Select.Control>
+          <Portal>
+            <Select.Positioner>
+              <Select.Content>
+                {filterTypeCollection.items.map((item) => (
+                  <Select.Item item={item} key={item.value}>
+                    {item.label}
+                    <Select.ItemIndicator />
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Portal>
+        </Select.Root>
+        <Select.Root
+          collection={filterStatusCollection}
+          value={[filterStatus]}
+          onValueChange={(e) => setFilterStatus(e.value[0])}
+          size="sm"
+          w="auto"
+        >
+          <Select.HiddenSelect />
+          <Select.Control>
+            <Select.Trigger>
+              <Select.ValueText placeholder="All Statuses" />
+            </Select.Trigger>
+            <Select.IndicatorGroup>
+              <Select.Indicator />
+            </Select.IndicatorGroup>
+          </Select.Control>
+          <Portal>
+            <Select.Positioner>
+              <Select.Content>
+                {filterStatusCollection.items.map((item) => (
+                  <Select.Item item={item} key={item.value}>
+                    {item.label}
+                    <Select.ItemIndicator />
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Portal>
+        </Select.Root>
         <Input placeholder="Search by TXID" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} w="auto" />
       </Stack>
       <Box overflowX="auto">
         {filteredTransactions.length === 0 && <Text>No transactions found.</Text>}
         {filteredTransactions.length > 0 && (
-          <Table.Root>
+          <Table.Root variant="simple">
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeader>TXID</Table.ColumnHeader>
@@ -218,7 +280,7 @@ function TransactionList({ transactions }: TransactionListProps) {
                 return (
                   <Table.Row key={tx.tx_id}>
                     <Table.Cell>
-                      <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} rel="noopener nofollow" target="_blank">
+                      <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
                         {shortenTxId(tx.tx_id)}
                       </Link>
                     </Table.Cell>
@@ -344,7 +406,7 @@ function TransactionDetailsDrawer({
           <Stack gap={4}>
             <Grid templateColumns="1fr 3fr" gap={2}>
               <Text fontWeight="bold">TXID:</Text>
-              <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} rel="noopener nofollower" target="_blank">
+              <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
                 {tx.tx_id}
               </Link>
               <Text fontWeight="bold">Status:</Text>
@@ -352,7 +414,7 @@ function TransactionDetailsDrawer({
                 {tx.tx_status}
               </Badge>
               <Text fontWeight="bold">Block Height:</Text>
-              <Link href={`https://explorer.hiro.so/block/${tx.block_height}`} rel="noopener nofollower" target="_blank">
+              <Link href={`https://explorer.hiro.so/block/${tx.block_height}`} isExternal>
                 {tx.block_height}
               </Link>
               <Text fontWeight="bold">Block Time:</Text>
