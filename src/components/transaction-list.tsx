@@ -398,7 +398,7 @@ function TransactionDetailsDrawer({
   if (!tx) return null;
 
   return (
-    <Drawer.Root open={isOpen} onOpenChange={onClose} placement="bottom" size="lg">
+    <Drawer.Root open={isOpen} onOpenChange={onClose} placement="right" size="lg">
       <Drawer.Backdrop />
       <Drawer.Content>
         <Drawer.Header>
