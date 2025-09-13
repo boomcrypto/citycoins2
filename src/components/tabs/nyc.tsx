@@ -45,9 +45,10 @@ function Nyc() {
       contract:
         "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2",
       functions: [
-        "mine",
+        "mine-tokens",
+        "mine-many",
         "claim-mining-reward",
-        "stack",
+        "stack-tokens",
         "claim-stacking-reward",
       ],
     },

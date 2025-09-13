@@ -42,9 +42,10 @@ function Mia() {
     {
       contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2",
       functions: [
-        "mine",
+        "mine-tokens",
+        "mine-many",
         "claim-mining-reward",
-        "stack",
+        "stack-tokens",
         "claim-stacking-reward",
       ],
     },
