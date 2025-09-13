@@ -25,23 +25,25 @@ function Content() {
   };
 
   return (
-    <Box width="100%" maxW="1200px">
+    <>
       <TransactionDetailsDialog
         tx={selectedTx}
         isOpen={isOpen}
         onClose={onClose}
       />
-      <Tabs.Root value={activeTab} onValueChange={(e) => setActiveTab(e.value)} variant="outline" fitted>
-        <Tabs.List>
-          <Tabs.Trigger value="voting">Voting</Tabs.Trigger>
-          <Tabs.Trigger value="mia">MIA</Tabs.Trigger>
-          <Tabs.Trigger value="nyc">NYC</Tabs.Trigger>
-        </Tabs.List>
-        <Tabs.Content value="voting"><Voting /></Tabs.Content>
-        <Tabs.Content value="mia"><Mia onOpenDetails={onOpenDetails} /></Tabs.Content>
-        <Tabs.Content value="nyc"><Nyc onOpenDetails={onOpenDetails} /></Tabs.Content>
-      </Tabs.Root>
-    </Box >
+      <Box width="100%" maxW="1200px">
+        <Tabs.Root value={activeTab} onValueChange={(e) => setActiveTab(e.value)} variant="outline" fitted>
+          <Tabs.List>
+            <Tabs.Trigger value="voting">Voting</Tabs.Trigger>
+            <Tabs.Trigger value="mia">MIA</Tabs.Trigger>
+            <Tabs.Trigger value="nyc">NYC</Tabs.Trigger>
+          </Tabs.List>
+          <Tabs.Content value="voting"><Voting /></Tabs.Content>
+          <Tabs.Content value="mia"><Mia onOpenDetails={onOpenDetails} /></Tabs.Content>
+          <Tabs.Content value="nyc"><Nyc onOpenDetails={onOpenDetails} /></Tabs.Content>
+        </Tabs.Root>
+      </Box>
+    </>
   );
 }
 
