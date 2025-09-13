@@ -26,7 +26,12 @@ interface TransactionListProps {
 }
 
 function shortenPrincipal(addr: string): string {
-  return addr ? `${addr.slice(0, 5)}...${addr.slice(-5)}` : "";
+  if (!addr) return "";
+  if (addr.includes(".")) {
+    const [address, contract] = addr.split(".");
+    return `${address.slice(0, 5)}...${address.slice(-5)}.${contract}`;
+  }
+  return `${addr.slice(0, 5)}...${addr.slice(-5)}`;
 }
 
 function shortenTxId(txId: string): string {
