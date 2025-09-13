@@ -242,7 +242,7 @@ function TransactionList({
               ))}
             </Select.Content>
           </Select.Positioner>
-        </Select.Root>
+        </Portal>
       </Select.Root>
       <Select.Root
         collection={filterStatusCollection}
@@ -271,7 +271,7 @@ function TransactionList({
               ))}
             </Select.Content>
           </Select.Positioner>
-        </Select.Root>
+        </Portal>
       </Select.Root>
       <Input
         placeholder="Search by TXID"
