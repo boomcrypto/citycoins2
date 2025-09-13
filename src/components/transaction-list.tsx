@@ -16,6 +16,7 @@ import {
   useDisclosure,
   Dialog,
   List,
+  Fragment,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -151,169 +152,171 @@ function TransactionList({ transactions }: TransactionListProps) {
   );
 
   return (
-    <Stack gap={4}>
-      <Stack direction="row" alignItems="center" minH="2em">
-        <Box
-          w={3}
-          h={3}
-          borderRadius="50%"
-          bg={isLoading ? "yellow.500" : error ? "red.500" : "green.500"}
-        />
-        {isLoading && (
-          <Stack
-            direction="row"
-            align="center"
-            justifyContent="space-between"
-            w="100%"
-          >
-            <Text>Loading transactions... {progress}%</Text>
-            <Spinner size="sm" />
-          </Stack>
-        )}
-
-        {error && <Text color="red.500">Error: {error}</Text>}
-
-        {!isLoading && !error && (
-          <Stack
-            direction="row"
-            align="center"
-            justifyContent="space-between"
-            w="100%"
-          >
-            <Text>
-              {allTransactions.length > 0
-                ? `Filtered transactions: ${filteredTransactions.length} / ${allTransactions.length}`
-                : "No transactions loaded yet"}
-            </Text>
-            <IconButton
-              aria-label="Refresh Transactions"
-              title="Refresh Transactions"
-              size="sm"
-              onClick={fetchTransactions}
+    <>
+      <Stack gap={4}>
+        <Stack direction="row" alignItems="center" minH="2em">
+          <Box
+            w={3}
+            h={3}
+            borderRadius="50%"
+            bg={isLoading ? "yellow.500" : error ? "red.500" : "green.500"}
+          />
+          {isLoading && (
+            <Stack
+              direction="row"
+              align="center"
+              justifyContent="space-between"
+              w="100%"
             >
-              <IoMdRefresh />
-            </IconButton>
-          </Stack>
-        )}
+              <Text>Loading transactions... {progress}%</Text>
+              <Spinner size="sm" />
+            </Stack>
+          )}
+
+          {error && <Text color="red.500">Error: {error}</Text>}
+
+          {!isLoading && !error && (
+            <Stack
+              direction="row"
+              align="center"
+              justifyContent="space-between"
+              w="100%"
+            >
+              <Text>
+                {allTransactions.length > 0
+                  ? `Filtered transactions: ${filteredTransactions.length} / ${allTransactions.length}`
+                  : "No transactions loaded yet"}
+              </Text>
+              <IconButton
+                aria-label="Refresh Transactions"
+                title="Refresh Transactions"
+                size="sm"
+                onClick={fetchTransactions}
+              >
+                <IoMdRefresh />
+              </IconButton>
+            </Stack>
+          )}
+        </Stack>
+        <Stack direction="row" gap={4} flexWrap="wrap">
+          <Badge colorScheme="green" variant="outline">Mining: {summaries.mining}</Badge>
+          <Badge colorScheme="blue" variant="outline">Mining Claims: {summaries.miningClaims}</Badge>
+          <Badge colorScheme="purple" variant="outline">Stacking: {summaries.stacking}</Badge>
+          <Badge colorScheme="orange" variant="outline">Stacking Claims: {summaries.stackingClaims}</Badge>
+          <Badge colorScheme="yellow" variant="outline">Transfers: {summaries.transfers}</Badge>
+        </Stack>
+        <Stack direction="row" gap={4} flexWrap="wrap">
+          <Select.Root
+            collection={filterTypeCollection}
+            value={[filterType]}
+            onValueChange={(e) => setFilterType(e.value[0])}
+            size="sm"
+            w="auto"
+          >
+            <Select.HiddenSelect />
+            <Select.Control>
+              <Select.Trigger>
+                <Select.ValueText>All Types</Select.ValueText>
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Portal>
+              <Select.Positioner>
+                <Select.Content>
+                  {filterTypeCollection.items.map((item) => (
+                    <Select.Item item={item} key={item.value}>
+                      {item.label}
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Portal>
+          </Select.Root>
+          <Select.Root
+            collection={filterStatusCollection}
+            value={[filterStatus]}
+            onValueChange={(e) => setFilterStatus(e.value[0])}
+            size="sm"
+            w="auto"
+          >
+            <Select.HiddenSelect />
+            <Select.Control>
+              <Select.Trigger>
+                <Select.ValueText>All Statuses</Select.ValueText>
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Portal>
+              <Select.Positioner>
+                <Select.Content>
+                  {filterStatusCollection.items.map((item) => (
+                    <Select.Item item={item} key={item.value}>
+                      {item.label}
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Portal>
+          </Select.Root>
+          <Input placeholder="Search by TXID" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} w="auto" />
+        </Stack>
+        <Box overflowX="auto">
+          {filteredTransactions.length === 0 && <Text>No transactions found.</Text>}
+          {filteredTransactions.length > 0 && (
+            <Table.Root variant="outline">
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeader>TXID</Table.ColumnHeader>
+                  <Table.ColumnHeader>Type</Table.ColumnHeader>
+                  <Table.ColumnHeader>Status</Table.ColumnHeader>
+                  <Table.ColumnHeader>Date</Table.ColumnHeader>
+                  <Table.ColumnHeader>Actions</Table.ColumnHeader>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {filteredTransactions.map((tx) => {
+                  const category = getCategory(tx);
+                  return (
+                    <Table.Row key={tx.tx_id}>
+                      <Table.Cell>
+                        <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} rel="noopener noreferrer" target="_blank">
+                          {shortenTxId(tx.tx_id)}
+                        </Link>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge colorScheme={getCategoryColor(category)}>{category}</Badge>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
+                          {tx.tx_status}
+                        </Badge>
+                      </Table.Cell>
+                      <Table.Cell>{formatDate(tx.block_time_iso)}</Table.Cell>
+                      <Table.Cell>
+                        <Button size="sm" onClick={() => handleOpenDetails(tx)}>
+                          Details
+                        </Button>
+                      </Table.Cell>
+                    </Table.Row>
+                  );
+                })}
+              </Table.Body>
+            </Table.Root>
+          )}
+        </Box>
       </Stack>
-      <Stack direction="row" gap={4} flexWrap="wrap">
-        <Badge colorScheme="green" variant="outline">Mining: {summaries.mining}</Badge>
-        <Badge colorScheme="blue" variant="outline">Mining Claims: {summaries.miningClaims}</Badge>
-        <Badge colorScheme="purple" variant="outline">Stacking: {summaries.stacking}</Badge>
-        <Badge colorScheme="orange" variant="outline">Stacking Claims: {summaries.stackingClaims}</Badge>
-        <Badge colorScheme="yellow" variant="outline">Transfers: {summaries.transfers}</Badge>
-      </Stack>
-      <Stack direction="row" gap={4} flexWrap="wrap">
-        <Select.Root
-          collection={filterTypeCollection}
-          value={[filterType]}
-          onValueChange={(e) => setFilterType(e.value[0])}
-          size="sm"
-          w="auto"
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger>
-              <Select.ValueText>All Types</Select.ValueText>
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Portal>
-            <Select.Positioner>
-              <Select.Content>
-                {filterTypeCollection.items.map((item) => (
-                  <Select.Item item={item} key={item.value}>
-                    {item.label}
-                    <Select.ItemIndicator />
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Portal>
-        </Select.Root>
-        <Select.Root
-          collection={filterStatusCollection}
-          value={[filterStatus]}
-          onValueChange={(e) => setFilterStatus(e.value[0])}
-          size="sm"
-          w="auto"
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger>
-              <Select.ValueText>All Statuses</Select.ValueText>
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Portal>
-            <Select.Positioner>
-              <Select.Content>
-                {filterStatusCollection.items.map((item) => (
-                  <Select.Item item={item} key={item.value}>
-                    {item.label}
-                    <Select.ItemIndicator />
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Portal>
-        </Select.Root>
-        <Input placeholder="Search by TXID" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} w="auto" />
-      </Stack>
-      <Box overflowX="auto">
-        {filteredTransactions.length === 0 && <Text>No transactions found.</Text>}
-        {filteredTransactions.length > 0 && (
-          <Table.Root variant="outline">
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader>TXID</Table.ColumnHeader>
-                <Table.ColumnHeader>Type</Table.ColumnHeader>
-                <Table.ColumnHeader>Status</Table.ColumnHeader>
-                <Table.ColumnHeader>Date</Table.ColumnHeader>
-                <Table.ColumnHeader>Actions</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {filteredTransactions.map((tx) => {
-                const category = getCategory(tx);
-                return (
-                  <Table.Row key={tx.tx_id}>
-                    <Table.Cell>
-                      <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} rel="noopener noreferrer" target="_blank">
-                        {shortenTxId(tx.tx_id)}
-                      </Link>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Badge colorScheme={getCategoryColor(category)}>{category}</Badge>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
-                        {tx.tx_status}
-                      </Badge>
-                    </Table.Cell>
-                    <Table.Cell>{formatDate(tx.block_time_iso)}</Table.Cell>
-                    <Table.Cell>
-                      <Button size="sm" onClick={() => handleOpenDetails(tx)}>
-                        Details
-                      </Button>
-                    </Table.Cell>
-                  </Table.Row>
-                );
-              })}
-            </Table.Body>
-          </Table.Root>
-        )}
-      </Box>
       <TransactionDetailsDialog
         tx={selectedTx}
         isOpen={isOpen}
         onClose={onClose}
       />
-    </Stack>
+    </>
   );
 }
 
