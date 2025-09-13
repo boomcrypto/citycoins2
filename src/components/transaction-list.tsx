@@ -14,7 +14,7 @@ import {
   Select,
   createListCollection,
   useDisclosure,
-  Drawer,
+  Dialog,
   List,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
@@ -38,7 +38,7 @@ interface TransactionFunctionArgsProps {
   }[];
 }
 
-interface TransactionDetailsDrawerProps {
+interface TransactionDetailsDialogProps {
   tx: Transaction | null;
   isOpen: boolean;
   onClose: () => void;
@@ -308,13 +308,11 @@ function TransactionList({ transactions }: TransactionListProps) {
           </Table.Root>
         )}
       </Box>
-      <Portal>
-        <TransactionDetailsDrawer
-          tx={selectedTx}
-          isOpen={isOpen}
-          onClose={onClose}
-        />
-      </Portal>
+      <TransactionDetailsDialog
+        tx={selectedTx}
+        isOpen={isOpen}
+        onClose={onClose}
+      />
     </Stack>
   );
 }
@@ -392,22 +390,22 @@ function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
   );
 }
 
-function TransactionDetailsDrawer({
+function TransactionDetailsDialog({
   tx,
   isOpen,
   onClose,
-}: TransactionDetailsDrawerProps) {
+}: TransactionDetailsDialogProps) {
   if (!tx) return null;
 
   return (
-    <Drawer.Root open={isOpen} onOpenChange={onClose} placement="right" size="lg">
-      <Drawer.Backdrop />
-      <Drawer.Content>
-        <Drawer.Header>
-          <Drawer.Title>Transaction Details</Drawer.Title>
-          <Drawer.CloseTrigger />
-        </Drawer.Header>
-        <Drawer.Body>
+    <Dialog.Root open={isOpen} onOpenChange={onClose} size="full">
+      <Dialog.Backdrop />
+      <Dialog.Content>
+        <Dialog.Header>
+          <Dialog.Title>Transaction Details</Dialog.Title>
+          <Dialog.CloseTrigger />
+        </Dialog.Header>
+        <Dialog.Body>
           <Stack gap={4}>
             <Grid templateColumns="1fr 3fr" gap={2}>
               <Text fontWeight="bold">TXID:</Text>
@@ -447,9 +445,9 @@ function TransactionDetailsDrawer({
               </Stack>
             )}
           </Stack>
-        </Drawer.Body>
-      </Drawer.Content>
-    </Drawer.Root>
+        </Dialog.Body>
+      </Dialog.Content>
+    </Dialog.Root>
   );
 }
 
