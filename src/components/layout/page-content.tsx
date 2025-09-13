@@ -38,13 +38,11 @@ function Content() {
           <Tabs.Content value="nyc"><Nyc onOpenDetails={onOpenDetails} /></Tabs.Content>
         </Tabs.Root>
       </Box>
-      <Portal container={document.body}>
-        <TransactionDetailsDialog
-          tx={selectedTx}
-          isOpen={isOpen}
-          onClose={onClose}
-        />
-      </Portal>
+      <TransactionDetailsDialog
+        tx={selectedTx}
+        isOpen={isOpen}
+        onClose={onClose}
+      />
     </>
   );
 }
