@@ -1,4 +1,4 @@
-import { Stack, Text, Grid, Link, Badge, List, Dialog, Portal, Box, Heading, Divider } from "@chakra-ui/react";
+import { Stack, Text, Grid, Link, Badge, List, Dialog, Portal, Box, Heading, Separator } from "@chakra-ui/react";
 import { Fragment } from "react";
 import { formatDate, formatMicroAmount } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
@@ -175,7 +175,7 @@ function TransactionDetailsDialog({
                   </Grid>
                 </Box>
 
-                <Divider />
+                <Separator />
 
                 {/* Contract Call Details */}
                 {tx.tx_type === "contract_call" && (
@@ -190,7 +190,7 @@ function TransactionDetailsDialog({
                     {tx.contract_call.function_args && tx.contract_call.function_args.length > 0 && (
                       <>
                         <TransactionFunctionArgs functionArgs={tx.contract_call.function_args} />
-                        <Divider my={4} />
+                        <Separator my={4} />
                       </>
                     )}
                     <DecodedFunctionArgs tx={tx} />
