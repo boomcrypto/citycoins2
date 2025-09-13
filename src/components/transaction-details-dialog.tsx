@@ -1,4 +1,4 @@
-import { Stack, Text, Grid, Link, Badge, List, Dialog } from "@chakra-ui/react";
+import { Stack, Text, Grid, Link, Badge, List, Dialog, Portal } from "@chakra-ui/react";
 import { Fragment } from "react";
 import { formatDate, formatMicroAmount } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
@@ -120,66 +120,68 @@ function TransactionDetailsDialog({
   if (!tx) return null;
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onClose} size="xl" placement="center">
-      <Dialog.Backdrop />
-      <Dialog.Content>
-        <Dialog.Header>
-          <Dialog.Title>Transaction Details</Dialog.Title>
-          <Dialog.CloseTrigger />
-        </Dialog.Header>
-        <Dialog.Body overflow="auto">
-          <Stack gap={4}>
-            <Grid templateColumns="1fr 3fr" gap={2}>
-              <Text fontWeight="bold">TXID:</Text>
-              <Link
-                href={`https://explorer.hiro.so/tx/${tx.tx_id}`}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {tx.tx_id}
-              </Link>
-              <Text fontWeight="bold">Status:</Text>
-              <Badge colorScheme={tx.tx_status === "success" ? "green" : "red"}>
-                {tx.tx_status}
-              </Badge>
-              <Text fontWeight="bold">Block Height:</Text>
-              <Link
-                href={`https://explorer.hiro.so/block/${tx.block_height}`}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {tx.block_height}
-              </Link>
-              <Text fontWeight="bold">Block Time:</Text>
-              <Text>{formatDate(tx.block_time_iso)}</Text>
-              <Text fontWeight="bold">Sender Address:</Text>
-              <Text>{shortenPrincipal(tx.sender_address)}</Text>
-              <Text fontWeight="bold">Fee:</Text>
-              <Text>{formatMicroAmount(parseFloat(tx.fee_rate))} STX</Text>
-            </Grid>
-            {tx.tx_type === "contract_call" && (
-              <Stack gap={2}>
-                <Text fontWeight="bold" fontSize="lg">
-                  Contract Call Details
-                </Text>
-                <Grid templateColumns="1fr 3fr" gap={2}>
-                  <Text fontWeight="bold">Contract ID:</Text>
-                  <Text>{shortenPrincipal(tx.contract_call.contract_id)}</Text>
-                  <Text fontWeight="bold">Function Name:</Text>
-                  <Text>{tx.contract_call.function_name}</Text>
-                </Grid>
-                {tx.contract_call.function_args && (
-                  <TransactionFunctionArgs
-                    functionArgs={tx.contract_call.function_args}
-                  />
-                )}
-                <DecodedFunctionArgs tx={tx} />
-              </Stack>
-            )}
-          </Stack>
-        </Dialog.Body>
-      </Dialog.Content>
-    </Dialog.Root>
+    <Portal>
+      <Dialog.Root open={isOpen} onOpenChange={onClose} size="xl" placement="center">
+        <Dialog.Backdrop />
+        <Dialog.Content>
+          <Dialog.Header>
+            <Dialog.Title>Transaction Details</Dialog.Title>
+            <Dialog.CloseTrigger />
+          </Dialog.Header>
+          <Dialog.Body overflow="auto">
+            <Stack gap={4}>
+              <Grid templateColumns="1fr 3fr" gap={2}>
+                <Text fontWeight="bold">TXID:</Text>
+                <Link
+                  href={`https://explorer.hiro.so/tx/${tx.tx_id}`}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {tx.tx_id}
+                </Link>
+                <Text fontWeight="bold">Status:</Text>
+                <Badge colorScheme={tx.tx_status === "success" ? "green" : "red"}>
+                  {tx.tx_status}
+                </Badge>
+                <Text fontWeight="bold">Block Height:</Text>
+                <Link
+                  href={`https://explorer.hiro.so/block/${tx.block_height}`}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {tx.block_height}
+                </Link>
+                <Text fontWeight="bold">Block Time:</Text>
+                <Text>{formatDate(tx.block_time_iso)}</Text>
+                <Text fontWeight="bold">Sender Address:</Text>
+                <Text>{shortenPrincipal(tx.sender_address)}</Text>
+                <Text fontWeight="bold">Fee:</Text>
+                <Text>{formatMicroAmount(parseFloat(tx.fee_rate))} STX</Text>
+              </Grid>
+              {tx.tx_type === "contract_call" && (
+                <Stack gap={2}>
+                  <Text fontWeight="bold" fontSize="lg">
+                    Contract Call Details
+                  </Text>
+                  <Grid templateColumns="1fr 3fr" gap={2}>
+                    <Text fontWeight="bold">Contract ID:</Text>
+                    <Text>{shortenPrincipal(tx.contract_call.contract_id)}</Text>
+                    <Text fontWeight="bold">Function Name:</Text>
+                    <Text>{tx.contract_call.function_name}</Text>
+                  </Grid>
+                  {tx.contract_call.function_args && (
+                    <TransactionFunctionArgs
+                      functionArgs={tx.contract_call.function_args}
+                    />
+                  )}
+                  <DecodedFunctionArgs tx={tx} />
+                </Stack>
+              )}
+            </Stack>
+          </Dialog.Body>
+        </Dialog.Content>
+      </Dialog.Root>
+    </Portal>
   );
 }
 
