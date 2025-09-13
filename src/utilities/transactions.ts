@@ -4,8 +4,9 @@ import { decodeClarityValues, safeConvertToBigint } from "./clarity";
 import { Buffer } from "buffer";
 
 export interface MiningTxArgs {
-  functionName: "mine-tokens" | "mine-many"; // Covers variations
-  amountsUstx: bigint[]; // Array for multi-block (e.g., mine-many); single for mine-tokens
+  functionName: "mine-tokens" | "mine-many" | "mine"; // Covers variations, including "mine"
+  amountsUstx: bigint[]; // Array for multi-block (e.g., mine-many or mine); single for mine-tokens
+  cityName?: string; // Optional: city name for "mine" function
   // Other args like memo if present
 }
 
@@ -29,7 +30,8 @@ export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
   return (
     typeof decoded === "object" &&
     (decoded.functionName === "mine-tokens" ||
-      decoded.functionName === "mine-many") &&
+      decoded.functionName === "mine-many" ||
+      decoded.functionName === "mine") &&
     Array.isArray(decoded.amountsUstx) &&
     decoded.amountsUstx.every((amt: any) => typeof amt === "bigint" && amt > 0n) // Basic validation: positive bigints
   );
@@ -102,6 +104,13 @@ export function decodeTxArgs(tx: Transaction): any | null {
     case "mine-many":
       // First arg: list of uint (amounts)
       structured.amountsUstx = decodedArgs[0].map((val: any) =>
+        safeConvertToBigint(val)
+      );
+      break;
+    case "mine":
+      // First arg: cityName (string-ascii), second: amounts (list of uint)
+      structured.cityName = decodedArgs[0];
+      structured.amountsUstx = decodedArgs[1].map((val: any) =>
         safeConvertToBigint(val)
       );
       break;
