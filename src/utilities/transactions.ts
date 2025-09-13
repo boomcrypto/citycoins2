@@ -1,4 +1,7 @@
+import { ClarityValue, deserializeCV } from "@stacks/transactions";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
+import { decodeClarityValues, safeConvertToBigint } from "./clarity";
+import { Buffer } from "buffer";
 
 export interface MiningTxArgs {
   functionName: "mine-tokens" | "mine-many"; // Covers variations
@@ -70,18 +73,21 @@ export function isValidStackingClaimTxArgs(
 export function decodeTxArgs(tx: Transaction): any | null {
   if (tx.tx_type !== "contract_call") return null;
   const rawArgs = tx.contract_call.function_args || [];
-  const decodedArgs = rawArgs.map((arg) => {
-    if (arg.type.startsWith("uint")) {
-      return BigInt(arg.repr.slice(1));
-    } else if (arg.type.startsWith("list")) {
-      // parse repr assuming format '(list u1 u2 ...)'
-      const inner = arg.repr.slice(6, -1); // remove '(list ' and ')'
-      return inner.split(' ').map(s => BigInt(s.slice(1)));
-    } else {
-      // fallback or handle other types
-      return arg.repr;
+  console.log("Raw args for tx " + tx.tx_id + ":", rawArgs);
+
+  const decodedArgs: any[] = [];
+  for (const arg of rawArgs) {
+    try {
+      const cv: ClarityValue = deserializeCV(Buffer.from(arg.hex, "hex"));
+      console.log("Deserialized CV for arg " + arg.name + ":", cv);
+      const decoded = decodeClarityValues(cv);
+      console.log("Decoded value for arg " + arg.name + ":", decoded);
+      decodedArgs.push(decoded);
+    } catch (e) {
+      console.error("Failed to deserialize arg for tx " + tx.tx_id + ":", arg, e);
+      return null;
     }
-  });
+  }
 
   // Reconstruct object with arg names if available, or by known order
   const structured: any = { functionName: tx.contract_call.function_name };
@@ -90,28 +96,32 @@ export function decodeTxArgs(tx: Transaction): any | null {
   switch (tx.contract_call.function_name) {
     case "mine-tokens":
       // First arg: uint amountUstx
-      structured.amountsUstx = [decodedArgs[0]];
+      structured.amountsUstx = [safeConvertToBigint(decodedArgs[0])];
       break;
     case "mine-many":
       // First arg: list of uint (amounts)
-      structured.amountsUstx = decodedArgs[0];
+      structured.amountsUstx = decodedArgs[0].map((val: any) =>
+        safeConvertToBigint(val)
+      );
       break;
     case "stack-tokens":
       // Assuming amountToken (uint), lockPeriod (uint)
-      structured.amountToken = decodedArgs[0];
-      structured.lockPeriod = Number(decodedArgs[1]);
+      structured.amountToken = safeConvertToBigint(decodedArgs[0]);
+      structured.lockPeriod = Number(safeConvertToBigint(decodedArgs[1]));
       break;
     case "claim-mining-reward":
       // Assuming minerBlockHeight (uint)
-      structured.minerBlockHeight = Number(decodedArgs[0]);
+      structured.minerBlockHeight = Number(safeConvertToBigint(decodedArgs[0]));
       break;
     case "claim-stacking-reward":
       // Assuming rewardCycle (uint)
-      structured.rewardCycle = Number(decodedArgs[0]);
+      structured.rewardCycle = Number(safeConvertToBigint(decodedArgs[0]));
       break;
     default:
       return null;
   }
+
+  console.log("Structured decoded for tx " + tx.tx_id + ":", structured);
 
   return structured;
 }

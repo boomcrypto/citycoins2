@@ -224,6 +224,7 @@ function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
   let decoded;
   try {
     decoded = decodeTxArgs(tx);
+    console.log("Final decoded for tx " + tx.tx_id + ":", decoded);
   } catch (error) {
     return <Text>Failed to decode arguments: {error instanceof Error ? error.toString() : `Unknown error: ${String(error)}`}</Text>;
   }
