@@ -7,8 +7,6 @@ import {
   Box,
   IconButton,
   Drawer,
-  Portal,
-  CloseButton,
   useDisclosure,
   Button,
   Grid,
@@ -19,11 +17,10 @@ import {
   Table,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
 import { formatDate, formatMicroAmount } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
-import { selectedTransactionsAtom } from "../store/citycoins";
 import { Fragment, useState } from "react";
 import { decodeTxArgs, isValidMiningTxArgs, isValidStackingTxArgs, isValidMiningClaimTxArgs, isValidStackingClaimTxArgs } from "../utilities/transactions";
 
@@ -101,7 +98,7 @@ function TransactionList({ transactions }: TransactionListProps) {
     return true;
   });
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { open: isOpen, onOpen, onClose } = useDisclosure();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   const fetchTransactions = async () => {
@@ -205,7 +202,7 @@ function TransactionList({ transactions }: TransactionListProps) {
       <Box overflowX="auto">
         {filteredTransactions.length === 0 && <Text>No transactions found.</Text>}
         {filteredTransactions.length > 0 && (
-          <Table.Root variant="simple">
+          <Table.Root>
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeader>TXID</Table.ColumnHeader>
@@ -221,7 +218,7 @@ function TransactionList({ transactions }: TransactionListProps) {
                 return (
                   <Table.Row key={tx.tx_id}>
                     <Table.Cell>
-                      <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
+                      <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} rel="noopener nofollow" target="_blank">
                         {shortenTxId(tx.tx_id)}
                       </Link>
                     </Table.Cell>
@@ -347,7 +344,7 @@ function TransactionDetailsDrawer({
           <Stack gap={4}>
             <Grid templateColumns="1fr 3fr" gap={2}>
               <Text fontWeight="bold">TXID:</Text>
-              <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
+              <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} rel="noopener nofollower" target="_blank">
                 {tx.tx_id}
               </Link>
               <Text fontWeight="bold">Status:</Text>
@@ -355,7 +352,7 @@ function TransactionDetailsDrawer({
                 {tx.tx_status}
               </Badge>
               <Text fontWeight="bold">Block Height:</Text>
-              <Link href={`https://explorer.hiro.so/block/${tx.block_height}`} isExternal>
+              <Link href={`https://explorer.hiro.so/block/${tx.block_height}`} rel="noopener nofollower" target="_blank">
                 {tx.block_height}
               </Link>
               <Text fontWeight="bold">Block Time:</Text>
