@@ -19,7 +19,7 @@ import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
 import { formatDate } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { selectedTransactionsAtom } from "../store/citycoins";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { decodeTxArgs, isValidMiningTxArgs, isValidStackingTxArgs, isValidMiningClaimTxArgs, isValidStackingClaimTxArgs } from "../utilities/transactions";
 
 interface TransactionListProps {
@@ -263,10 +263,10 @@ function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
       <Text fontWeight="bold">Decoded Arguments ({decodedType})</Text>
       <Grid templateColumns="1fr 1fr" gap={2}>
         {gridItems.map((item, index) => (
-          <>
-            <Text key={`label-${index}`}>{item.label}:</Text>
-            <Text key={`value-${index}`}>{item.value}</Text>
-          </>
+          <Fragment key={index}>
+            <Text>{item.label}:</Text>
+            <Text>{item.value}</Text>
+          </Fragment>
         ))}
       </Grid>
     </Stack>
