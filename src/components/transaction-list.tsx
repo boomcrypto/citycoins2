@@ -194,19 +194,19 @@ function TransactionList({
   // Helper component for summaries
   const Summaries = () => (
     <Stack direction="row" gap={4} flexWrap="wrap">
-      <Badge colorScheme="green" variant="outline">
+      <Badge colorScheme={getCategoryColor("Mining")} variant="outline">
         Mining: {summaries.mining}
       </Badge>
-      <Badge colorScheme="blue" variant="outline">
+      <Badge colorScheme={getCategoryColor("Mining Claim")} variant="outline">
         Mining Claims: {summaries.miningClaims}
       </Badge>
-      <Badge colorScheme="purple" variant="outline">
+      <Badge colorScheme={getCategoryColor("Stacking")} variant="outline">
         Stacking: {summaries.stacking}
       </Badge>
-      <Badge colorScheme="orange" variant="outline">
+      <Badge colorScheme={getCategoryColor("Stacking Claim")} variant="outline">
         Stacking Claims: {summaries.stackingClaims}
       </Badge>
-      <Badge colorScheme="yellow" variant="outline">
+      <Badge colorScheme={getCategoryColor("Transfer")} variant="outline">
         Transfers: {summaries.transfers}
       </Badge>
     </Stack>
@@ -242,7 +242,7 @@ function TransactionList({
               ))}
             </Select.Content>
           </Select.Positioner>
-        </Portal>
+        </Select.Root>
       </Select.Root>
       <Select.Root
         collection={filterStatusCollection}
@@ -271,7 +271,7 @@ function TransactionList({
               ))}
             </Select.Content>
           </Select.Positioner>
-        </Portal>
+        </Select.Root>
       </Select.Root>
       <Input
         placeholder="Search by TXID"
@@ -324,7 +324,11 @@ function TransactionList({
                   <Table.Cell>
                     <Badge
                       colorScheme={
-                        tx.tx_status === "success" ? "green" : "red"
+                        tx.tx_status === "success"
+                          ? "green"
+                          : tx.tx_status === "failed"
+                          ? "red"
+                          : "gray"
                       }
                     >
                       {tx.tx_status}
