@@ -31,7 +31,7 @@ export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
     (decoded.functionName === "mine-tokens" ||
       decoded.functionName === "mine-many") &&
     Array.isArray(decoded.amountsUstx) &&
-    decoded.amountsUstx.every((amt) => typeof amt === "bigint" && amt > 0n) // Basic validation: positive bigints
+    decoded.amountsUstx.every((amt: any) => typeof amt === "bigint" && amt > 0n) // Basic validation: positive bigints
   );
 }
 
@@ -76,7 +76,9 @@ export function decodeTxArgs(tx: Transaction): any | null {
   const decodedArgs: any[] = [];
   for (const arg of rawArgs) {
     try {
-      const cv: ClarityValue = deserializeCV(Buffer.from(arg.hex.replace(/^0x/, ''), "hex"));
+      const cv: ClarityValue = deserializeCV(
+        Buffer.from(arg.hex.replace(/^0x/, ""), "hex")
+      );
       console.log("Deserialized CV for arg " + arg.name + ":", cv);
       const decoded = decodeClarityValues(cv);
       console.log("Decoded value for arg " + arg.name + ":", decoded);
