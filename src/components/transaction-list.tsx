@@ -20,6 +20,7 @@ import { formatDate } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { selectedTransactionsAtom } from "../store/citycoins";
 import { useState } from "react";
+import { decodeTxArgs, isValidMiningTxArgs, isValidStackingTxArgs, isValidMiningClaimTxArgs, isValidStackingClaimTxArgs } from "../utilities/transactions";
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -219,6 +220,54 @@ function TransactionFunctionArgs({
   );
 }
 
+function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
+  const decoded = decodeTxArgs(tx);
+
+  if (!decoded) {
+    return <Text>No decodable arguments.</Text>;
+  }
+
+  let decodedType = 'Unknown';
+  let gridItems: { label: string; value: string }[] = [];
+
+  if (isValidMiningTxArgs(decoded)) {
+    decodedType = 'Mining';
+    gridItems = [
+      { label: 'Amounts uSTX', value: decoded.amountsUstx.map(a => a.toString()).join(', ') },
+    ];
+  } else if (isValidStackingTxArgs(decoded)) {
+    decodedType = 'Stacking';
+    gridItems = [
+      { label: 'Amount Token', value: decoded.amountToken.toString() },
+      { label: 'Lock Period', value: decoded.lockPeriod.toString() },
+    ];
+  } else if (isValidMiningClaimTxArgs(decoded)) {
+    decodedType = 'Mining Claim';
+    gridItems = [
+      { label: 'Miner Block Height', value: decoded.minerBlockHeight.toString() },
+    ];
+  } else if (isValidStackingClaimTxArgs(decoded)) {
+    decodedType = 'Stacking Claim';
+    gridItems = [
+      { label: 'Reward Cycle', value: decoded.rewardCycle.toString() },
+    ];
+  }
+
+  return (
+    <Stack>
+      <Text fontWeight="bold">Decoded Arguments ({decodedType})</Text>
+      <Grid templateColumns="1fr 1fr" gap={2}>
+        {gridItems.map((item, index) => (
+          <>
+            <Text key={`label-${index}`}>{item.label}:</Text>
+            <Text key={`value-${index}`}>{item.value}</Text>
+          </>
+        ))}
+      </Grid>
+    </Stack>
+  );
+}
+
 function TransactionDetailsDrawer({
   tx,
   isOpen,
@@ -269,6 +318,7 @@ function TransactionDetailsDrawer({
                         functionArgs={tx.contract_call.function_args}
                       />
                     )}
+                    <DecodedFunctionArgs tx={tx} />
                   </>
                 )}
               </Stack>

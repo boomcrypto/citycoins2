@@ -2,18 +2,26 @@ import { ClarityValue, deserializeCV } from "@stacks/transactions";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { decodeClarityValues, safeConvertToBigint } from "./clarity";
 
-// Example for mining (adapt for v1/v2 contracts)
 export interface MiningTxArgs {
   functionName: 'mine-tokens' | 'mine-many' | 'mine'; // Covers variations
   amountsUstx: bigint[]; // Array for multi-block (e.g., mine-many); single for mine-tokens
   // Other args like memo if present
 }
 
-// Example for stacking
 export interface StackingTxArgs {
   functionName: 'stack-tokens' | 'stack';
   amountToken: bigint;
   lockPeriod: number; // Number of cycles to lock for
+}
+
+export interface MiningClaimTxArgs {
+  functionName: 'claim-mining-reward';
+  minerBlockHeight: number;
+}
+
+export interface StackingClaimTxArgs {
+  functionName: 'claim-stacking-reward';
+  rewardCycle: number;
 }
 
 // Type guard examples
@@ -34,6 +42,24 @@ export function isValidStackingTxArgs(decoded: any): decoded is StackingTxArgs {
     decoded.amountToken > 0n &&
     typeof decoded.lockPeriod === 'number' &&
     decoded.lockPeriod > 0
+  );
+}
+
+export function isValidMiningClaimTxArgs(decoded: any): decoded is MiningClaimTxArgs {
+  return (
+    typeof decoded === 'object' &&
+    decoded.functionName === 'claim-mining-reward' &&
+    typeof decoded.minerBlockHeight === 'number' &&
+    decoded.minerBlockHeight > 0
+  );
+}
+
+export function isValidStackingClaimTxArgs(decoded: any): decoded is StackingClaimTxArgs {
+  return (
+    typeof decoded === 'object' &&
+    decoded.functionName === 'claim-stacking-reward' &&
+    typeof decoded.rewardCycle === 'number' &&
+    decoded.rewardCycle > 0
   );
 }
 
@@ -64,6 +90,14 @@ export function decodeTxArgs(tx: Transaction): any | null {
       // Assuming amountToken (uint), lockPeriod (uint)
       structured.amountToken = safeConvertToBigint(decodedArgs[0]);
       structured.lockPeriod = Number(decodedArgs[1]);
+      break;
+    case 'claim-mining-reward':
+      // Assuming minerBlockHeight (uint)
+      structured.minerBlockHeight = Number(decodedArgs[0]);
+      break;
+    case 'claim-stacking-reward':
+      // Assuming rewardCycle (uint)
+      structured.rewardCycle = Number(decodedArgs[0]);
       break;
     default:
       return null;
