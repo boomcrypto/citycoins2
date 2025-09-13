@@ -31,9 +31,7 @@ export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
     (decoded.functionName === "mine-tokens" ||
       decoded.functionName === "mine-many") &&
     Array.isArray(decoded.amountsUstx) &&
-    decoded.amountsUstx.every(
-      (amt) => typeof amt === "bigint" && amt > 0n
-    ) // Basic validation: positive bigints
+    decoded.amountsUstx.every((amt) => typeof amt === "bigint" && amt > 0n) // Basic validation: positive bigints
   );
 }
 
@@ -84,7 +82,11 @@ export function decodeTxArgs(tx: Transaction): any | null {
       console.log("Decoded value for arg " + arg.name + ":", decoded);
       decodedArgs.push(decoded);
     } catch (e) {
-      console.error("Failed to deserialize arg for tx " + tx.tx_id + ":", arg, e);
+      console.error(
+        "Failed to deserialize arg for tx " + tx.tx_id + ":",
+        arg,
+        e
+      );
       return null;
     }
   }
