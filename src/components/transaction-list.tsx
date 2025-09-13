@@ -12,11 +12,21 @@ import {
   useDisclosure,
   Button,
   Grid,
+  Link,
+  Select,
+  Input,
+  Badge,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
-import { formatDate } from "../store/common";
+import { formatDate, formatMicroAmount } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { selectedTransactionsAtom } from "../store/citycoins";
 import { Fragment, useState } from "react";
@@ -24,11 +34,6 @@ import { decodeTxArgs, isValidMiningTxArgs, isValidStackingTxArgs, isValidMining
 
 interface TransactionListProps {
   transactions: Transaction[];
-}
-
-interface TransactionItemProps {
-  tx: Transaction;
-  onOpenDetails: (tx: Transaction) => void;
 }
 
 interface TransactionFunctionArgsProps {
@@ -46,13 +51,62 @@ interface TransactionDetailsDrawerProps {
   onClose: () => void;
 }
 
+function shortenPrincipal(addr: string): string {
+  return addr ? `${addr.slice(0, 5)}...${addr.slice(-5)}` : '';
+}
+
+function shortenTxId(txId: string): string {
+  return txId ? `${txId.slice(0, 6)}...${txId.slice(-4)}` : '';
+}
+
+function getCategory(tx: Transaction): string {
+  if (tx.tx_type === "contract_call") {
+    const func = tx.contract_call.function_name;
+    if (["mine-tokens", "mine-many", "mine"].includes(func)) {
+      return "Mining";
+    } else if (func === "claim-mining-reward") {
+      return "Mining Claim";
+    } else if (["stack-tokens", "stack"].includes(func)) {
+      return "Stacking";
+    } else if (func === "claim-stacking-reward") {
+      return "Stacking Claim";
+    } else if (func === "transfer") {
+      return "Transfer";
+    }
+  }
+  return "Other";
+}
+
+function getCategoryColor(category: string): string {
+  switch (category) {
+    case "Mining": return "green";
+    case "Mining Claim": return "blue";
+    case "Stacking": return "purple";
+    case "Stacking Claim": return "orange";
+    case "Transfer": return "yellow";
+    default: return "gray";
+  }
+}
+
 function TransactionList({ transactions }: TransactionListProps) {
   const [allTransactions, updateTransactions] = useAtom(transactionsAtom);
   const { isLoading, error, progress } = useAtomValue(
     transactionFetchStatusAtom
   );
 
-  const { open: isOpen, onOpen, onClose } = useDisclosure();
+  const [filterType, setFilterType] = useState('All');
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredTransactions = transactions.filter(tx => {
+    if (searchTerm && !tx.tx_id.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if (filterStatus !== 'All' && tx.tx_status !== filterStatus) return false;
+    const category = getCategory(tx);
+    if (filterType !== 'All' && category !== filterType) return false;
+    return true;
+  });
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   const fetchTransactions = async () => {
@@ -70,22 +124,14 @@ function TransactionList({ transactions }: TransactionListProps) {
   };
 
   // Compute summaries
-  const summaries = transactions.reduce(
+  const summaries = filteredTransactions.reduce(
     (acc, tx) => {
-      if (tx.tx_type === "contract_call") {
-        const func = tx.contract_call.function_name;
-        if (["mine-tokens", "mine-many", "mine"].includes(func)) {
-          acc.mining++;
-        } else if (func === "claim-mining-reward") {
-          acc.miningClaims++;
-        } else if (["stack-tokens", "stack"].includes(func)) {
-          acc.stacking++;
-        } else if (func === "claim-stacking-reward") {
-          acc.stackingClaims++;
-        } else if (func === "transfer") {
-          acc.transfers++;
-        }
-      }
+      const category = getCategory(tx);
+      if (category === "Mining") acc.mining++;
+      else if (category === "Mining Claim") acc.miningClaims++;
+      else if (category === "Stacking") acc.stacking++;
+      else if (category === "Stacking Claim") acc.stackingClaims++;
+      else if (category === "Transfer") acc.transfers++;
       return acc;
     },
     { mining: 0, miningClaims: 0, stacking: 0, stackingClaims: 0, transfers: 0 }
@@ -123,7 +169,7 @@ function TransactionList({ transactions }: TransactionListProps) {
           >
             <Text>
               {allTransactions.length > 0
-                ? `Filtered transactions: ${transactions.length} / ${allTransactions.length}`
+                ? `Filtered transactions: ${filteredTransactions.length} / ${allTransactions.length}`
                 : "No transactions loaded yet"}
             </Text>
             <IconButton
@@ -137,27 +183,74 @@ function TransactionList({ transactions }: TransactionListProps) {
           </Stack>
         )}
       </Stack>
-      <Stack direction="row" gap={4}>
-        <Text>Mining: {summaries.mining}</Text>
-        <Text>Mining Claims: {summaries.miningClaims}</Text>
-        <Text>Stacking: {summaries.stacking}</Text>
-        <Text>Stacking Claims: {summaries.stackingClaims}</Text>
-        <Text>Transfers: {summaries.transfers}</Text>
+      <Stack direction="row" gap={4} flexWrap="wrap">
+        <Badge colorScheme="green" variant="outline">Mining: {summaries.mining}</Badge>
+        <Badge colorScheme="blue" variant="outline">Mining Claims: {summaries.miningClaims}</Badge>
+        <Badge colorScheme="purple" variant="outline">Stacking: {summaries.stacking}</Badge>
+        <Badge colorScheme="orange" variant="outline">Stacking Claims: {summaries.stackingClaims}</Badge>
+        <Badge colorScheme="yellow" variant="outline">Transfers: {summaries.transfers}</Badge>
       </Stack>
-      <Stack>
-        {transactions?.length === 0 && <Text>No transactions found.</Text>}
-        {transactions?.length > 0 && (
-          <List.Root>
-            {transactions.map((tx) => (
-              <TransactionItem
-                key={tx.tx_id}
-                tx={tx}
-                onOpenDetails={handleOpenDetails}
-              />
-            ))}
-          </List.Root>
+      <Stack direction="row" gap={4} flexWrap="wrap">
+        <Select value={filterType} onChange={e => setFilterType(e.target.value)} w="auto">
+          <option value="All">All Types</option>
+          <option value="Mining">Mining</option>
+          <option value="Mining Claim">Mining Claim</option>
+          <option value="Stacking">Stacking</option>
+          <option value="Stacking Claim">Stacking Claim</option>
+          <option value="Transfer">Transfer</option>
+          <option value="Other">Other</option>
+        </Select>
+        <Select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} w="auto">
+          <option value="All">All Statuses</option>
+          <option value="success">Success</option>
+          <option value="failed">Failed</option>
+        </Select>
+        <Input placeholder="Search by TXID" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} w="auto" />
+      </Stack>
+      <Box overflowX="auto">
+        {filteredTransactions.length === 0 && <Text>No transactions found.</Text>}
+        {filteredTransactions.length > 0 && (
+          <Table variant="simple">
+            <Thead>
+              <Tr>
+                <Th>TXID</Th>
+                <Th>Type</Th>
+                <Th>Status</Th>
+                <Th>Date</Th>
+                <Th>Actions</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {filteredTransactions.map((tx) => {
+                const category = getCategory(tx);
+                return (
+                  <Tr key={tx.tx_id}>
+                    <Td>
+                      <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
+                        {shortenTxId(tx.tx_id)}
+                      </Link>
+                    </Td>
+                    <Td>
+                      <Badge colorScheme={getCategoryColor(category)}>{category}</Badge>
+                    </Td>
+                    <Td>
+                      <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
+                        {tx.tx_status}
+                      </Badge>
+                    </Td>
+                    <Td>{formatDate(tx.block_time_iso)}</Td>
+                    <Td>
+                      <Button size="sm" onClick={() => handleOpenDetails(tx)}>
+                        Details
+                      </Button>
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </Tbody>
+          </Table>
         )}
-      </Stack>
+      </Box>
       <TransactionDetailsDrawer
         tx={selectedTx}
         isOpen={isOpen}
@@ -167,39 +260,6 @@ function TransactionList({ transactions }: TransactionListProps) {
   );
 }
 
-function TransactionItem({ tx, onOpenDetails }: TransactionItemProps) {
-  let category = "Other";
-  if (tx.tx_type === "contract_call") {
-    const func = tx.contract_call.function_name;
-    if (["mine-tokens", "mine-many", "mine"].includes(func)) {
-      category = "Mining";
-    } else if (func === "claim-mining-reward") {
-      category = "Mining Claim";
-    } else if (["stack-tokens", "stack"].includes(func)) {
-      category = "Stacking";
-    } else if (func === "claim-stacking-reward") {
-      category = "Stacking Claim";
-    } else if (func === "transfer") {
-      category = "Transfer";
-    }
-  }
-
-  return (
-    <ListItem borderWidth="1px" borderRadius="lg" p={4} mb={2}>
-      <Grid templateColumns="2fr 2fr 1fr 3fr 2fr" gap={4} alignItems="center">
-        <Text>
-          {tx.tx_id.slice(0, 6)}...{tx.tx_id.slice(-4)}
-        </Text>
-        <Text>{category}</Text>
-        <Text>{tx.tx_status === "success" ? "✅" : "❌"}</Text>
-        <Text>{formatDate(tx.block_time_iso)}</Text>
-        <Button size="sm" onClick={() => onOpenDetails(tx)}>
-          Details
-        </Button>
-      </Grid>
-    </ListItem>
-  );
-}
 
 function TransactionFunctionArgs({
   functionArgs,
@@ -224,7 +284,6 @@ function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
   let decoded;
   try {
     decoded = decodeTxArgs(tx);
-    console.log("Final decoded for tx " + tx.tx_id + ":", decoded);
   } catch (error) {
     return <Text>Failed to decode arguments: {error instanceof Error ? error.toString() : `Unknown error: ${String(error)}`}</Text>;
   }
@@ -235,11 +294,6 @@ function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
 
   let decodedType = 'Unknown';
   let gridItems: { label: string; value: string }[] = [];
-
-  console.log("Decoded:", decoded);
-  console.log("typeof rewardCycle:", typeof decoded.rewardCycle);
-  console.log("rewardCycle value:", decoded.rewardCycle);
-  console.log("functionName:", decoded.functionName);
 
   if (isValidMiningTxArgs(decoded)) {
     decodedType = 'Mining';
@@ -258,13 +312,10 @@ function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
       { label: 'Miner Block Height', value: decoded.minerBlockHeight.toString() },
     ];
   } else if (isValidStackingClaimTxArgs(decoded)) {
-    console.log("Matched stacking claim");
     decodedType = 'Stacking Claim';
     gridItems = [
       { label: 'Reward Cycle', value: decoded.rewardCycle.toString() },
     ];
-  } else {
-    console.log("Type guards did not match");
   }
 
   return (
@@ -309,31 +360,43 @@ function TransactionDetailsDrawer({
               </Drawer.CloseTrigger>
             </Drawer.Header>
             <Drawer.Body>
-              <Stack gap={2}>
-                <Text fontWeight="bold" fontSize="lg">
-                  TXID: {tx.tx_id}
-                </Text>
-                <Text>
-                  Status:{" "}
-                  {tx.tx_status === "success" ? "✅ Success" : "❌ Failed"}
-                </Text>
-                <Text>Block Height: {tx.block_height}</Text>
-                <Text>Block Time: {formatDate(tx.block_time_iso)}</Text>
-                <Text>Sender Address: {tx.sender_address}</Text>
-                <Text>Fee Rate: {tx.fee_rate}</Text>
+              <Stack gap={4}>
+                <Grid templateColumns="1fr 3fr" gap={2}>
+                  <Text fontWeight="bold">TXID:</Text>
+                  <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
+                    {tx.tx_id}
+                  </Link>
+                  <Text fontWeight="bold">Status:</Text>
+                  <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
+                    {tx.tx_status}
+                  </Badge>
+                  <Text fontWeight="bold">Block Height:</Text>
+                  <Link href={`https://explorer.hiro.so/block/${tx.block_height}`} isExternal>
+                    {tx.block_height}
+                  </Link>
+                  <Text fontWeight="bold">Block Time:</Text>
+                  <Text>{formatDate(tx.block_time_iso)}</Text>
+                  <Text fontWeight="bold">Sender Address:</Text>
+                  <Text>{shortenPrincipal(tx.sender_address)}</Text>
+                  <Text fontWeight="bold">Fee:</Text>
+                  <Text>{formatMicroAmount(parseFloat(tx.fee_rate))} STX</Text>
+                </Grid>
                 {tx.tx_type === "contract_call" && (
-                  <>
-                    <Text fontWeight="bold">Contract Call Details</Text>
-                    <Text>Contract ID: {tx.contract_call.contract_id}</Text>
-                    <Text>Function Name: {tx.contract_call.function_name}</Text>
-
+                  <Stack gap={2}>
+                    <Text fontWeight="bold" fontSize="lg">Contract Call Details</Text>
+                    <Grid templateColumns="1fr 3fr" gap={2}>
+                      <Text fontWeight="bold">Contract ID:</Text>
+                      <Text>{shortenPrincipal(tx.contract_call.contract_id)}</Text>
+                      <Text fontWeight="bold">Function Name:</Text>
+                      <Text>{tx.contract_call.function_name}</Text>
+                    </Grid>
                     {tx.contract_call.function_args && (
                       <TransactionFunctionArgs
                         functionArgs={tx.contract_call.function_args}
                       />
                     )}
                     <DecodedFunctionArgs tx={tx} />
-                  </>
+                  </Stack>
                 )}
               </Stack>
             </Drawer.Body>

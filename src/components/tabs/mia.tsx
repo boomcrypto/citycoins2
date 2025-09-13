@@ -163,7 +163,7 @@ function Mia() {
                 variant="outline"
                 onClick={checkEligibility}
                 isLoading={isLoading}
-                isDisabled
+                isDisabled={true}
               >
                 Check Eligibility
               </Button>

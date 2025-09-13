@@ -173,14 +173,14 @@ function Nyc() {
               <Button
                 variant="outline"
                 onClick={checkEligibility}
-                loading={isLoading}
+                isLoading={isLoading}
               >
                 Check Eligibility
               </Button>
               <Button
                 variant="outline"
                 onClick={executeRedemption}
-                disabled={!hasChecked || !isEligible || isLoading}
+                isDisabled={!hasChecked || !isEligible || isLoading}
               >
                 Execute Redemption
               </Button>

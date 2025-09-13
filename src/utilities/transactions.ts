@@ -71,7 +71,6 @@ export function isValidStackingClaimTxArgs(
 export function decodeTxArgs(tx: Transaction): any | null {
   if (tx.tx_type !== "contract_call") return null;
   const rawArgs = tx.contract_call.function_args || [];
-  console.log("Raw args for tx " + tx.tx_id + ":", rawArgs);
 
   const decodedArgs: any[] = [];
   for (const arg of rawArgs) {
@@ -79,9 +78,7 @@ export function decodeTxArgs(tx: Transaction): any | null {
       const cv: ClarityValue = deserializeCV(
         Buffer.from(arg.hex.replace(/^0x/, ""), "hex")
       );
-      console.log("Deserialized CV for arg " + arg.name + ":", cv);
       const decoded = decodeClarityValues(cv);
-      console.log("Decoded value for arg " + arg.name + ":", decoded);
       decodedArgs.push(decoded);
     } catch (e) {
       console.error(
@@ -124,8 +121,6 @@ export function decodeTxArgs(tx: Transaction): any | null {
     default:
       return null;
   }
-
-  console.log("Structured decoded for tx " + tx.tx_id + ":", structured);
 
   return structured;
 }
