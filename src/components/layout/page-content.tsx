@@ -1,4 +1,4 @@
-import { Box } from "@chakra-ui/react";
+import { Box, Portal } from "@chakra-ui/react";
 import { Tabs } from "@chakra-ui/react";
 import { useAtom } from "jotai";
 import { activeTabAtom } from "../../store/common";
@@ -26,11 +26,6 @@ function Content() {
 
   return (
     <>
-      <TransactionDetailsDialog
-        tx={selectedTx}
-        isOpen={isOpen}
-        onClose={onClose}
-      />
       <Box width="100%" maxW="1200px">
         <Tabs.Root value={activeTab} onValueChange={(e) => setActiveTab(e.value)} variant="outline" fitted>
           <Tabs.List>
@@ -43,6 +38,13 @@ function Content() {
           <Tabs.Content value="nyc"><Nyc onOpenDetails={onOpenDetails} /></Tabs.Content>
         </Tabs.Root>
       </Box>
+      <Portal container={document.body}>
+        <TransactionDetailsDialog
+          tx={selectedTx}
+          isOpen={isOpen}
+          onClose={onClose}
+        />
+      </Portal>
     </>
   );
 }
