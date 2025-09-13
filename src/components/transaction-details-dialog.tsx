@@ -1,16 +1,14 @@
-import {
-  Stack,
-  Text,
-  Grid,
-  Link,
-  Badge,
-  List,
-  Fragment,
-} from "@chakra-ui/react";
-import { Dialog } from "@chakra-ui/react";
+import { Stack, Text, Grid, Link, Badge, List, Dialog } from "@chakra-ui/react";
+import { Fragment } from "react";
 import { formatDate, formatMicroAmount } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
-import { decodeTxArgs, isValidMiningTxArgs, isValidStackingTxArgs, isValidMiningClaimTxArgs, isValidStackingClaimTxArgs } from "../utilities/transactions";
+import {
+  decodeTxArgs,
+  isValidMiningTxArgs,
+  isValidStackingTxArgs,
+  isValidMiningClaimTxArgs,
+  isValidStackingClaimTxArgs,
+} from "../utilities/transactions";
 
 interface TransactionDetailsDialogProps {
   tx: Transaction | null;
@@ -19,7 +17,7 @@ interface TransactionDetailsDialogProps {
 }
 
 function shortenPrincipal(addr: string): string {
-  return addr ? `${addr.slice(0, 5)}...${addr.slice(-5)}` : '';
+  return addr ? `${addr.slice(0, 5)}...${addr.slice(-5)}` : "";
 }
 
 function TransactionFunctionArgs({
@@ -53,36 +51,49 @@ function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
   try {
     decoded = decodeTxArgs(tx);
   } catch (error) {
-    return <Text>Failed to decode arguments: {error instanceof Error ? error.toString() : `Unknown error: ${String(error)}`}</Text>;
+    return (
+      <Text>
+        Failed to decode arguments:{" "}
+        {error instanceof Error
+          ? error.toString()
+          : `Unknown error: ${String(error)}`}
+      </Text>
+    );
   }
 
   if (!decoded) {
     return <Text>No decodable arguments.</Text>;
   }
 
-  let decodedType = 'Unknown';
+  let decodedType = "Unknown";
   let gridItems: { label: string; value: string }[] = [];
 
   if (isValidMiningTxArgs(decoded)) {
-    decodedType = 'Mining';
+    decodedType = "Mining";
     gridItems = [
-      { label: 'Amounts uSTX', value: decoded.amountsUstx.map(a => a.toString()).join(', ') },
+      {
+        label: "Amounts uSTX",
+        value: decoded.amountsUstx.map((a) => a.toString()).join(", "),
+      },
     ];
   } else if (isValidStackingTxArgs(decoded)) {
-    decodedType = 'Stacking';
+    decodedType = "Stacking";
     gridItems = [
-      { label: 'Amount Token', value: decoded.amountToken.toString() },
-      { label: 'Lock Period', value: decoded.lockPeriod.toString() },
+      { label: "Amount Token", value: decoded.amountToken.toString() },
+      { label: "Lock Period", value: decoded.lockPeriod.toString() },
     ];
   } else if (isValidMiningClaimTxArgs(decoded)) {
-    decodedType = 'Mining Claim';
+    decodedType = "Mining Claim";
     gridItems = [
-      { label: 'Miner Block Height', value: decoded.minerBlockHeight.toString() },
+      {
+        label: "Miner Block Height",
+        value: decoded.minerBlockHeight.toString(),
+      },
     ];
   } else if (isValidStackingClaimTxArgs(decoded)) {
-    decodedType = 'Stacking Claim';
+    decodedType = "Stacking Claim";
     gridItems = [
-      { label: 'Reward Cycle', value: decoded.rewardCycle.toString() },
+      { label: "Reward Cycle", value: decoded.rewardCycle.toString() },
     ];
   }
 
@@ -120,15 +131,23 @@ function TransactionDetailsDialog({
           <Stack gap={4}>
             <Grid templateColumns="1fr 3fr" gap={2}>
               <Text fontWeight="bold">TXID:</Text>
-              <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} rel="noopener noreferrer" target="_blank">
+              <Link
+                href={`https://explorer.hiro.so/tx/${tx.tx_id}`}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
                 {tx.tx_id}
               </Link>
               <Text fontWeight="bold">Status:</Text>
-              <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
+              <Badge colorScheme={tx.tx_status === "success" ? "green" : "red"}>
                 {tx.tx_status}
               </Badge>
               <Text fontWeight="bold">Block Height:</Text>
-              <Link href={`https://explorer.hiro.so/block/${tx.block_height}`} rel="noopener noreferrer" target="_blank">
+              <Link
+                href={`https://explorer.hiro.so/block/${tx.block_height}`}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
                 {tx.block_height}
               </Link>
               <Text fontWeight="bold">Block Time:</Text>
@@ -140,7 +159,9 @@ function TransactionDetailsDialog({
             </Grid>
             {tx.tx_type === "contract_call" && (
               <Stack gap={2}>
-                <Text fontWeight="bold" fontSize="lg">Contract Call Details</Text>
+                <Text fontWeight="bold" fontSize="lg">
+                  Contract Call Details
+                </Text>
                 <Grid templateColumns="1fr 3fr" gap={2}>
                   <Text fontWeight="bold">Contract ID:</Text>
                   <Text>{shortenPrincipal(tx.contract_call.contract_id)}</Text>

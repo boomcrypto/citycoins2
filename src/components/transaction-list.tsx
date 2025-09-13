@@ -6,7 +6,6 @@ import {
   IconButton,
   Portal,
   Button,
-  Grid,
   Link,
   Input,
   Badge,
@@ -15,10 +14,11 @@ import {
   createListCollection,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
 import { formatDate } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
+import { useState } from "react";
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -26,11 +26,11 @@ interface TransactionListProps {
 }
 
 function shortenPrincipal(addr: string): string {
-  return addr ? `${addr.slice(0, 5)}...${addr.slice(-5)}` : '';
+  return addr ? `${addr.slice(0, 5)}...${addr.slice(-5)}` : "";
 }
 
 function shortenTxId(txId: string): string {
-  return txId ? `${txId.slice(0, 6)}...${txId.slice(-4)}` : '';
+  return txId ? `${txId.slice(0, 6)}...${txId.slice(-4)}` : "";
 }
 
 function getCategory(tx: Transaction): string {
@@ -53,12 +53,18 @@ function getCategory(tx: Transaction): string {
 
 function getCategoryColor(category: string): string {
   switch (category) {
-    case "Mining": return "green";
-    case "Mining Claim": return "blue";
-    case "Stacking": return "purple";
-    case "Stacking Claim": return "orange";
-    case "Transfer": return "yellow";
-    default: return "gray";
+    case "Mining":
+      return "green";
+    case "Mining Claim":
+      return "blue";
+    case "Stacking":
+      return "purple";
+    case "Stacking Claim":
+      return "orange";
+    case "Transfer":
+      return "yellow";
+    default:
+      return "gray";
   }
 }
 
@@ -82,21 +88,28 @@ const filterStatusCollection = createListCollection({
   ],
 });
 
-function TransactionList({ transactions, onOpenDetails }: TransactionListProps) {
+function TransactionList({
+  transactions,
+  onOpenDetails,
+}: TransactionListProps) {
   const [allTransactions, updateTransactions] = useAtom(transactionsAtom);
   const { isLoading, error, progress } = useAtomValue(
     transactionFetchStatusAtom
   );
 
-  const [filterType, setFilterType] = useState('All');
-  const [filterStatus, setFilterStatus] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState("All");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredTransactions = transactions.filter(tx => {
-    if (searchTerm && !tx.tx_id.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    if (filterStatus !== 'All' && tx.tx_status !== filterStatus) return false;
+  const filteredTransactions = transactions.filter((tx) => {
+    if (
+      searchTerm &&
+      !tx.tx_id.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+      return false;
+    if (filterStatus !== "All" && tx.tx_status !== filterStatus) return false;
     const category = getCategory(tx);
-    if (filterType !== 'All' && category !== filterType) return false;
+    if (filterType !== "All" && category !== filterType) return false;
     return true;
   });
 
@@ -174,11 +187,21 @@ function TransactionList({ transactions, onOpenDetails }: TransactionListProps) 
         )}
       </Stack>
       <Stack direction="row" gap={4} flexWrap="wrap">
-        <Badge colorScheme="green" variant="outline">Mining: {summaries.mining}</Badge>
-        <Badge colorScheme="blue" variant="outline">Mining Claims: {summaries.miningClaims}</Badge>
-        <Badge colorScheme="purple" variant="outline">Stacking: {summaries.stacking}</Badge>
-        <Badge colorScheme="orange" variant="outline">Stacking Claims: {summaries.stackingClaims}</Badge>
-        <Badge colorScheme="yellow" variant="outline">Transfers: {summaries.transfers}</Badge>
+        <Badge colorScheme="green" variant="outline">
+          Mining: {summaries.mining}
+        </Badge>
+        <Badge colorScheme="blue" variant="outline">
+          Mining Claims: {summaries.miningClaims}
+        </Badge>
+        <Badge colorScheme="purple" variant="outline">
+          Stacking: {summaries.stacking}
+        </Badge>
+        <Badge colorScheme="orange" variant="outline">
+          Stacking Claims: {summaries.stackingClaims}
+        </Badge>
+        <Badge colorScheme="yellow" variant="outline">
+          Transfers: {summaries.transfers}
+        </Badge>
       </Stack>
       <Stack direction="row" gap={4} flexWrap="wrap">
         <Select.Root
@@ -239,10 +262,17 @@ function TransactionList({ transactions, onOpenDetails }: TransactionListProps) 
             </Select.Positioner>
           </Portal>
         </Select.Root>
-        <Input placeholder="Search by TXID" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} w="auto" />
+        <Input
+          placeholder="Search by TXID"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          w="auto"
+        />
       </Stack>
       <Box overflowX="auto">
-        {filteredTransactions.length === 0 && <Text>No transactions found.</Text>}
+        {filteredTransactions.length === 0 && (
+          <Text>No transactions found.</Text>
+        )}
         {filteredTransactions.length > 0 && (
           <Table.Root variant="outline">
             <Table.Header>
@@ -260,15 +290,25 @@ function TransactionList({ transactions, onOpenDetails }: TransactionListProps) 
                 return (
                   <Table.Row key={tx.tx_id}>
                     <Table.Cell>
-                      <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} rel="noopener noreferrer" target="_blank">
+                      <Link
+                        href={`https://explorer.hiro.so/tx/${tx.tx_id}`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                      >
                         {shortenTxId(tx.tx_id)}
                       </Link>
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge colorScheme={getCategoryColor(category)}>{category}</Badge>
+                      <Badge colorScheme={getCategoryColor(category)}>
+                        {category}
+                      </Badge>
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
+                      <Badge
+                        colorScheme={
+                          tx.tx_status === "success" ? "green" : "red"
+                        }
+                      >
                         {tx.tx_status}
                       </Badge>
                     </Table.Cell>
