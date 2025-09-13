@@ -236,7 +236,7 @@ function TransactionList({
                 ))}
               </Select.Content>
             </Select.Positioner>
-          </Portal>
+          </Select.Root>
         </Select.Root>
         <Select.Root
           collection={filterStatusCollection}
@@ -265,7 +265,7 @@ function TransactionList({
                 ))}
               </Select.Content>
             </Select.Positioner>
-          </Portal>
+          </Select.Root>
         </Select.Root>
         <Input
           placeholder="Search by TXID"
@@ -275,22 +275,25 @@ function TransactionList({
         />
       </Stack>
       <Box overflowX="auto">
-        {filteredTransactions.length === 0 && (
-          <Text>No transactions found.</Text>
-        )}
-        {filteredTransactions.length > 0 && (
-          <Table.Root variant="outline">
-            <Table.Header>
+        <Table.Root variant="outline">
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeader>TXID</Table.ColumnHeader>
+              <Table.ColumnHeader>Type</Table.ColumnHeader>
+              <Table.ColumnHeader>Status</Table.ColumnHeader>
+              <Table.ColumnHeader>Date</Table.ColumnHeader>
+              <Table.ColumnHeader>Actions</Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {filteredTransactions.length === 0 ? (
               <Table.Row>
-                <Table.ColumnHeader>TXID</Table.ColumnHeader>
-                <Table.ColumnHeader>Type</Table.ColumnHeader>
-                <Table.ColumnHeader>Status</Table.ColumnHeader>
-                <Table.ColumnHeader>Date</Table.ColumnHeader>
-                <Table.ColumnHeader>Actions</Table.ColumnHeader>
+                <Table.Cell colSpan={5} textAlign="center">
+                  No transactions found.
+                </Table.Cell>
               </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {filteredTransactions.map((tx) => {
+            ) : (
+              filteredTransactions.map((tx) => {
                 const category = getCategory(tx);
                 return (
                   <Table.Row key={tx.tx_id}>
@@ -325,10 +328,10 @@ function TransactionList({
                     </Table.Cell>
                   </Table.Row>
                 );
-              })}
-            </Table.Body>
-          </Table.Root>
-        )}
+              })
+            )}
+          </Table.Body>
+        </Table.Root>
       </Box>
     </Stack>
   );
