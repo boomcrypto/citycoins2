@@ -13,6 +13,9 @@ import {
   Table,
   Select,
   createListCollection,
+  useDisclosure,
+  Drawer,
+  List,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -116,7 +119,7 @@ function TransactionList({ transactions }: TransactionListProps) {
     return true;
   });
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { open: isOpen, onOpen, onClose } = useDisclosure();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   const fetchTransactions = async () => {
@@ -211,7 +214,7 @@ function TransactionList({ transactions }: TransactionListProps) {
           <Select.HiddenSelect />
           <Select.Control>
             <Select.Trigger>
-              <Select.ValueText placeholder="All Types" />
+              <Select.ValueText>All Types</Select.ValueText>
             </Select.Trigger>
             <Select.IndicatorGroup>
               <Select.Indicator />
@@ -240,7 +243,7 @@ function TransactionList({ transactions }: TransactionListProps) {
           <Select.HiddenSelect />
           <Select.Control>
             <Select.Trigger>
-              <Select.ValueText placeholder="All Statuses" />
+              <Select.ValueText>All Statuses</Select.ValueText>
             </Select.Trigger>
             <Select.IndicatorGroup>
               <Select.Indicator />
@@ -264,7 +267,7 @@ function TransactionList({ transactions }: TransactionListProps) {
       <Box overflowX="auto">
         {filteredTransactions.length === 0 && <Text>No transactions found.</Text>}
         {filteredTransactions.length > 0 && (
-          <Table.Root variant="simple">
+          <Table.Root variant="outline">
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeader>TXID</Table.ColumnHeader>
@@ -280,7 +283,7 @@ function TransactionList({ transactions }: TransactionListProps) {
                 return (
                   <Table.Row key={tx.tx_id}>
                     <Table.Cell>
-                      <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
+                      <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} rel="noopener noreferrer" target="_blank">
                         {shortenTxId(tx.tx_id)}
                       </Link>
                     </Table.Cell>
@@ -323,11 +326,11 @@ function TransactionFunctionArgs({
       <Text fontWeight="bold">Function Arguments</Text>
       <List.Root gap={2}>
         {functionArgs.map((arg) => (
-          <ListItem key={arg.hex}>
+          <List.Item key={arg.hex}>
             <Text>Name: {arg.name}</Text>
             <Text>Type: {arg.type}</Text>
             <Text>Repr: {arg.repr}</Text>
-          </ListItem>
+          </List.Item>
         ))}
       </List.Root>
     </Stack>
@@ -406,7 +409,7 @@ function TransactionDetailsDrawer({
           <Stack gap={4}>
             <Grid templateColumns="1fr 3fr" gap={2}>
               <Text fontWeight="bold">TXID:</Text>
-              <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
+              <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} rel="noopener noreferrer" target="_blank">
                 {tx.tx_id}
               </Link>
               <Text fontWeight="bold">Status:</Text>
@@ -414,7 +417,7 @@ function TransactionDetailsDrawer({
                 {tx.tx_status}
               </Badge>
               <Text fontWeight="bold">Block Height:</Text>
-              <Link href={`https://explorer.hiro.so/block/${tx.block_height}`} isExternal>
+              <Link href={`https://explorer.hiro.so/block/${tx.block_height}`} rel="noopener noreferrer" target="_blank">
                 {tx.block_height}
               </Link>
               <Text fontWeight="bold">Block Time:</Text>
