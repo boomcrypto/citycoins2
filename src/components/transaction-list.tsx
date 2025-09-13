@@ -308,11 +308,13 @@ function TransactionList({ transactions }: TransactionListProps) {
           </Table.Root>
         )}
       </Box>
-      <TransactionDetailsDrawer
-        tx={selectedTx}
-        isOpen={isOpen}
-        onClose={onClose}
-      />
+      <Portal>
+        <TransactionDetailsDrawer
+          tx={selectedTx}
+          isOpen={isOpen}
+          onClose={onClose}
+        />
+      </Portal>
     </Stack>
   );
 }
