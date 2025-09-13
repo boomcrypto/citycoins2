@@ -17,17 +17,6 @@ import {
   Input,
   Badge,
   Table,
-  TableContainer,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  DrawerOverlay,
-  DrawerContent,
-  DrawerCloseButton,
-  DrawerHeader,
-  DrawerBody,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -216,47 +205,45 @@ function TransactionList({ transactions }: TransactionListProps) {
       <Box overflowX="auto">
         {filteredTransactions.length === 0 && <Text>No transactions found.</Text>}
         {filteredTransactions.length > 0 && (
-          <TableContainer>
-            <Table variant="simple">
-              <Thead>
-                <Tr>
-                  <Th>TXID</Th>
-                  <Th>Type</Th>
-                  <Th>Status</Th>
-                  <Th>Date</Th>
-                  <Th>Actions</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {filteredTransactions.map((tx) => {
-                  const category = getCategory(tx);
-                  return (
-                    <Tr key={tx.tx_id}>
-                      <Td>
-                        <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
-                          {shortenTxId(tx.tx_id)}
-                        </Link>
-                      </Td>
-                      <Td>
-                        <Badge colorScheme={getCategoryColor(category)}>{category}</Badge>
-                      </Td>
-                      <Td>
-                        <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
-                          {tx.tx_status}
-                        </Badge>
-                      </Td>
-                      <Td>{formatDate(tx.block_time_iso)}</Td>
-                      <Td>
-                        <Button size="sm" onClick={() => handleOpenDetails(tx)}>
-                          Details
-                        </Button>
-                      </Td>
-                    </Tr>
-                  );
-                })}
-              </Tbody>
-            </Table>
-          </TableContainer>
+          <Table.Root variant="simple">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>TXID</Table.ColumnHeader>
+                <Table.ColumnHeader>Type</Table.ColumnHeader>
+                <Table.ColumnHeader>Status</Table.ColumnHeader>
+                <Table.ColumnHeader>Date</Table.ColumnHeader>
+                <Table.ColumnHeader>Actions</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {filteredTransactions.map((tx) => {
+                const category = getCategory(tx);
+                return (
+                  <Table.Row key={tx.tx_id}>
+                    <Table.Cell>
+                      <Link href={`https://explorer.hiro.so/tx/${tx.tx_id}`} isExternal>
+                        {shortenTxId(tx.tx_id)}
+                      </Link>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge colorScheme={getCategoryColor(category)}>{category}</Badge>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge colorScheme={tx.tx_status === 'success' ? 'green' : 'red'}>
+                        {tx.tx_status}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>{formatDate(tx.block_time_iso)}</Table.Cell>
+                    <Table.Cell>
+                      <Button size="sm" onClick={() => handleOpenDetails(tx)}>
+                        Details
+                      </Button>
+                    </Table.Cell>
+                  </Table.Row>
+                );
+              })}
+            </Table.Body>
+          </Table.Root>
         )}
       </Box>
       <TransactionDetailsDrawer
@@ -275,7 +262,7 @@ function TransactionFunctionArgs({
   return (
     <Stack>
       <Text fontWeight="bold">Function Arguments</Text>
-      <List spacing={2}>
+      <List.Root gap={2}>
         {functionArgs.map((arg) => (
           <ListItem key={arg.hex}>
             <Text>Name: {arg.name}</Text>
@@ -283,7 +270,7 @@ function TransactionFunctionArgs({
             <Text>Repr: {arg.repr}</Text>
           </ListItem>
         ))}
-      </List>
+      </List.Root>
     </Stack>
   );
 }
@@ -349,17 +336,14 @@ function TransactionDetailsDrawer({
   if (!tx) return null;
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      placement="bottom"
-      onClose={onClose}
-      size="lg"
-    >
-      <DrawerOverlay />
-      <DrawerContent>
-        <DrawerCloseButton />
-        <DrawerHeader>Transaction Details</DrawerHeader>
-        <DrawerBody>
+    <Drawer.Root open={isOpen} onOpenChange={onClose} placement="bottom" size="lg">
+      <Drawer.Backdrop />
+      <Drawer.Content>
+        <Drawer.Header>
+          <Drawer.Title>Transaction Details</Drawer.Title>
+          <Drawer.CloseTrigger />
+        </Drawer.Header>
+        <Drawer.Body>
           <Stack gap={4}>
             <Grid templateColumns="1fr 3fr" gap={2}>
               <Text fontWeight="bold">TXID:</Text>
@@ -399,9 +383,9 @@ function TransactionDetailsDrawer({
               </Stack>
             )}
           </Stack>
-        </DrawerBody>
-      </DrawerContent>
-    </Drawer>
+        </Drawer.Body>
+      </Drawer.Content>
+    </Drawer.Root>
   );
 }
 
