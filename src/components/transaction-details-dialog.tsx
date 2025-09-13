@@ -1,4 +1,4 @@
-import { Stack, Text, Grid, Link, Badge, List, Dialog } from "@chakra-ui/react";
+import { Stack, Text, Grid, Link, Badge, List, Dialog, useColorModeValue } from "@chakra-ui/react";
 import { Fragment } from "react";
 import { formatDate, formatMicroAmount } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
@@ -119,12 +119,13 @@ function TransactionDetailsDialog({
 }: TransactionDetailsDialogProps) {
   if (!tx) return null;
 
+  const bgColor = useColorModeValue("white", "gray.800");
+
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose} size="xl" placement="center">
       <Dialog.Backdrop bg="rgba(0,0,0,0.5)" />
       <Dialog.Content
-        bg="white"
-        border="1px solid black"
+        bg={bgColor}
         position="fixed"
         top="50%"
         left="50%"
