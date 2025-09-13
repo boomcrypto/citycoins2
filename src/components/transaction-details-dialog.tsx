@@ -174,9 +174,19 @@ function TransactionDetailsDialog({
                     <Text fontWeight="bold" color="gray.700">Block Time:</Text>
                     <Text>{formatDate(tx.block_time_iso)}</Text>
                     <Text fontWeight="bold" color="gray.700">Sender Address:</Text>
-                    <Text fontFamily="mono" fontSize="sm">{shortenPrincipal(tx.sender_address)}</Text>
+                    <Link
+                      href={`https://explorer.hiro.so/address/${tx.sender_address}`}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                      color="blue.500"
+                      fontWeight="medium"
+                      fontFamily="mono"
+                      fontSize="sm"
+                    >
+                      {shortenPrincipal(tx.sender_address)}
+                    </Link>
                     <Text fontWeight="bold" color="gray.700">Fee:</Text>
-                    <Text>{formatMicroAmount(parseFloat(tx.fee_rate))} STX</Text>
+                    <Text>{formatMicroAmount(parseFloat(tx.fee_rate), 6, 6)} STX</Text>
                   </Grid>
                 </Box>
 
@@ -188,7 +198,17 @@ function TransactionDetailsDialog({
                     <Heading size="md" mb={4}>Contract Call Details</Heading>
                     <Grid templateColumns="1fr 2fr" gap={4} mb={4}>
                       <Text fontWeight="bold" color="gray.700">Contract ID:</Text>
-                      <Text fontFamily="mono" fontSize="sm">{shortenPrincipal(tx.contract_call.contract_id)}</Text>
+                      <Link
+                        href={`https://explorer.hiro.so/contract/${tx.contract_call.contract_id}`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                        color="blue.500"
+                        fontWeight="medium"
+                        fontFamily="mono"
+                        fontSize="sm"
+                      >
+                        {shortenPrincipal(tx.contract_call.contract_id)}
+                      </Link>
                       <Text fontWeight="bold" color="gray.700">Function Name:</Text>
                       <Text fontWeight="medium">{tx.contract_call.function_name}</Text>
                     </Grid>
