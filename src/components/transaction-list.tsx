@@ -190,7 +190,6 @@ function TransactionList({
             </IconButton>
           </Stack>
         )}
-      </Stack>
       <Stack direction="row" gap={4} flexWrap="wrap">
         <Badge colorScheme="green" variant="outline">
           Mining: {summaries.mining}
@@ -265,7 +264,7 @@ function TransactionList({
                 ))}
               </Select.Content>
             </Select.Positioner>
-          </Select.Root>
+            </Portal>
         </Select.Root>
         <Input
           placeholder="Search by TXID"
@@ -273,7 +272,6 @@ function TransactionList({
           onChange={(e) => setSearchTerm(e.target.value)}
           w="auto"
         />
-      </Stack>
       <Box overflowX="auto">
         <Table.Root variant="outline">
           <Table.Header>
@@ -333,7 +331,6 @@ function TransactionList({
           </Table.Body>
         </Table.Root>
       </Box>
-    </Stack>
   );
 }
 
