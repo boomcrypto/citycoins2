@@ -5,8 +5,13 @@ import { activeTabAtom } from "../../store/common";
 import Voting from "../tabs/voting";
 import Mia from "../tabs/mia";
 import Nyc from "../tabs/nyc";
+import { Transaction } from "@stacks/stacks-blockchain-api-types";
 
-function Content() {
+interface ContentProps {
+  onOpenDetails: (tx: Transaction) => void;
+}
+
+function Content({ onOpenDetails }: ContentProps) {
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
 
   return (
@@ -18,10 +23,10 @@ function Content() {
           <Tabs.Trigger value="nyc">NYC</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="voting"><Voting /></Tabs.Content>
-        <Tabs.Content value="mia"><Mia /></Tabs.Content>
-        <Tabs.Content value="nyc"><Nyc /></Tabs.Content>
+        <Tabs.Content value="mia"><Mia onOpenDetails={onOpenDetails} /></Tabs.Content>
+        <Tabs.Content value="nyc"><Nyc onOpenDetails={onOpenDetails} /></Tabs.Content>
       </Tabs.Root>
-    </Box >
+    </Box>
   );
 }
 

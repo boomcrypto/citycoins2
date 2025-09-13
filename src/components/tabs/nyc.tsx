@@ -14,8 +14,13 @@ import { fancyFetch, HIRO_API } from "../../store/common";
 import { request } from "@stacks/connect";
 import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
 import TransactionList from "../transaction-list";
+import { Transaction } from "@stacks/stacks-blockchain-api-types";
 
-function Nyc() {
+interface NycProps {
+  onOpenDetails: (tx: Transaction) => void;
+}
+
+function Nyc({ onOpenDetails }: NycProps) {
   const stxAddress = useAtomValue(stxAddressAtom);
 
   const [hasChecked, setHasChecked] = useState(false);
@@ -45,9 +50,10 @@ function Nyc() {
       contract:
         "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2",
       functions: [
-        "mine",
+        "mine-tokens",
+        "mine-many",
         "claim-mining-reward",
-        "stack",
+        "stack-tokens",
         "claim-stacking-reward",
       ],
     },
@@ -172,14 +178,14 @@ function Nyc() {
               <Button
                 variant="outline"
                 onClick={checkEligibility}
-                loading={isLoading}
+                isLoading={isLoading}
               >
                 Check Eligibility
               </Button>
               <Button
                 variant="outline"
                 onClick={executeRedemption}
-                disabled={!hasChecked || !isEligible || isLoading}
+                isDisabled={!hasChecked || !isEligible || isLoading}
               >
                 Execute Redemption
               </Button>
@@ -203,7 +209,7 @@ function Nyc() {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            <TransactionList transactions={filteredTransactions} />
+            <TransactionList transactions={filteredTransactions} onOpenDetails={onOpenDetails} />
           </Accordion.ItemContent>
         </Accordion.Item>
       </Accordion.Root>
