@@ -221,7 +221,12 @@ function TransactionFunctionArgs({
 }
 
 function DecodedFunctionArgs({ tx }: { tx: Transaction }) {
-  const decoded = decodeTxArgs(tx);
+  let decoded;
+  try {
+    decoded = decodeTxArgs(tx);
+  } catch (error) {
+    return <Text>Failed to decode arguments: {error.toString()}</Text>;
+  }
 
   if (!decoded) {
     return <Text>No decodable arguments.</Text>;
