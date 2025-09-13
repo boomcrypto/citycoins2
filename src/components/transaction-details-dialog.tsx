@@ -120,7 +120,7 @@ function TransactionDetailsDialog({
   if (!tx) return null;
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onClose} size="xl" placement="center">
+    <Dialog.Root open={isOpen} onOpenChange={onClose} size="xl">
       <Dialog.Backdrop />
       <Dialog.Content>
         <Dialog.Header>
