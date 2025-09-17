@@ -228,12 +228,8 @@ function Nyc({ onOpenDetails }: NycProps) {
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
             <Stack gap={4}>
-              {filteredTransactions.filter(tx => ['mine-tokens', 'mine-many', 'mine'].includes(tx.contract_call.function_name)).map(tx => (
-                <Box key={tx.tx_id} p={4} bg="gray.50" borderRadius="md">
-                  <Text fontWeight="bold">TXID: {shortenTxId(tx.tx_id)}</Text>
-                  <Text>Block Height: {tx.block_height}</Text>
-                  <Text>Mined Blocks: {minedBlocks.get(tx.tx_id)?.join(", ") || "N/A"}</Text>
-                </Box>
+              {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(block => (
+                <Text key={block}>Block {block}</Text>
               ))}
             </Stack>
           </Accordion.ItemContent>
