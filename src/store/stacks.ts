@@ -6,7 +6,7 @@ import {
 import { HIRO_API, fancyFetch, sleep } from "./common";
 import { Setter, atom } from "jotai";
 import LZString from "lz-string";
-import { decodeTxArgs, isValidMiningTxArgs } from "../utilities/transactions";
+import { decodeTxArgs, isValidMiningTxArgs, isValidMiningClaimTxArgs } from "../utilities/transactions";
 
 /////////////////////////
 // TYPES
@@ -124,6 +124,21 @@ export const minedBlocksAtom = atom((get) => {
           blocks.push(tx.block_height + i);
         }
         map.set(tx.tx_id, blocks);
+      }
+    }
+  }
+  return map;
+});
+
+export const claimedBlocksAtom = atom((get) => {
+  const transactions = get(transactionsAtom);
+  const map = new Map<string, number[]>();
+  for (const tx of transactions) {
+    if (tx.tx_type === 'contract_call' && tx.contract_call.function_name === 'claim-mining-reward') {
+      const decoded = decodeTxArgs(tx);
+      if (decoded && isValidMiningClaimTxArgs(decoded)) {
+        const block = Number(decoded.minerBlockHeight);
+        map.set(tx.tx_id, [block]);
       }
     }
   }
