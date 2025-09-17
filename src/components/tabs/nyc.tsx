@@ -5,9 +5,10 @@ import {
   Link,
   Stack,
   Text,
+  Badge,
 } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
-import { stxAddressAtom, transactionsAtom, minedBlocksAtom } from "../../store/stacks";
+import { stxAddressAtom, transactionsAtom, minedBlocksAtom, claimedBlocksAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
@@ -29,6 +30,7 @@ function shortenTxId(txId: string): string {
 function Nyc({ onOpenDetails }: NycProps) {
   const stxAddress = useAtomValue(stxAddressAtom);
   const minedBlocks = useAtomValue(minedBlocksAtom);
+  const claimedBlocks = useAtomValue(claimedBlocksAtom);
 
   const [hasChecked, setHasChecked] = useState(false);
   const [isEligible, setIsEligible] = useState(false);
@@ -171,6 +173,8 @@ function Nyc({ onOpenDetails }: NycProps) {
     }
   };
 
+  const allClaimedBlocks = Array.from(new Set(Array.from(claimedBlocks.values()).flat()));
+
   return (
     <Stack gap={4}>
       <Heading size="4xl">NYC Tools</Heading>
@@ -229,7 +233,7 @@ function Nyc({ onOpenDetails }: NycProps) {
           <Accordion.ItemContent p={4}>
             <Stack gap={4}>
               {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(block => (
-                <Text key={block}>Block {block}</Text>
+                <Text key={block}>Block {block} {allClaimedBlocks.includes(block) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>
               ))}
             </Stack>
           </Accordion.ItemContent>
