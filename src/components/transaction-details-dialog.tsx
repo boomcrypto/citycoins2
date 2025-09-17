@@ -13,6 +13,8 @@ import {
 import { ClarityValue, deserializeCV } from "@stacks/transactions";
 import { decodeClarityValues } from "../utilities/clarity";
 import { Buffer } from "buffer";
+import { useAtomValue } from "jotai";
+import { minedBlocksAtom } from "../store/stacks";
 
 interface TransactionDetailsDialogProps {
   tx: Transaction | null;
@@ -30,6 +32,8 @@ function shortenPrincipal(addr: string): string {
 }
 
 function TransactionArguments({ tx }: { tx: Transaction }) {
+  const minedBlocks = useAtomValue(minedBlocksAtom);
+
   let decoded;
   try {
     decoded = decodeTxArgs(tx);
@@ -72,6 +76,10 @@ function TransactionArguments({ tx }: { tx: Transaction }) {
       {
         label: "Amounts (uSTX)",
         value: decoded.amountsUstx.map((a) => formatMicroAmount(Number(a), 6, 6)).join(", "),
+      },
+      {
+        label: "Mined Blocks",
+        value: minedBlocks.get(tx.tx_id)?.join(", ") || "N/A",
       },
     ];
   } else if (isValidStackingTxArgs(decoded)) {
