@@ -108,16 +108,31 @@ export function decodeTxArgs(tx: Transaction): any | null {
       );
       break;
     case "mine":
-      // First arg: amounts (list of uint or single uint), second: cityName (string-ascii) if present
+      // Handle various signatures: (amounts, cityName), (cityName, amounts), (amount, cityName), etc.
       if (Array.isArray(decodedArgs[0])) {
+        // First arg is list of amounts
         structured.amountsUstx = decodedArgs[0].map((val: any) =>
           safeConvertToBigint(val)
         );
+        if (decodedArgs[1]) {
+          structured.cityName = decodedArgs[1];
+        }
+      } else if (typeof decodedArgs[0] === "string") {
+        // First arg is cityName
+        structured.cityName = decodedArgs[0];
+        if (Array.isArray(decodedArgs[1])) {
+          structured.amountsUstx = decodedArgs[1].map((val: any) =>
+            safeConvertToBigint(val)
+          );
+        } else {
+          structured.amountsUstx = [safeConvertToBigint(decodedArgs[1])];
+        }
       } else {
+        // First arg is single amount
         structured.amountsUstx = [safeConvertToBigint(decodedArgs[0])];
-      }
-      if (decodedArgs[1]) {
-        structured.cityName = decodedArgs[1];
+        if (decodedArgs[1]) {
+          structured.cityName = decodedArgs[1];
+        }
       }
       console.log(`Decoded 'mine' args for tx ${tx.tx_id}: cityName=${structured.cityName}, amountsUstx=${structured.amountsUstx}`); // Debug log
       break;
