@@ -7,7 +7,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
-import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
+import { stxAddressAtom, transactionsAtom, minedBlocksAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
@@ -16,13 +16,19 @@ import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
 import TransactionList from "../transaction-list";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { CONTRACTS } from "../../config/contracts"; // Import config for dynamic filter
+import { Box } from "@chakra-ui/react";
 
 interface NycProps {
   onOpenDetails: (tx: Transaction) => void;
 }
 
+function shortenTxId(txId: string): string {
+  return txId ? `${txId.slice(0, 6)}...${txId.slice(-4)}` : "";
+}
+
 function Nyc({ onOpenDetails }: NycProps) {
   const stxAddress = useAtomValue(stxAddressAtom);
+  const minedBlocks = useAtomValue(minedBlocksAtom);
 
   const [hasChecked, setHasChecked] = useState(false);
   const [isEligible, setIsEligible] = useState(false);
@@ -213,6 +219,23 @@ function Nyc({ onOpenDetails }: NycProps) {
                 </Text>
               </Stack>
             )}
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item value="mining-history">
+          <Accordion.ItemTrigger>
+            <Heading size="xl">NYC Mining History</Heading>
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent p={4}>
+            <Stack gap={4}>
+              {filteredTransactions.filter(tx => ['mine-tokens', 'mine-many', 'mine'].includes(tx.contract_call.function_name)).map(tx => (
+                <Box key={tx.tx_id} p={4} bg="gray.50" borderRadius="md">
+                  <Text fontWeight="bold">TXID: {shortenTxId(tx.tx_id)}</Text>
+                  <Text>Block Height: {tx.block_height}</Text>
+                  <Text>Mined Blocks: {minedBlocks.get(tx.tx_id)?.join(", ") || "N/A"}</Text>
+                </Box>
+              ))}
+            </Stack>
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item value="transactions">
