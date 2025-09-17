@@ -71,7 +71,7 @@ function TransactionArguments({ tx }: { tx: Transaction }) {
     gridItems = [
       {
         label: "Amounts (uSTX)",
-        value: decoded.amountsUstx.map((a) => formatMicroAmount(Number(a))).join(", "),
+        value: decoded.amountsUstx.map((a) => formatMicroAmount(Number(a), 6, 6)).join(", "),
       },
     ];
   } else if (isValidStackingTxArgs(decoded)) {
