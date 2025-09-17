@@ -6,6 +6,7 @@ import {
 import { HIRO_API, fancyFetch, sleep } from "./common";
 import { Setter, atom } from "jotai";
 import LZString from "lz-string";
+import { decodeTxArgs, isValidMiningTxArgs } from "../utilities/transactions";
 
 /////////////////////////
 // TYPES
@@ -109,6 +110,25 @@ export const transactionsAtom = atom(
     }
   }
 );
+
+export const minedBlocksAtom = atom((get) => {
+  const transactions = get(transactionsAtom);
+  const map = new Map<string, number[]>();
+  for (const tx of transactions) {
+    if (tx.tx_type === 'contract_call' && ['mine-tokens', 'mine-many', 'mine'].includes(tx.contract_call.function_name)) {
+      const decoded = decodeTxArgs(tx);
+      if (decoded && isValidMiningTxArgs(decoded)) {
+        const numBlocks = decoded.amountsUstx.length;
+        const blocks = [];
+        for (let i = 0; i < numBlocks; i++) {
+          blocks.push(tx.block_height + i);
+        }
+        map.set(tx.tx_id, blocks);
+      }
+    }
+  }
+  return map;
+});
 
 type FetchStatus = {
   isLoading: boolean;
