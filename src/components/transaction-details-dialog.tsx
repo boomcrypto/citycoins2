@@ -10,6 +10,10 @@ import {
   isValidStackingClaimTxArgs,
 } from "../utilities/transactions";
 
+import { ClarityValue, deserializeCV } from "@stacks/transactions";
+import { decodeClarityValues } from "../utilities/clarity";
+import { Buffer } from "buffer";
+
 interface TransactionDetailsDialogProps {
   tx: Transaction | null;
   isOpen: boolean;
@@ -106,6 +110,155 @@ function TransactionArguments({ tx }: { tx: Transaction }) {
   );
 }
 
+function getTokenDecimals(assetId: string | undefined): number {
+  if (!assetId) return 6; // STX
+  if (assetId.includes("-v2")) return 6; // v2 tokens
+  return 0; // v1 tokens and others
+}
+
+function getDisplayDecimals(assetId: string | undefined): number {
+  return assetId ? 0 : 6; // 0 for tokens, 6 for STX
+}
+
+function formatEventAmount(assetId: string | undefined, amount: string): string {
+  const decimals = getTokenDecimals(assetId);
+  const displayDecimals = getDisplayDecimals(assetId);
+  const tokenName = assetId ? assetId.split("::")[1] : "STX";
+  return `${formatMicroAmount(Number(amount), decimals, displayDecimals)} ${tokenName}`;
+}
+
+function TransactionEvents({ tx }: { tx: Transaction }) {
+  if (!tx.events || tx.events.length === 0) return null;
+
+  return (
+    <Box>
+      <Heading size="md" mb={3}>Transaction Events</Heading>
+      <List.Root gap={3}>
+        {tx.events.map((event, index) => {
+          let content;
+          switch (event.event_type) {
+            case "stx_transfer":
+              content = (
+                <Stack gap={1}>
+                  <Text fontWeight="bold">STX Transfer</Text>
+                  <Text>Amount: {formatEventAmount(undefined, event.stx_transfer.amount)}</Text>
+                  <Text>From: {shortenPrincipal(event.stx_transfer.sender)}</Text>
+                  <Text>To: {shortenPrincipal(event.stx_transfer.recipient)}</Text>
+                  {event.stx_transfer.memo && <Text>Memo: {event.stx_transfer.memo}</Text>}
+                </Stack>
+              );
+              break;
+            case "stx_mint":
+              content = (
+                <Stack gap={1}>
+                  <Text fontWeight="bold">STX Mint</Text>
+                  <Text>Amount: {formatEventAmount(undefined, event.stx_mint.amount)}</Text>
+                  <Text>To: {shortenPrincipal(event.stx_mint.recipient)}</Text>
+                </Stack>
+              );
+              break;
+            case "stx_burn":
+              content = (
+                <Stack gap={1}>
+                  <Text fontWeight="bold">STX Burn</Text>
+                  <Text>Amount: {formatEventAmount(undefined, event.stx_burn.amount)}</Text>
+                  <Text>From: {shortenPrincipal(event.stx_burn.sender)}</Text>
+                </Stack>
+              );
+              break;
+            case "ft_transfer":
+              content = (
+                <Stack gap={1}>
+                  <Text fontWeight="bold">FT Transfer</Text>
+                  <Text>Amount: {formatEventAmount(event.ft_transfer.asset_identifier, event.ft_transfer.amount)}</Text>
+                  <Text>From: {shortenPrincipal(event.ft_transfer.sender)}</Text>
+                  <Text>To: {shortenPrincipal(event.ft_transfer.recipient)}</Text>
+                </Stack>
+              );
+              break;
+            case "ft_mint":
+              content = (
+                <Stack gap={1}>
+                  <Text fontWeight="bold">FT Mint</Text>
+                  <Text>Amount: {formatEventAmount(event.ft_mint.asset_identifier, event.ft_mint.amount)}</Text>
+                  <Text>To: {shortenPrincipal(event.ft_mint.recipient)}</Text>
+                </Stack>
+              );
+              break;
+            case "ft_burn":
+              content = (
+                <Stack gap={1}>
+                  <Text fontWeight="bold">FT Burn</Text>
+                  <Text>Amount: {formatEventAmount(event.ft_burn.asset_identifier, event.ft_burn.amount)}</Text>
+                  <Text>From: {shortenPrincipal(event.ft_burn.sender)}</Text>
+                </Stack>
+              );
+              break;
+            case "nft_transfer":
+              content = (
+                <Stack gap={1}>
+                  <Text fontWeight="bold">NFT Transfer</Text>
+                  <Text>Asset: {event.nft_transfer.asset_identifier}</Text>
+                  <Text>Value: {event.nft_transfer.value.repr}</Text>
+                  <Text>From: {shortenPrincipal(event.nft_transfer.sender)}</Text>
+                  <Text>To: {shortenPrincipal(event.nft_transfer.recipient)}</Text>
+                </Stack>
+              );
+              break;
+            case "nft_mint":
+              content = (
+                <Stack gap={1}>
+                  <Text fontWeight="bold">NFT Mint</Text>
+                  <Text>Asset: {event.nft_mint.asset_identifier}</Text>
+                  <Text>Value: {event.nft_mint.value.repr}</Text>
+                  <Text>To: {shortenPrincipal(event.nft_mint.recipient)}</Text>
+                </Stack>
+              );
+              break;
+            case "nft_burn":
+              content = (
+                <Stack gap={1}>
+                  <Text fontWeight="bold">NFT Burn</Text>
+                  <Text>Asset: {event.nft_burn.asset_identifier}</Text>
+                  <Text>Value: {event.nft_burn.value.repr}</Text>
+                  <Text>From: {shortenPrincipal(event.nft_burn.sender)}</Text>
+                </Stack>
+              );
+              break;
+            case "smart_contract_log":
+              let decodedPrint: any;
+              try {
+                const cv: ClarityValue = deserializeCV(
+                  Buffer.from(event.contract_log.value.hex.replace(/^0x/, ""), "hex")
+                );
+                decodedPrint = decodeClarityValues(cv);
+              } catch (e) {
+                decodedPrint = event.contract_log.value.repr;
+              }
+              content = (
+                <Stack gap={1}>
+                  <Text fontWeight="bold">Contract Log (Print Event)</Text>
+                  <Text>Contract: {shortenPrincipal(event.contract_log.contract_id)}</Text>
+                  <Box bg="gray.100" p={2} borderRadius="md" fontFamily="mono" fontSize="sm" whiteSpace="pre-wrap">
+                    {JSON.stringify(decodedPrint, null, 2)}
+                  </Box>
+                </Stack>
+              );
+              break;
+            default:
+              content = <Text>Unknown event type: {event.event_type}</Text>;
+          }
+          return (
+            <List.Item key={index} p={3} bg="gray.50" borderRadius="md">
+              {content}
+            </List.Item>
+          );
+        })}
+      </List.Root>
+    </Box>
+  );
+}
+
 function TransactionDetailsDialog({
   tx,
   isOpen,
@@ -198,6 +351,12 @@ function TransactionDetailsDialog({
                       <TransactionArguments tx={tx} />
                     )}
                   </Box>
+                )}
+                {tx.events && tx.events.length > 0 && (
+                  <>
+                    <Separator />
+                    <TransactionEvents tx={tx} />
+                  </>
                 )}
               </Stack>
             </Dialog.Body>
