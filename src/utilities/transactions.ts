@@ -108,11 +108,17 @@ export function decodeTxArgs(tx: Transaction): any | null {
       );
       break;
     case "mine":
-      // First arg: amounts (list of uint), second: cityName (string-ascii)
-      structured.amountsUstx = decodedArgs[0].map((val: any) =>
-        safeConvertToBigint(val)
-      );
-      structured.cityName = decodedArgs[1];
+      // First arg: amounts (list of uint or single uint), second: cityName (string-ascii) if present
+      if (Array.isArray(decodedArgs[0])) {
+        structured.amountsUstx = decodedArgs[0].map((val: any) =>
+          safeConvertToBigint(val)
+        );
+      } else {
+        structured.amountsUstx = [safeConvertToBigint(decodedArgs[0])];
+      }
+      if (decodedArgs[1]) {
+        structured.cityName = decodedArgs[1];
+      }
       console.log(`Decoded 'mine' args for tx ${tx.tx_id}: cityName=${structured.cityName}, amountsUstx=${structured.amountsUstx}`); // Debug log
       break;
     case "stack-tokens":
