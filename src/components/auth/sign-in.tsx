@@ -14,8 +14,8 @@ function SignIn(props: { variant?: string }) {
         await connect();
         const userData = getLocalStorage();
         const stxAddress = userData?.addresses.stx[0].address
-        console.log("User Data:", userData);
-        console.log("STX Address:", stxAddress);
+        //console.log("User Data:", userData);
+        //console.log("STX Address:", stxAddress);
         setStxAddress(stxAddress || null);
         if (stxAddress) {
           await updateTransactions([]);

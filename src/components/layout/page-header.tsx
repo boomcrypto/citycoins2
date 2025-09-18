@@ -16,7 +16,7 @@ import { stxAddressAtom } from "../../store/stacks";
 
 function Header() {
   const stxAddress = useAtomValue(stxAddressAtom);
-  console.log("STX Address:", stxAddress);
+  //console.log("STX Address:", stxAddress);
   return (
     <Stack align="center" direction={["column", "row"]} p={4}>
       <Flex flexGrow="1" align="center">

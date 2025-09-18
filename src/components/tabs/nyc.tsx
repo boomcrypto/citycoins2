@@ -102,7 +102,7 @@ function Nyc({ onOpenDetails }: NycProps) {
       (filter) =>
         filter.contract === contractId && filter.functions.includes(func)
     );
-    console.log(`Checking tx ${tx.tx_id} for NYC filter: contract=${contractId}, function=${func}, matches=${matches}`); // Debug log
+    //console.log(`Checking tx ${tx.tx_id} for NYC filter: contract=${contractId}, function=${func}, matches=${matches}`); // Debug log
     return matches;
   });
 
@@ -256,11 +256,11 @@ function Nyc({ onOpenDetails }: NycProps) {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a,b)=>a-b).length === 0 ? (
+            {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a, b) => a - b).length === 0 ? (
               <Text>No matching transactions found.</Text>
             ) : (
               <Stack gap={4}>
-                {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(block => {
+                {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a, b) => a - b).map(block => {
                   const txId = blockToTx.get(block);
                   const tx = filteredTransactions.find(t => t.tx_id === txId);
                   const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
@@ -277,11 +277,11 @@ function Nyc({ onOpenDetails }: NycProps) {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).length === 0 ? (
+            {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a, b) => a - b).length === 0 ? (
               <Text>No matching transactions found.</Text>
             ) : (
               <Stack gap={4}>
-                {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(cycle => {
+                {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a, b) => a - b).map(cycle => {
                   const txId = cycleToTx.get(cycle);
                   const tx = filteredTransactions.find(t => t.tx_id === txId);
                   const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
