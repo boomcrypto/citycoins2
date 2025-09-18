@@ -23,6 +23,15 @@ interface NycProps {
   onOpenDetails: (tx: Transaction) => void;
 }
 
+function shortenPrincipal(addr: string): string {
+  if (!addr) return "";
+  if (addr.includes(".")) {
+    const [address, contract] = addr.split(".");
+    return `${address.slice(0, 5)}...${address.slice(-5)}.${contract}`;
+  }
+  return `${addr.slice(0, 5)}...${addr.slice(-5)}`;
+}
+
 function shortenTxId(txId: string): string {
   return txId ? `${txId.slice(0, 6)}...${txId.slice(-4)}` : "";
 }
@@ -178,6 +187,19 @@ function Nyc({ onOpenDetails }: NycProps) {
   const allClaimedBlocks = Array.from(new Set(Array.from(claimedBlocks.values()).flat()));
   const allClaimedCycles = Array.from(new Set(Array.from(claimedCycles.values()).flat()));
 
+  // Maps for block/cycle to tx
+  const blockToTx = new Map<number, string>();
+  filteredTransactions.forEach(tx => {
+    const blocks = minedBlocks.get(tx.tx_id) || [];
+    blocks.forEach(block => blockToTx.set(block, tx.tx_id));
+  });
+
+  const cycleToTx = new Map<number, string>();
+  filteredTransactions.forEach(tx => {
+    const cycles = stackedCycles.get(tx.tx_id) || [];
+    cycles.forEach(cycle => cycleToTx.set(cycle, tx.tx_id));
+  });
+
   return (
     <Stack gap={4}>
       <Heading size="4xl">NYC Tools</Heading>
@@ -235,9 +257,13 @@ function Nyc({ onOpenDetails }: NycProps) {
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
             <Stack gap={4}>
-              {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(block => (
-                <Text key={block}>Block {block} {allClaimedBlocks.includes(block) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>
-              ))}
+              {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(block => {
+                const txId = blockToTx.get(block);
+                const tx = filteredTransactions.find(t => t.tx_id === txId);
+                const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
+                const func = tx ? tx.contract_call.function_name : 'Unknown';
+                return <Text key={block}>Block {block} - {contract} {func} {allClaimedBlocks.includes(block) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
+              })}
             </Stack>
           </Accordion.ItemContent>
         </Accordion.Item>
@@ -248,9 +274,13 @@ function Nyc({ onOpenDetails }: NycProps) {
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
             <Stack gap={4}>
-              {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(cycle => (
-                <Text key={cycle}>Cycle {cycle} {allClaimedCycles.includes(cycle) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>
-              ))}
+              {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(cycle => {
+                const txId = cycleToTx.get(cycle);
+                const tx = filteredTransactions.find(t => t.tx_id === txId);
+                const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
+                const func = tx ? tx.contract_call.function_name : 'Unknown';
+                return <Text key={cycle}>Cycle {cycle} - {contract} {func} {allClaimedCycles.includes(cycle) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
+              })}
             </Stack>
           </Accordion.ItemContent>
         </Accordion.Item>
