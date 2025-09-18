@@ -95,6 +95,12 @@ export function decodeTxArgs(tx: Transaction): any | null {
   // Reconstruct object with arg names if available, or by known order
   const structured: any = { functionName: tx.contract_call.function_name };
 
+  console.log(
+    "Decoded args for tx:",
+    tx.contract_call.function_name,
+    decodedArgs
+  );
+
   // For simplicity, map by known function signatures (expand as needed)
   switch (tx.contract_call.function_name) {
     case "mine-tokens":
@@ -108,46 +114,41 @@ export function decodeTxArgs(tx: Transaction): any | null {
       );
       break;
     case "mine":
-      // Handle various signatures: (amounts, cityName), (cityName, amounts), (amount, cityName), etc.
-      if (Array.isArray(decodedArgs[0])) {
-        // First arg is list of amounts
-        structured.amountsUstx = decodedArgs[0].map((val: any) =>
-          safeConvertToBigint(val)
-        );
-        if (decodedArgs[1]) {
-          structured.cityName = decodedArgs[1];
-        }
-      } else if (typeof decodedArgs[0] === "string") {
-        // First arg is cityName
-        structured.cityName = decodedArgs[0];
-        if (Array.isArray(decodedArgs[1])) {
-          structured.amountsUstx = decodedArgs[1].map((val: any) =>
-            safeConvertToBigint(val)
-          );
-        } else {
-          structured.amountsUstx = [safeConvertToBigint(decodedArgs[1])];
-        }
-      } else {
-        // First arg is single amount
-        structured.amountsUstx = [safeConvertToBigint(decodedArgs[0])];
-        if (decodedArgs[1]) {
-          structured.cityName = decodedArgs[1];
-        }
-      }
-      console.log(`Decoded 'mine' args for tx ${tx.tx_id}: cityName=${structured.cityName}, amountsUstx=${structured.amountsUstx}`); // Debug log
+      // First arg is the city as a string
+      structured.cityName = decodedArgs[0];
+      // Second arg is a list of uints
+      structured.amountsUstx = decodedArgs[1].map((val: any) =>
+        safeConvertToBigint(val)
+      );
       break;
     case "stack-tokens":
       // Assuming amountToken (uint), lockPeriod (uint)
       structured.amountToken = safeConvertToBigint(decodedArgs[0]);
       structured.lockPeriod = safeConvertToBigint(decodedArgs[1]);
       break;
+    case "stack":
+      structured.cityName = decodedArgs[0];
+      structured.lockPeriods = decodedArgs[1].map((val: any) =>
+        safeConvertToBigint(val)
+      );
+      break;
     case "claim-mining-reward":
-      // Assuming minerBlockHeight (uint)
-      structured.minerBlockHeight = safeConvertToBigint(decodedArgs[0]);
+      // First arg can be city name (string) or the block height (uint)
+      if (typeof decodedArgs[0] === "string") {
+        structured.cityName = decodedArgs[0];
+        structured.minerBlockHeight = safeConvertToBigint(decodedArgs[1]);
+      } else {
+        structured.minerBlockHeight = safeConvertToBigint(decodedArgs[0]);
+      }
       break;
     case "claim-stacking-reward":
-      // Assuming rewardCycle (uint)
-      structured.rewardCycle = safeConvertToBigint(decodedArgs[0]);
+      // First arg can be city name (string) or the reward cycle (uint)
+      if (typeof decodedArgs[0] === "string") {
+        structured.cityName = decodedArgs[0];
+        structured.rewardCycle = safeConvertToBigint(decodedArgs[1]);
+      } else {
+        structured.rewardCycle = safeConvertToBigint(decodedArgs[0]);
+      }
       break;
     default:
       return null;
