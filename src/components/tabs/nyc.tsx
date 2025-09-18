@@ -8,7 +8,7 @@ import {
   Badge,
 } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
-import { stxAddressAtom, transactionsAtom, minedBlocksAtom, claimedBlocksAtom } from "../../store/stacks";
+import { stxAddressAtom, transactionsAtom, minedBlocksAtom, claimedBlocksAtom, stackedCyclesAtom, claimedCyclesAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
@@ -31,6 +31,8 @@ function Nyc({ onOpenDetails }: NycProps) {
   const stxAddress = useAtomValue(stxAddressAtom);
   const minedBlocks = useAtomValue(minedBlocksAtom);
   const claimedBlocks = useAtomValue(claimedBlocksAtom);
+  const stackedCycles = useAtomValue(stackedCyclesAtom);
+  const claimedCycles = useAtomValue(claimedCyclesAtom);
 
   const [hasChecked, setHasChecked] = useState(false);
   const [isEligible, setIsEligible] = useState(false);
@@ -235,6 +237,32 @@ function Nyc({ onOpenDetails }: NycProps) {
               {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(block => (
                 <Text key={block}>Block {block} {allClaimedBlocks.includes(block) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>
               ))}
+            </Stack>
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item value="stacking-history">
+          <Accordion.ItemTrigger>
+            <Heading size="xl">NYC Stacking History</Heading>
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent p={4}>
+            <Stack gap={4}>
+              <Box>
+                <Heading size="md">Stacked Cycles</Heading>
+                <Stack gap={2}>
+                  {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(cycle => (
+                    <Text key={cycle}>Cycle {cycle}</Text>
+                  ))}
+                </Stack>
+              </Box>
+              <Box>
+                <Heading size="md">Claimed Cycles</Heading>
+                <Stack gap={2}>
+                  {Array.from(new Set(filteredTransactions.flatMap(tx => claimedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(cycle => (
+                    <Text key={cycle}>Cycle {cycle}</Text>
+                  ))}
+                </Stack>
+              </Box>
             </Stack>
           </Accordion.ItemContent>
         </Accordion.Item>
