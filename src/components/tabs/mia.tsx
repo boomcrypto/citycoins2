@@ -229,15 +229,19 @@ function Mia({ onOpenDetails }: MiaProps) {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            <Stack gap={4}>
-              {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(block => {
-                const txId = blockToTx.get(block);
-                const tx = filteredTransactions.find(t => t.tx_id === txId);
-                const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
-                const func = tx ? tx.contract_call.function_name : 'Unknown';
-                return <Text key={block}>Block {block} - {contract} {func} {allClaimedBlocks.includes(block) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
-              })}
-            </Stack>
+            {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a,b)=>a-b).length === 0 ? (
+              <Text>No matching transactions found.</Text>
+            ) : (
+              <Stack gap={4}>
+                {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(block => {
+                  const txId = blockToTx.get(block);
+                  const tx = filteredTransactions.find(t => t.tx_id === txId);
+                  const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
+                  const func = tx ? tx.contract_call.function_name : 'Unknown';
+                  return <Text key={block}>Block {block} - {contract} {func} {allClaimedBlocks.includes(block) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
+                })}
+              </Stack>
+            )}
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item value="stacking-history">
@@ -246,15 +250,19 @@ function Mia({ onOpenDetails }: MiaProps) {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            <Stack gap={4}>
-              {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(cycle => {
-                const txId = cycleToTx.get(cycle);
-                const tx = filteredTransactions.find(t => t.tx_id === txId);
-                const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
-                const func = tx ? tx.contract_call.function_name : 'Unknown';
-                return <Text key={cycle}>Cycle {cycle} - {contract} {func} {allClaimedCycles.includes(cycle) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
-              })}
-            </Stack>
+            {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).length === 0 ? (
+              <Text>No matching transactions found.</Text>
+            ) : (
+              <Stack gap={4}>
+                {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(cycle => {
+                  const txId = cycleToTx.get(cycle);
+                  const tx = filteredTransactions.find(t => t.tx_id === txId);
+                  const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
+                  const func = tx ? tx.contract_call.function_name : 'Unknown';
+                  return <Text key={cycle}>Cycle {cycle} - {contract} {func} {allClaimedCycles.includes(cycle) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
+                })}
+              </Stack>
+            )}
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item value="transactions">
