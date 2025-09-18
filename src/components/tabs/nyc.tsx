@@ -5,9 +5,10 @@ import {
   Link,
   Stack,
   Text,
+  Badge,
 } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
-import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
+import { stxAddressAtom, transactionsAtom, minedBlocksAtom, claimedBlocksAtom, stackedCyclesAtom, claimedCyclesAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
@@ -15,13 +16,32 @@ import { request } from "@stacks/connect";
 import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
 import TransactionList from "../transaction-list";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
+import { CONTRACTS } from "../../config/contracts"; // Import config for dynamic filter
+import { Box } from "@chakra-ui/react";
 
 interface NycProps {
   onOpenDetails: (tx: Transaction) => void;
 }
 
+function shortenPrincipal(addr: string): string {
+  if (!addr) return "";
+  if (addr.includes(".")) {
+    const [address, contract] = addr.split(".");
+    return `${address.slice(0, 5)}...${address.slice(-5)}.${contract}`;
+  }
+  return `${addr.slice(0, 5)}...${addr.slice(-5)}`;
+}
+
+function shortenTxId(txId: string): string {
+  return txId ? `${txId.slice(0, 6)}...${txId.slice(-4)}` : "";
+}
+
 function Nyc({ onOpenDetails }: NycProps) {
   const stxAddress = useAtomValue(stxAddressAtom);
+  const minedBlocks = useAtomValue(minedBlocksAtom);
+  const claimedBlocks = useAtomValue(claimedBlocksAtom);
+  const stackedCycles = useAtomValue(stackedCyclesAtom);
+  const claimedCycles = useAtomValue(claimedCyclesAtom);
 
   const [hasChecked, setHasChecked] = useState(false);
   const [isEligible, setIsEligible] = useState(false);
@@ -29,50 +49,61 @@ function Nyc({ onOpenDetails }: NycProps) {
   const [balanceV2, setBalanceV2] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Build NYC_TX_FILTER dynamically from config to include all relevant contracts/functions
   const NYC_TX_FILTER: { contract: string; functions: string[] }[] = [
+    // Core contracts
     {
-      contract:
-        "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1",
+      contract: CONTRACTS.nyc.v1.core,
       functions: [
-        "mine-tokens",
-        "mine-many",
-        "claim-mining-reward",
-        "stack-tokens",
-        "claim-stacking-reward",
+        ...CONTRACTS.nyc.functions.mining,
+        ...CONTRACTS.nyc.functions.miningClaims,
+        ...CONTRACTS.nyc.functions.stacking,
+        ...CONTRACTS.nyc.functions.stackingClaims,
       ],
     },
     {
-      contract:
-        "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token",
-      functions: ["transfer"],
+      contract: CONTRACTS.nyc.v1.token,
+      functions: CONTRACTS.nyc.functions.transfer,
     },
     {
-      contract:
-        "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2",
+      contract: CONTRACTS.nyc.v2.core,
       functions: [
-        "mine-tokens",
-        "mine-many",
-        "claim-mining-reward",
-        "stack-tokens",
-        "claim-stacking-reward",
+        ...CONTRACTS.nyc.functions.mining,
+        ...CONTRACTS.nyc.functions.miningClaims,
+        ...CONTRACTS.nyc.functions.stacking,
+        ...CONTRACTS.nyc.functions.stackingClaims,
       ],
     },
     {
-      contract:
-        "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2",
-      functions: ["transfer"],
+      contract: CONTRACTS.nyc.v2.token,
+      functions: CONTRACTS.nyc.functions.transfer,
     },
-    // add more as needed
+    // Mining contracts (v1 and v2)
+    ...(CONTRACTS.nyc.miningV1 ? [{
+      contract: CONTRACTS.nyc.miningV1,
+      functions: CONTRACTS.nyc.functions.mining,
+    }] : []),
+    ...(CONTRACTS.nyc.miningV2 ? [{
+      contract: CONTRACTS.nyc.miningV2,
+      functions: CONTRACTS.nyc.functions.mining,
+    }] : []),
+    // Stacking contracts (if needed)
+    ...(CONTRACTS.nyc.stackingV2 ? [{
+      contract: CONTRACTS.nyc.stackingV2,
+      functions: CONTRACTS.nyc.functions.stacking,
+    }] : []),
   ];
 
   const filteredTransactions = useAtomValue(transactionsAtom).filter((tx) => {
     if (tx.tx_type !== "contract_call") return false;
     const contractId = tx.contract_call.contract_id;
     const func = tx.contract_call.function_name;
-    return NYC_TX_FILTER.some(
+    const matches = NYC_TX_FILTER.some(
       (filter) =>
         filter.contract === contractId && filter.functions.includes(func)
     );
+    //console.log(`Checking tx ${tx.tx_id} for NYC filter: contract=${contractId}, function=${func}, matches=${matches}`); // Debug log
+    return matches;
   });
 
   if (!stxAddress) {
@@ -153,6 +184,22 @@ function Nyc({ onOpenDetails }: NycProps) {
     }
   };
 
+  const allClaimedBlocks = Array.from(new Set(Array.from(claimedBlocks.values()).flat()));
+  const allClaimedCycles = Array.from(new Set(Array.from(claimedCycles.values()).flat()));
+
+  // Maps for block/cycle to tx
+  const blockToTx = new Map<number, string>();
+  filteredTransactions.forEach(tx => {
+    const blocks = minedBlocks.get(tx.tx_id) || [];
+    blocks.forEach(block => blockToTx.set(block, tx.tx_id));
+  });
+
+  const cycleToTx = new Map<number, string>();
+  filteredTransactions.forEach(tx => {
+    const cycles = stackedCycles.get(tx.tx_id) || [];
+    cycles.forEach(cycle => cycleToTx.set(cycle, tx.tx_id));
+  });
+
   return (
     <Stack gap={4}>
       <Heading size="4xl">NYC Tools</Heading>
@@ -199,6 +246,48 @@ function Nyc({ onOpenDetails }: NycProps) {
                     ? "You are eligible for redemption."
                     : "You are not eligible for redemption."}
                 </Text>
+              </Stack>
+            )}
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item value="mining-history">
+          <Accordion.ItemTrigger>
+            <Heading size="xl">NYC Mining History</Heading>
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent p={4}>
+            {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a, b) => a - b).length === 0 ? (
+              <Text>No matching transactions found.</Text>
+            ) : (
+              <Stack gap={4}>
+                {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a, b) => a - b).map(block => {
+                  const txId = blockToTx.get(block);
+                  const tx = filteredTransactions.find(t => t.tx_id === txId);
+                  const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
+                  const func = tx ? tx.contract_call.function_name : 'Unknown';
+                  return <Text key={block}>Block {block} - {contract} {func} {allClaimedBlocks.includes(block) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
+                })}
+              </Stack>
+            )}
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item value="stacking-history">
+          <Accordion.ItemTrigger>
+            <Heading size="xl">NYC Stacking History</Heading>
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent p={4}>
+            {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a, b) => a - b).length === 0 ? (
+              <Text>No matching transactions found.</Text>
+            ) : (
+              <Stack gap={4}>
+                {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a, b) => a - b).map(cycle => {
+                  const txId = cycleToTx.get(cycle);
+                  const tx = filteredTransactions.find(t => t.tx_id === txId);
+                  const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
+                  const func = tx ? tx.contract_call.function_name : 'Unknown';
+                  return <Text key={cycle}>Cycle {cycle} - {contract} {func} {allClaimedCycles.includes(cycle) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
+                })}
               </Stack>
             )}
           </Accordion.ItemContent>

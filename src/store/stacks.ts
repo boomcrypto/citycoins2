@@ -6,6 +6,7 @@ import {
 import { HIRO_API, fancyFetch, sleep } from "./common";
 import { Setter, atom } from "jotai";
 import LZString from "lz-string";
+import { decodeTxArgs, isValidMiningTxArgs, isValidMiningClaimTxArgs, isValidStackingTxArgs, isValidStackingClaimTxArgs } from "../utilities/transactions";
 
 /////////////////////////
 // TYPES
@@ -109,6 +110,75 @@ export const transactionsAtom = atom(
     }
   }
 );
+
+export const minedBlocksAtom = atom((get) => {
+  const transactions = get(transactionsAtom);
+  const map = new Map<string, number[]>();
+  for (const tx of transactions) {
+    if (tx.tx_type === 'contract_call' && ['mine-tokens', 'mine-many', 'mine'].includes(tx.contract_call.function_name)) {
+      const decoded = decodeTxArgs(tx);
+      if (decoded && isValidMiningTxArgs(decoded)) {
+        const numBlocks = decoded.amountsUstx.length;
+        const blocks = [];
+        for (let i = 0; i < numBlocks; i++) {
+          blocks.push(tx.block_height + i);
+        }
+        map.set(tx.tx_id, blocks);
+      }
+    }
+  }
+  return map;
+});
+
+export const claimedBlocksAtom = atom((get) => {
+  const transactions = get(transactionsAtom);
+  const map = new Map<string, number[]>();
+  for (const tx of transactions) {
+    if (tx.tx_type === 'contract_call' && tx.contract_call.function_name === 'claim-mining-reward') {
+      const decoded = decodeTxArgs(tx);
+      if (decoded && isValidMiningClaimTxArgs(decoded)) {
+        const block = Number(decoded.minerBlockHeight);
+        map.set(tx.tx_id, [block]);
+      }
+    }
+  }
+  return map;
+});
+
+export const stackedCyclesAtom = atom((get) => {
+  const transactions = get(transactionsAtom);
+  const map = new Map<string, number[]>();
+  for (const tx of transactions) {
+    if (tx.tx_type === 'contract_call' && tx.contract_call.function_name === 'stack-tokens') {
+      const decoded = decodeTxArgs(tx);
+      if (decoded && isValidStackingTxArgs(decoded)) {
+        const lockPeriod = Number(decoded.lockPeriod);
+        // For NYC, genesis block 24497, cycle length 2100
+        const genesisBlock = 24497;
+        const cycleLength = 2100;
+        const startCycle = Math.floor((tx.block_height - genesisBlock) / cycleLength) + 1;
+        const cycles = Array.from({length: lockPeriod}, (_, i) => startCycle + i);
+        map.set(tx.tx_id, cycles);
+      }
+    }
+  }
+  return map;
+});
+
+export const claimedCyclesAtom = atom((get) => {
+  const transactions = get(transactionsAtom);
+  const map = new Map<string, number[]>();
+  for (const tx of transactions) {
+    if (tx.tx_type === 'contract_call' && tx.contract_call.function_name === 'claim-stacking-reward') {
+      const decoded = decodeTxArgs(tx);
+      if (decoded && isValidStackingClaimTxArgs(decoded)) {
+        const cycle = Number(decoded.rewardCycle);
+        map.set(tx.tx_id, [cycle]);
+      }
+    }
+  }
+  return map;
+});
 
 type FetchStatus = {
   isLoading: boolean;

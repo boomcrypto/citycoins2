@@ -4,8 +4,9 @@ import { decodeClarityValues, safeConvertToBigint } from "./clarity";
 import { Buffer } from "buffer";
 
 export interface MiningTxArgs {
-  functionName: "mine-tokens" | "mine-many"; // Covers variations
-  amountsUstx: bigint[]; // Array for multi-block (e.g., mine-many); single for mine-tokens
+  functionName: "mine-tokens" | "mine-many" | "mine"; // Covers variations, including "mine"
+  amountsUstx: bigint[]; // Array for multi-block (e.g., mine-many or mine); single for mine-tokens
+  cityName?: string; // Optional: city name for "mine" function
   // Other args like memo if present
 }
 
@@ -29,7 +30,8 @@ export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
   return (
     typeof decoded === "object" &&
     (decoded.functionName === "mine-tokens" ||
-      decoded.functionName === "mine-many") &&
+      decoded.functionName === "mine-many" ||
+      decoded.functionName === "mine") &&
     Array.isArray(decoded.amountsUstx) &&
     decoded.amountsUstx.every((amt: any) => typeof amt === "bigint" && amt > 0n) // Basic validation: positive bigints
   );
@@ -105,18 +107,42 @@ export function decodeTxArgs(tx: Transaction): any | null {
         safeConvertToBigint(val)
       );
       break;
+    case "mine":
+      // First arg is the city as a string
+      structured.cityName = decodedArgs[0];
+      // Second arg is a list of uints
+      structured.amountsUstx = decodedArgs[1].map((val: any) =>
+        safeConvertToBigint(val)
+      );
+      break;
     case "stack-tokens":
       // Assuming amountToken (uint), lockPeriod (uint)
       structured.amountToken = safeConvertToBigint(decodedArgs[0]);
       structured.lockPeriod = safeConvertToBigint(decodedArgs[1]);
       break;
+    case "stack":
+      structured.cityName = decodedArgs[0];
+      structured.lockPeriods = decodedArgs[1].map((val: any) =>
+        safeConvertToBigint(val)
+      );
+      break;
     case "claim-mining-reward":
-      // Assuming minerBlockHeight (uint)
-      structured.minerBlockHeight = safeConvertToBigint(decodedArgs[0]);
+      // First arg can be city name (string) or the block height (uint)
+      if (typeof decodedArgs[0] === "string") {
+        structured.cityName = decodedArgs[0];
+        structured.minerBlockHeight = safeConvertToBigint(decodedArgs[1]);
+      } else {
+        structured.minerBlockHeight = safeConvertToBigint(decodedArgs[0]);
+      }
       break;
     case "claim-stacking-reward":
-      // Assuming rewardCycle (uint)
-      structured.rewardCycle = safeConvertToBigint(decodedArgs[0]);
+      // First arg can be city name (string) or the reward cycle (uint)
+      if (decodedArgs.length === 2) {
+        structured.cityName = decodedArgs[0];
+        structured.rewardCycle = safeConvertToBigint(decodedArgs[1]);
+      } else {
+        structured.rewardCycle = safeConvertToBigint(decodedArgs[0]);
+      }
       break;
     default:
       return null;
