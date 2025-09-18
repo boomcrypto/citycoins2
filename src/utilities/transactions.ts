@@ -95,12 +95,6 @@ export function decodeTxArgs(tx: Transaction): any | null {
   // Reconstruct object with arg names if available, or by known order
   const structured: any = { functionName: tx.contract_call.function_name };
 
-  console.log(
-    "Decoded args for tx:",
-    tx.contract_call.function_name,
-    decodedArgs
-  );
-
   // For simplicity, map by known function signatures (expand as needed)
   switch (tx.contract_call.function_name) {
     case "mine-tokens":
