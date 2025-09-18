@@ -143,7 +143,7 @@ export function decodeTxArgs(tx: Transaction): any | null {
       break;
     case "claim-stacking-reward":
       // First arg can be city name (string) or the reward cycle (uint)
-      if (typeof decodedArgs[0] === "string") {
+      if (decodedArgs.length === 2) {
         structured.cityName = decodedArgs[0];
         structured.rewardCycle = safeConvertToBigint(decodedArgs[1]);
       } else {
