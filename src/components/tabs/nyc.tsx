@@ -176,6 +176,7 @@ function Nyc({ onOpenDetails }: NycProps) {
   };
 
   const allClaimedBlocks = Array.from(new Set(Array.from(claimedBlocks.values()).flat()));
+  const allClaimedCycles = Array.from(new Set(Array.from(claimedCycles.values()).flat()));
 
   return (
     <Stack gap={4}>
@@ -247,22 +248,9 @@ function Nyc({ onOpenDetails }: NycProps) {
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
             <Stack gap={4}>
-              <Box>
-                <Heading size="md">Stacked Cycles</Heading>
-                <Stack gap={2}>
-                  {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(cycle => (
-                    <Text key={cycle}>Cycle {cycle}</Text>
-                  ))}
-                </Stack>
-              </Box>
-              <Box>
-                <Heading size="md">Claimed Cycles</Heading>
-                <Stack gap={2}>
-                  {Array.from(new Set(filteredTransactions.flatMap(tx => claimedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(cycle => (
-                    <Text key={cycle}>Cycle {cycle}</Text>
-                  ))}
-                </Stack>
-              </Box>
+              {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(cycle => (
+                <Text key={cycle}>Cycle {cycle} {allClaimedCycles.includes(cycle) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>
+              ))}
             </Stack>
           </Accordion.ItemContent>
         </Accordion.Item>
