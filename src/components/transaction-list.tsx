@@ -326,7 +326,8 @@ function TransactionList({
                       colorScheme={
                         tx.tx_status === "success"
                           ? "green"
-                          : tx.tx_status === "failed"
+                          : tx.tx_status === "abort_by_response" ||
+                            tx.tx_status === "abort_by_post_condition"
                           ? "red"
                           : "gray"
                       }
