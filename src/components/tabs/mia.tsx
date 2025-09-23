@@ -108,6 +108,9 @@ function Mia({ onOpenDetails }: MiaProps) {
     "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd013-redemption-mia";
 
   const checkEligibility = async () => {
+    console.log("Pending CCIP-026 vote and approval...");
+    return;
+
     if (!stxAddress) return;
 
     setIsLoading(true);
@@ -197,15 +200,15 @@ function Mia({ onOpenDetails }: MiaProps) {
               <Button
                 variant="outline"
                 onClick={checkEligibility}
-                isLoading={isLoading}
-                isDisabled={true}
+                loading={isLoading}
+                disabled={true}
               >
                 Check Eligibility
               </Button>
               <Button
                 variant="outline"
                 onClick={executeRedemption}
-                isDisabled={!hasChecked || !isEligible || isLoading}
+                disabled={!hasChecked || !isEligible || isLoading}
               >
                 Execute Redemption
               </Button>
@@ -271,7 +274,10 @@ function Mia({ onOpenDetails }: MiaProps) {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            <TransactionList transactions={filteredTransactions} onOpenDetails={onOpenDetails} />
+            <TransactionList
+              transactions={filteredTransactions}
+              onOpenDetails={onOpenDetails}
+            />
           </Accordion.ItemContent>
         </Accordion.Item>
       </Accordion.Root>

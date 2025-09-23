@@ -8,7 +8,14 @@ import {
   Badge,
 } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
-import { stxAddressAtom, transactionsAtom, minedBlocksAtom, claimedBlocksAtom, stackedCyclesAtom, claimedCyclesAtom } from "../../store/stacks";
+import {
+  stxAddressAtom,
+  transactionsAtom,
+  minedBlocksAtom,
+  claimedBlocksAtom,
+  stackedCyclesAtom,
+  claimedCyclesAtom,
+} from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
@@ -79,19 +86,31 @@ function Nyc({ onOpenDetails }: NycProps) {
       functions: CONTRACTS.nyc.functions.transfer,
     },
     // Mining contracts (v1 and v2)
-    ...(CONTRACTS.nyc.miningV1 ? [{
-      contract: CONTRACTS.nyc.miningV1,
-      functions: CONTRACTS.nyc.functions.mining,
-    }] : []),
-    ...(CONTRACTS.nyc.miningV2 ? [{
-      contract: CONTRACTS.nyc.miningV2,
-      functions: CONTRACTS.nyc.functions.mining,
-    }] : []),
+    ...(CONTRACTS.nyc.miningV1
+      ? [
+          {
+            contract: CONTRACTS.nyc.miningV1,
+            functions: CONTRACTS.nyc.functions.mining,
+          },
+        ]
+      : []),
+    ...(CONTRACTS.nyc.miningV2
+      ? [
+          {
+            contract: CONTRACTS.nyc.miningV2,
+            functions: CONTRACTS.nyc.functions.mining,
+          },
+        ]
+      : []),
     // Stacking contracts (if needed)
-    ...(CONTRACTS.nyc.stackingV2 ? [{
-      contract: CONTRACTS.nyc.stackingV2,
-      functions: CONTRACTS.nyc.functions.stacking,
-    }] : []),
+    ...(CONTRACTS.nyc.stackingV2
+      ? [
+          {
+            contract: CONTRACTS.nyc.stackingV2,
+            functions: CONTRACTS.nyc.functions.stacking,
+          },
+        ]
+      : []),
   ];
 
   const filteredTransactions = useAtomValue(transactionsAtom).filter((tx) => {
@@ -184,20 +203,24 @@ function Nyc({ onOpenDetails }: NycProps) {
     }
   };
 
-  const allClaimedBlocks = Array.from(new Set(Array.from(claimedBlocks.values()).flat()));
-  const allClaimedCycles = Array.from(new Set(Array.from(claimedCycles.values()).flat()));
+  const allClaimedBlocks = Array.from(
+    new Set(Array.from(claimedBlocks.values()).flat())
+  );
+  const allClaimedCycles = Array.from(
+    new Set(Array.from(claimedCycles.values()).flat())
+  );
 
   // Maps for block/cycle to tx
   const blockToTx = new Map<number, string>();
-  filteredTransactions.forEach(tx => {
+  filteredTransactions.forEach((tx) => {
     const blocks = minedBlocks.get(tx.tx_id) || [];
-    blocks.forEach(block => blockToTx.set(block, tx.tx_id));
+    blocks.forEach((block) => blockToTx.set(block, tx.tx_id));
   });
 
   const cycleToTx = new Map<number, string>();
-  filteredTransactions.forEach(tx => {
+  filteredTransactions.forEach((tx) => {
     const cycles = stackedCycles.get(tx.tx_id) || [];
-    cycles.forEach(cycle => cycleToTx.set(cycle, tx.tx_id));
+    cycles.forEach((cycle) => cycleToTx.set(cycle, tx.tx_id));
   });
 
   return (
@@ -225,14 +248,14 @@ function Nyc({ onOpenDetails }: NycProps) {
               <Button
                 variant="outline"
                 onClick={checkEligibility}
-                isLoading={isLoading}
+                loading={isLoading}
               >
                 Check Eligibility
               </Button>
               <Button
                 variant="outline"
                 onClick={executeRedemption}
-                isDisabled={!hasChecked || !isEligible || isLoading}
+                disabled={!hasChecked || !isEligible || isLoading}
               >
                 Execute Redemption
               </Button>
@@ -256,17 +279,46 @@ function Nyc({ onOpenDetails }: NycProps) {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a, b) => a - b).length === 0 ? (
+            {Array.from(
+              new Set(
+                filteredTransactions.flatMap(
+                  (tx) => minedBlocks.get(tx.tx_id) || []
+                )
+              )
+            ).sort((a, b) => a - b).length === 0 ? (
               <Text>No matching transactions found.</Text>
             ) : (
               <Stack gap={4}>
-                {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a, b) => a - b).map(block => {
-                  const txId = blockToTx.get(block);
-                  const tx = filteredTransactions.find(t => t.tx_id === txId);
-                  const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
-                  const func = tx ? tx.contract_call.function_name : 'Unknown';
-                  return <Text key={block}>Block {block} - {contract} {func} {allClaimedBlocks.includes(block) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
-                })}
+                {Array.from(
+                  new Set(
+                    filteredTransactions.flatMap(
+                      (tx) => minedBlocks.get(tx.tx_id) || []
+                    )
+                  )
+                )
+                  .sort((a, b) => a - b)
+                  .map((block) => {
+                    const txId = blockToTx.get(block);
+                    const tx = filteredTransactions.find(
+                      (t) => t.tx_id === txId
+                    );
+                    const contract = tx
+                      ? shortenPrincipal(tx.contract_call.contract_id)
+                      : "Unknown";
+                    const func = tx
+                      ? tx.contract_call.function_name
+                      : "Unknown";
+                    return (
+                      <Text key={block}>
+                        Block {block} - {contract} {func}{" "}
+                        {allClaimedBlocks.includes(block) ? (
+                          <Badge colorScheme="green">Claimed</Badge>
+                        ) : (
+                          <Badge colorScheme="red">Unclaimed</Badge>
+                        )}
+                      </Text>
+                    );
+                  })}
               </Stack>
             )}
           </Accordion.ItemContent>
@@ -277,17 +329,46 @@ function Nyc({ onOpenDetails }: NycProps) {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a, b) => a - b).length === 0 ? (
+            {Array.from(
+              new Set(
+                filteredTransactions.flatMap(
+                  (tx) => stackedCycles.get(tx.tx_id) || []
+                )
+              )
+            ).sort((a, b) => a - b).length === 0 ? (
               <Text>No matching transactions found.</Text>
             ) : (
               <Stack gap={4}>
-                {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a, b) => a - b).map(cycle => {
-                  const txId = cycleToTx.get(cycle);
-                  const tx = filteredTransactions.find(t => t.tx_id === txId);
-                  const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
-                  const func = tx ? tx.contract_call.function_name : 'Unknown';
-                  return <Text key={cycle}>Cycle {cycle} - {contract} {func} {allClaimedCycles.includes(cycle) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
-                })}
+                {Array.from(
+                  new Set(
+                    filteredTransactions.flatMap(
+                      (tx) => stackedCycles.get(tx.tx_id) || []
+                    )
+                  )
+                )
+                  .sort((a, b) => a - b)
+                  .map((cycle) => {
+                    const txId = cycleToTx.get(cycle);
+                    const tx = filteredTransactions.find(
+                      (t) => t.tx_id === txId
+                    );
+                    const contract = tx
+                      ? shortenPrincipal(tx.contract_call.contract_id)
+                      : "Unknown";
+                    const func = tx
+                      ? tx.contract_call.function_name
+                      : "Unknown";
+                    return (
+                      <Text key={cycle}>
+                        Cycle {cycle} - {contract} {func}{" "}
+                        {allClaimedCycles.includes(cycle) ? (
+                          <Badge colorScheme="green">Claimed</Badge>
+                        ) : (
+                          <Badge colorScheme="red">Unclaimed</Badge>
+                        )}
+                      </Text>
+                    );
+                  })}
               </Stack>
             )}
           </Accordion.ItemContent>
@@ -298,7 +379,10 @@ function Nyc({ onOpenDetails }: NycProps) {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            <TransactionList transactions={filteredTransactions} onOpenDetails={onOpenDetails} />
+            <TransactionList
+              transactions={filteredTransactions}
+              onOpenDetails={onOpenDetails}
+            />
           </Accordion.ItemContent>
         </Accordion.Item>
       </Accordion.Root>
