@@ -32,7 +32,7 @@ import {
   computeTargetedCycles,
   fetchCallReadOnlyFunction,
 } from "../../utilities/transactions";
-import { uintCV } from "@stacks/transactions";
+import { ClarityType, uintCV } from "@stacks/transactions";
 
 interface MiaProps {
   onOpenDetails: (tx: Transaction) => void;
@@ -81,19 +81,6 @@ function Mia({ onOpenDetails }: MiaProps) {
     );
   }) as ContractCallTransaction[];
 
-  if (!stxAddress) {
-    return (
-      <Stack gap={4}>
-        <Heading size="4xl">MIA Tools</Heading>
-        <Text>
-          Wallet connection required to access tools and utilities for MiamiCoin
-          (MIA).
-        </Text>
-        <SignIn />
-      </Stack>
-    );
-  }
-
   const [miningHistory, setMiningHistory] = useState<HistoryEntry[]>([]);
   const [isMiningLoading, setIsMiningLoading] = useState(true);
 
@@ -101,6 +88,8 @@ function Mia({ onOpenDetails }: MiaProps) {
   const [isStackingLoading, setIsStackingLoading] = useState(true);
 
   useEffect(() => {
+    if (!stxAddress) return;
+
     // Collect claimed mining blocks from claim txs
     const claimedMining: { block: number; claimTxId: string; contractId: string; functionName: string }[] = [];
     filteredTransactions.forEach((tx) => {
@@ -281,6 +270,19 @@ function Mia({ onOpenDetails }: MiaProps) {
     });
   }, [filteredTransactions, stxAddress]);
 
+  if (!stxAddress) {
+    return (
+      <Stack gap={4}>
+        <Heading size="4xl">MIA Tools</Heading>
+        <Text>
+          Wallet connection required to access tools and utilities for MiamiCoin
+          (MIA).
+        </Text>
+        <SignIn />
+      </Stack>
+    );
+  }
+
   const MIA_ASSET_ID = "miamicoin";
   const MIA_V1_CONTRACT =
     "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token";
@@ -345,46 +347,6 @@ function Mia({ onOpenDetails }: MiaProps) {
       console.error("Error executing redemption:", error);
     }
   };
-
-  const allClaimedBlocks = Array.from(
-    new Set(Array.from(claimedBlocks.values()).flat())
-  );
-  const allClaimedCycles = Array.from(
-    new Set(Array.from(claimedCycles.values()).flat())
-  );
-
-  // Maps for block/cycle to tx
-  const blockToTx = new Map<number, string>();
-  filteredTransactions.forEach((tx) => {
-    const blocks = minedBlocks.get(tx.tx_id) || [];
-    blocks.forEach((block) => blockToTx.set(block, tx.tx_id));
-  });
-
-  const cycleToTx = new Map<number, string>();
-  filteredTransactions.forEach((tx) => {
-    const cycles = stackedCycles.get(tx.tx_id) || [];
-    cycles.forEach((cycle) => cycleToTx.set(cycle, tx.tx_id));
-  });
-
-  const uniqueMinedBlocks = Array.from(
-    new Set(
-      filteredTransactions.flatMap((tx) => minedBlocks.get(tx.tx_id) || [])
-    )
-  ).sort((a, b) => a - b);
-  const claimedMinedCount = uniqueMinedBlocks.filter((block) =>
-    allClaimedBlocks.includes(block)
-  ).length;
-  const unclaimedMinedCount = uniqueMinedBlocks.length - claimedMinedCount;
-
-  const uniqueStackedCycles = Array.from(
-    new Set(
-      filteredTransactions.flatMap((tx) => stackedCycles.get(tx.tx_id) || [])
-    )
-  ).sort((a, b) => a - b);
-  const claimedStackedCount = uniqueStackedCycles.filter((cycle) =>
-    allClaimedCycles.includes(cycle)
-  ).length;
-  const unclaimedStackedCount = uniqueStackedCycles.length - claimedStackedCount;
 
   return (
     <Stack gap={4}>
