@@ -20,6 +20,8 @@ import { formatDate } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { useState } from "react";
 
+import { getTxCategory } from "../utilities/transactions";
+
 interface TransactionListProps {
   transactions: Transaction[];
   onOpenDetails: (tx: Transaction) => void;
@@ -36,24 +38,6 @@ function shortenPrincipal(addr: string): string {
 
 function shortenTxId(txId: string): string {
   return txId ? `${txId.slice(0, 6)}...${txId.slice(-4)}` : "";
-}
-
-function getCategory(tx: Transaction): string {
-  if (tx.tx_type === "contract_call") {
-    const func = tx.contract_call.function_name;
-    if (["mine-tokens", "mine-many", "mine"].includes(func)) {
-      return "Mining";
-    } else if (func === "claim-mining-reward") {
-      return "Mining Claim";
-    } else if (["stack-tokens", "stack"].includes(func)) {
-      return "Stacking";
-    } else if (func === "claim-stacking-reward") {
-      return "Stacking Claim";
-    } else if (func === "transfer") {
-      return "Transfer";
-    }
-  }
-  return "Other";
 }
 
 function getCategoryColor(category: string): string {
@@ -113,7 +97,7 @@ function TransactionList({
     )
       return false;
     if (filterStatus !== "All" && tx.tx_status !== filterStatus) return false;
-    const category = getCategory(tx);
+    const category = getTxCategory(tx) || "Other";
     if (filterType !== "All" && category !== filterType) return false;
     return true;
   });
@@ -134,7 +118,7 @@ function TransactionList({
   // Compute summaries
   const summaries = filteredTransactions.reduce(
     (acc, tx) => {
-      const category = getCategory(tx);
+      const category = getTxCategory(tx) || "Other";
       if (category === "Mining") acc.mining++;
       else if (category === "Mining Claim") acc.miningClaims++;
       else if (category === "Stacking") acc.stacking++;
@@ -304,7 +288,7 @@ function TransactionList({
             </Table.Row>
           ) : (
             filteredTransactions.map((tx) => {
-              const category = getCategory(tx);
+              const category = getTxCategory(tx) || "Other";
               return (
                 <Table.Row key={tx.tx_id}>
                   <Table.Cell>
