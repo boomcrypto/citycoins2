@@ -14,6 +14,7 @@ import TransactionList from "../transaction-list";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
 import { request } from "@stacks/connect";
+import { buildCityTxFilter } from "../../config/contracts";
 import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 
@@ -43,37 +44,7 @@ function Mia({ onOpenDetails }: MiaProps) {
   const [balanceV2, setBalanceV2] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  const MIA_TX_FILTER: { contract: string; functions: string[] }[] = [
-    {
-      contract: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1",
-      functions: [
-        "mine-tokens",
-        "mine-many",
-        "claim-mining-reward",
-        "stack-tokens",
-        "claim-stacking-reward",
-      ],
-    },
-    {
-      contract: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token",
-      functions: ["transfer"],
-    },
-    {
-      contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2",
-      functions: [
-        "mine-tokens",
-        "mine-many",
-        "claim-mining-reward",
-        "stack-tokens",
-        "claim-stacking-reward",
-      ],
-    },
-    {
-      contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-token-v2",
-      functions: ["transfer"],
-    },
-    // add more as needed
-  ];
+  const MIA_TX_FILTER = buildCityTxFilter('mia');
 
   const filteredTransactions = useAtomValue(transactionsAtom).filter((tx) => {
     if (tx.tx_type !== "contract_call") return false;
