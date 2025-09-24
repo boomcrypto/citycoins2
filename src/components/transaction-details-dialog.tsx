@@ -153,91 +153,112 @@ function TransactionEvents({ tx }: { tx: Transaction }) {
         {tx.events.map((event, index) => {
           let content;
           switch (event.event_type) {
-            case "stx_transfer":
-              content = (
-                <Stack gap={1}>
-                  <Text fontWeight="bold">STX Transfer</Text>
-                  <Text>Amount: {formatEventAmount(undefined, event.stx_transfer.amount)}</Text>
-                  <Text>From: {shortenPrincipal(event.stx_transfer.sender)}</Text>
-                  <Text>To: {shortenPrincipal(event.stx_transfer.recipient)}</Text>
-                  {event.stx_transfer.memo && <Text>Memo: {event.stx_transfer.memo}</Text>}
-                </Stack>
-              );
+            case "stx_asset":
+              switch (event.asset.asset_event_type) {
+                case "transfer":
+                  content = (
+                    <Stack gap={1}>
+                      <Text fontWeight="bold">STX Transfer</Text>
+                      <Text>Amount: {formatEventAmount(undefined, event.asset.amount)}</Text>
+                      <Text>From: {shortenPrincipal(event.asset.sender!)}</Text>
+                      <Text>To: {shortenPrincipal(event.asset.recipient!)}</Text>
+                    </Stack>
+                  );
+                  break;
+                case "mint":
+                  content = (
+                    <Stack gap={1}>
+                      <Text fontWeight="bold">STX Mint</Text>
+                      <Text>Amount: {formatEventAmount(undefined, event.asset.amount)}</Text>
+                      <Text>To: {shortenPrincipal(event.asset.recipient!)}</Text>
+                    </Stack>
+                  );
+                  break;
+                case "burn":
+                  content = (
+                    <Stack gap={1}>
+                      <Text fontWeight="bold">STX Burn</Text>
+                      <Text>Amount: {formatEventAmount(undefined, event.asset.amount)}</Text>
+                      <Text>From: {shortenPrincipal(event.asset.sender!)}</Text>
+                    </Stack>
+                  );
+                  break;
+              }
               break;
-            case "stx_mint":
-              content = (
-                <Stack gap={1}>
-                  <Text fontWeight="bold">STX Mint</Text>
-                  <Text>Amount: {formatEventAmount(undefined, event.stx_mint.amount)}</Text>
-                  <Text>To: {shortenPrincipal(event.stx_mint.recipient)}</Text>
-                </Stack>
-              );
+            case "fungible_token_asset":
+              switch (event.asset.asset_event_type) {
+                case "transfer":
+                  content = (
+                    <Stack gap={1}>
+                      <Text fontWeight="bold">FT Transfer</Text>
+                      <Text>Amount: {formatEventAmount(event.asset.asset_id, event.asset.amount)}</Text>
+                      <Text>From: {shortenPrincipal(event.asset.sender!)}</Text>
+                      <Text>To: {shortenPrincipal(event.asset.recipient!)}</Text>
+                    </Stack>
+                  );
+                  break;
+                case "mint":
+                  content = (
+                    <Stack gap={1}>
+                      <Text fontWeight="bold">FT Mint</Text>
+                      <Text>Amount: {formatEventAmount(event.asset.asset_id, event.asset.amount)}</Text>
+                      <Text>To: {shortenPrincipal(event.asset.recipient!)}</Text>
+                    </Stack>
+                  );
+                  break;
+                case "burn":
+                  content = (
+                    <Stack gap={1}>
+                      <Text fontWeight="bold">FT Burn</Text>
+                      <Text>Amount: {formatEventAmount(event.asset.asset_id, event.asset.amount)}</Text>
+                      <Text>From: {shortenPrincipal(event.asset.sender!)}</Text>
+                    </Stack>
+                  );
+                  break;
+              }
               break;
-            case "stx_burn":
-              content = (
-                <Stack gap={1}>
-                  <Text fontWeight="bold">STX Burn</Text>
-                  <Text>Amount: {formatEventAmount(undefined, event.stx_burn.amount)}</Text>
-                  <Text>From: {shortenPrincipal(event.stx_burn.sender)}</Text>
-                </Stack>
-              );
+            case "non_fungible_token_asset":
+              switch (event.asset.asset_event_type) {
+                case "transfer":
+                  content = (
+                    <Stack gap={1}>
+                      <Text fontWeight="bold">NFT Transfer</Text>
+                      <Text>Asset: {event.asset.asset_id}</Text>
+                      <Text>Value: {event.asset.value.repr}</Text>
+                      <Text>From: {shortenPrincipal(event.asset.sender!)}</Text>
+                      <Text>To: {shortenPrincipal(event.asset.recipient!)}</Text>
+                    </Stack>
+                  );
+                  break;
+                case "mint":
+                  content = (
+                    <Stack gap={1}>
+                      <Text fontWeight="bold">NFT Mint</Text>
+                      <Text>Asset: {event.asset.asset_id}</Text>
+                      <Text>Value: {event.asset.value.repr}</Text>
+                      <Text>To: {shortenPrincipal(event.asset.recipient!)}</Text>
+                    </Stack>
+                  );
+                  break;
+                case "burn":
+                  content = (
+                    <Stack gap={1}>
+                      <Text fontWeight="bold">NFT Burn</Text>
+                      <Text>Asset: {event.asset.asset_id}</Text>
+                      <Text>Value: {event.asset.value.repr}</Text>
+                      <Text>From: {shortenPrincipal(event.asset.sender!)}</Text>
+                    </Stack>
+                  );
+                  break;
+              }
               break;
-            case "ft_transfer":
+            case "stx_lock":
               content = (
                 <Stack gap={1}>
-                  <Text fontWeight="bold">FT Transfer</Text>
-                  <Text>Amount: {formatEventAmount(event.ft_transfer.asset_identifier, event.ft_transfer.amount)}</Text>
-                  <Text>From: {shortenPrincipal(event.ft_transfer.sender)}</Text>
-                  <Text>To: {shortenPrincipal(event.ft_transfer.recipient)}</Text>
-                </Stack>
-              );
-              break;
-            case "ft_mint":
-              content = (
-                <Stack gap={1}>
-                  <Text fontWeight="bold">FT Mint</Text>
-                  <Text>Amount: {formatEventAmount(event.ft_mint.asset_identifier, event.ft_mint.amount)}</Text>
-                  <Text>To: {shortenPrincipal(event.ft_mint.recipient)}</Text>
-                </Stack>
-              );
-              break;
-            case "ft_burn":
-              content = (
-                <Stack gap={1}>
-                  <Text fontWeight="bold">FT Burn</Text>
-                  <Text>Amount: {formatEventAmount(event.ft_burn.asset_identifier, event.ft_burn.amount)}</Text>
-                  <Text>From: {shortenPrincipal(event.ft_burn.sender)}</Text>
-                </Stack>
-              );
-              break;
-            case "nft_transfer":
-              content = (
-                <Stack gap={1}>
-                  <Text fontWeight="bold">NFT Transfer</Text>
-                  <Text>Asset: {event.nft_transfer.asset_identifier}</Text>
-                  <Text>Value: {event.nft_transfer.value.repr}</Text>
-                  <Text>From: {shortenPrincipal(event.nft_transfer.sender)}</Text>
-                  <Text>To: {shortenPrincipal(event.nft_transfer.recipient)}</Text>
-                </Stack>
-              );
-              break;
-            case "nft_mint":
-              content = (
-                <Stack gap={1}>
-                  <Text fontWeight="bold">NFT Mint</Text>
-                  <Text>Asset: {event.nft_mint.asset_identifier}</Text>
-                  <Text>Value: {event.nft_mint.value.repr}</Text>
-                  <Text>To: {shortenPrincipal(event.nft_mint.recipient)}</Text>
-                </Stack>
-              );
-              break;
-            case "nft_burn":
-              content = (
-                <Stack gap={1}>
-                  <Text fontWeight="bold">NFT Burn</Text>
-                  <Text>Asset: {event.nft_burn.asset_identifier}</Text>
-                  <Text>Value: {event.nft_burn.value.repr}</Text>
-                  <Text>From: {shortenPrincipal(event.nft_burn.sender)}</Text>
+                  <Text fontWeight="bold">STX Lock</Text>
+                  <Text>Locked Amount: {formatEventAmount(undefined, event.stx_lock.locked_amount)}</Text>
+                  <Text>Unlock Height: {event.stx_lock.unlock_height}</Text>
+                  <Text>Locked Address: {shortenPrincipal(event.stx_lock.locked_address)}</Text>
                 </Stack>
               );
               break;
