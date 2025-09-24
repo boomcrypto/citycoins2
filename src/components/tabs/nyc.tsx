@@ -356,45 +356,6 @@ function Nyc({ onOpenDetails }: NycProps) {
     }
   };
 
-  const allClaimedBlocks = Array.from(
-    new Set(Array.from(claimedBlocks.values()).flat())
-  );
-  const allClaimedCycles = Array.from(
-    new Set(Array.from(claimedCycles.values()).flat())
-  );
-
-  // Maps for block/cycle to tx
-  const blockToTx = new Map<number, string>();
-  filteredTransactions.forEach((tx) => {
-    const blocks = minedBlocks.get(tx.tx_id) || [];
-    blocks.forEach((block) => blockToTx.set(block, tx.tx_id));
-  });
-
-  const cycleToTx = new Map<number, string>();
-  filteredTransactions.forEach((tx) => {
-    const cycles = stackedCycles.get(tx.tx_id) || [];
-    cycles.forEach((cycle) => cycleToTx.set(cycle, tx.tx_id));
-  });
-
-  const uniqueMinedBlocks = Array.from(
-    new Set(
-      filteredTransactions.flatMap((tx) => minedBlocks.get(tx.tx_id) || [])
-    )
-  ).sort((a, b) => a - b);
-  const claimedMinedCount = uniqueMinedBlocks.filter((block) =>
-    allClaimedBlocks.includes(block)
-  ).length;
-  const unclaimedMinedCount = uniqueMinedBlocks.length - claimedMinedCount;
-
-  const uniqueStackedCycles = Array.from(
-    new Set(
-      filteredTransactions.flatMap((tx) => stackedCycles.get(tx.tx_id) || [])
-    )
-  ).sort((a, b) => a - b);
-  const claimedStackedCount = uniqueStackedCycles.filter((cycle) =>
-    allClaimedCycles.includes(cycle)
-  ).length;
-  const unclaimedStackedCount = uniqueStackedCycles.length - claimedStackedCount;
 
   return (
     <Stack gap={4}>
