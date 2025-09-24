@@ -8,14 +8,24 @@ import {
   Badge,
 } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
-import { stxAddressAtom, transactionsAtom, minedBlocksAtom, claimedBlocksAtom, stackedCyclesAtom, claimedCyclesAtom } from "../../store/stacks";
+import {
+  stxAddressAtom,
+  transactionsAtom,
+  minedBlocksAtom,
+  claimedBlocksAtom,
+  stackedCyclesAtom,
+  claimedCyclesAtom,
+} from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import TransactionList from "../transaction-list";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
 import { request } from "@stacks/connect";
 import { buildCityTxFilter } from "../../config/contracts";
-import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
+import {
+  AddressBalanceResponse,
+  ContractCallTransaction,
+} from "@stacks/stacks-blockchain-api-types";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 
 interface MiaProps {
@@ -44,7 +54,7 @@ function Mia({ onOpenDetails }: MiaProps) {
   const [balanceV2, setBalanceV2] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  const MIA_TX_FILTER = buildCityTxFilter('mia');
+  const MIA_TX_FILTER = buildCityTxFilter("mia");
 
   const filteredTransactions = useAtomValue(transactionsAtom).filter((tx) => {
     if (tx.tx_type !== "contract_call") return false;
@@ -54,7 +64,7 @@ function Mia({ onOpenDetails }: MiaProps) {
       (filter) =>
         filter.contract === contractId && filter.functions.includes(func)
     );
-  });
+  }) as ContractCallTransaction[];
 
   if (!stxAddress) {
     return (
@@ -127,20 +137,24 @@ function Mia({ onOpenDetails }: MiaProps) {
     }
   };
 
-  const allClaimedBlocks = Array.from(new Set(Array.from(claimedBlocks.values()).flat()));
-  const allClaimedCycles = Array.from(new Set(Array.from(claimedCycles.values()).flat()));
+  const allClaimedBlocks = Array.from(
+    new Set(Array.from(claimedBlocks.values()).flat())
+  );
+  const allClaimedCycles = Array.from(
+    new Set(Array.from(claimedCycles.values()).flat())
+  );
 
   // Maps for block/cycle to tx
   const blockToTx = new Map<number, string>();
-  filteredTransactions.forEach(tx => {
+  filteredTransactions.forEach((tx) => {
     const blocks = minedBlocks.get(tx.tx_id) || [];
-    blocks.forEach(block => blockToTx.set(block, tx.tx_id));
+    blocks.forEach((block) => blockToTx.set(block, tx.tx_id));
   });
 
   const cycleToTx = new Map<number, string>();
-  filteredTransactions.forEach(tx => {
+  filteredTransactions.forEach((tx) => {
     const cycles = stackedCycles.get(tx.tx_id) || [];
-    cycles.forEach(cycle => cycleToTx.set(cycle, tx.tx_id));
+    cycles.forEach((cycle) => cycleToTx.set(cycle, tx.tx_id));
   });
 
   return (
@@ -148,17 +162,18 @@ function Mia({ onOpenDetails }: MiaProps) {
       <Heading size="4xl">MIA Tools</Heading>
       <Text>Access tools and utilities for MiamiCoin (MIA) below.</Text>
       <Accordion.Root collapsible defaultValue={["redeem-mia"]}>
-        <Accordion.Item value="redeem-mia">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">Redeem MIA</Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
-          <Accordion.ItemContent p={4}>
+          <Accordion.ItemContent>
             <Text mb={4}>
               Burn MIA to receive STX per{" "}
               <Link
                 href="https://github.com/citycoins/governance/pull/50"
-                isExternal
+                rel="noopener noreferrer"
+                target="_blank"
               >
                 CCIP-026
               </Link>
@@ -197,54 +212,112 @@ function Mia({ onOpenDetails }: MiaProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item value="mining-history">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">MIA Mining History</Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
-          <Accordion.ItemContent p={4}>
-            {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a,b)=>a-b).length === 0 ? (
+          <Accordion.ItemContent>
+            {Array.from(
+              new Set(
+                filteredTransactions.flatMap(
+                  (tx) => minedBlocks.get(tx.tx_id) || []
+                )
+              )
+            ).sort((a, b) => a - b).length === 0 ? (
               <Text>No matching transactions found.</Text>
             ) : (
               <Stack gap={4}>
-                {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(block => {
-                  const txId = blockToTx.get(block);
-                  const tx = filteredTransactions.find(t => t.tx_id === txId);
-                  const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
-                  const func = tx ? tx.contract_call.function_name : 'Unknown';
-                  return <Text key={block}>Block {block} - {contract} {func} {allClaimedBlocks.includes(block) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
-                })}
+                {Array.from(
+                  new Set(
+                    filteredTransactions.flatMap(
+                      (tx) => minedBlocks.get(tx.tx_id) || []
+                    )
+                  )
+                )
+                  .sort((a, b) => a - b)
+                  .map((block) => {
+                    const txId = blockToTx.get(block);
+                    const tx = filteredTransactions.find(
+                      (t) => t.tx_id === txId
+                    );
+                    const contract = tx
+                      ? shortenPrincipal(tx.contract_call.contract_id)
+                      : "Unknown";
+                    const func = tx
+                      ? tx.contract_call.function_name
+                      : "Unknown";
+                    return (
+                      <Text key={block}>
+                        Block {block} - {contract} {func}{" "}
+                        {allClaimedBlocks.includes(block) ? (
+                          <Badge colorScheme="green">Claimed</Badge>
+                        ) : (
+                          <Badge colorScheme="red">Unclaimed</Badge>
+                        )}
+                      </Text>
+                    );
+                  })}
               </Stack>
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item value="stacking-history">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">MIA Stacking History</Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
-          <Accordion.ItemContent p={4}>
-            {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).length === 0 ? (
+          <Accordion.ItemContent>
+            {Array.from(
+              new Set(
+                filteredTransactions.flatMap(
+                  (tx) => stackedCycles.get(tx.tx_id) || []
+                )
+              )
+            ).sort((a, b) => a - b).length === 0 ? (
               <Text>No matching transactions found.</Text>
             ) : (
               <Stack gap={4}>
-                {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a,b)=>a-b).map(cycle => {
-                  const txId = cycleToTx.get(cycle);
-                  const tx = filteredTransactions.find(t => t.tx_id === txId);
-                  const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
-                  const func = tx ? tx.contract_call.function_name : 'Unknown';
-                  return <Text key={cycle}>Cycle {cycle} - {contract} {func} {allClaimedCycles.includes(cycle) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
-                })}
+                {Array.from(
+                  new Set(
+                    filteredTransactions.flatMap(
+                      (tx) => stackedCycles.get(tx.tx_id) || []
+                    )
+                  )
+                )
+                  .sort((a, b) => a - b)
+                  .map((cycle) => {
+                    const txId = cycleToTx.get(cycle);
+                    const tx = filteredTransactions.find(
+                      (t) => t.tx_id === txId
+                    );
+                    const contract = tx
+                      ? shortenPrincipal(tx.contract_call.contract_id)
+                      : "Unknown";
+                    const func = tx
+                      ? tx.contract_call.function_name
+                      : "Unknown";
+                    return (
+                      <Text key={cycle}>
+                        Cycle {cycle} - {contract} {func}{" "}
+                        {allClaimedCycles.includes(cycle) ? (
+                          <Badge colorScheme="green">Claimed</Badge>
+                        ) : (
+                          <Badge colorScheme="red">Unclaimed</Badge>
+                        )}
+                      </Text>
+                    );
+                  })}
               </Stack>
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item value="transactions">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">MIA Transactions</Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
-          <Accordion.ItemContent p={4}>
+          <Accordion.ItemContent>
             <TransactionList
               transactions={filteredTransactions}
               onOpenDetails={onOpenDetails}

@@ -20,7 +20,10 @@ import SignIn from "../auth/sign-in";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
 import { request } from "@stacks/connect";
-import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
+import {
+  AddressBalanceResponse,
+  ContractCallTransaction,
+} from "@stacks/stacks-blockchain-api-types";
 import TransactionList from "../transaction-list";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { buildCityTxFilter } from "../../config/contracts";
@@ -57,7 +60,7 @@ function Nyc({ onOpenDetails }: NycProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   // Build NYC_TX_FILTER dynamically from config to include all relevant contracts/functions
-  const NYC_TX_FILTER = buildCityTxFilter('nyc');
+  const NYC_TX_FILTER = buildCityTxFilter("nyc");
 
   const filteredTransactions = useAtomValue(transactionsAtom).filter((tx) => {
     if (tx.tx_type !== "contract_call") return false;
@@ -68,7 +71,7 @@ function Nyc({ onOpenDetails }: NycProps) {
         filter.contract === contractId && filter.functions.includes(func)
     );
     return matches;
-  });
+  }) as ContractCallTransaction[];
 
   if (!stxAddress) {
     return (
@@ -173,17 +176,18 @@ function Nyc({ onOpenDetails }: NycProps) {
       <Heading size="4xl">NYC Tools</Heading>
       <Text>Access tools and utilities for NewYorkCityCoin (NYC) below.</Text>
       <Accordion.Root collapsible defaultValue={["redeem-nyc"]}>
-        <Accordion.Item value="redeem-nyc">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">Redeem NYC</Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
-          <Accordion.ItemContent p={4}>
+          <Accordion.ItemContent>
             <Text mb={4}>
               Burn NYC to receive STX per{" "}
               <Link
                 href="https://github.com/citycoins/governance/blob/main/ccips/ccip-022/ccip-022-citycoins-treasury-redemption-nyc.md"
-                isExternal
+                rel="noopener noreferrer"
+                target="_blank"
               >
                 CCIP-022
               </Link>
@@ -218,12 +222,12 @@ function Nyc({ onOpenDetails }: NycProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item value="mining-history">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">NYC Mining History</Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
-          <Accordion.ItemContent p={4}>
+          <Accordion.ItemContent>
             {Array.from(
               new Set(
                 filteredTransactions.flatMap(
@@ -268,12 +272,12 @@ function Nyc({ onOpenDetails }: NycProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item value="stacking-history">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">NYC Stacking History</Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
-          <Accordion.ItemContent p={4}>
+          <Accordion.ItemContent>
             {Array.from(
               new Set(
                 filteredTransactions.flatMap(
@@ -318,12 +322,12 @@ function Nyc({ onOpenDetails }: NycProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item value="transactions">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">NYC Transactions</Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
-          <Accordion.ItemContent p={4}>
+          <Accordion.ItemContent>
             <TransactionList
               transactions={filteredTransactions}
               onOpenDetails={onOpenDetails}
