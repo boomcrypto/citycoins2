@@ -3,56 +3,62 @@ import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { decodeClarityValues, safeConvertToBigint } from "./clarity";
 import { Buffer } from "buffer";
 
-export interface MiningTxArgs {
-  functionName: "mine-tokens" | "mine-many" | "mine"; // Covers variations, including "mine"
-  amountsUstx: bigint[]; // Array for multi-block (e.g., mine-many or mine); single for mine-tokens
-  cityName?: string; // Optional: city name for "mine" function
-  // Other args like memo if present
+import { REGISTRY, findEntry, categorize, City, Version, Module } from '../config/contracts';
+
+export interface BaseTxArgs {
+  functionName: string;
+  city?: City;
+  version?: Version;
+  module?: Module;
+  category?: ReturnType<typeof categorize>;  // 'Mining' | 'Mining Claim' | etc.
 }
 
-export interface StackingTxArgs {
-  functionName: "stack-tokens";
+export interface MiningTxArgs extends BaseTxArgs {
+  functionName: "mine-tokens" | "mine-many" | "mine";
+  amountsUstx: bigint[];
+  cityName?: string;  // For "mine" in ccd006
+}
+
+export interface StackingTxArgs extends BaseTxArgs {
+  functionName: "stack-tokens" | "stack";
   amountToken: bigint;
-  lockPeriod: bigint; // Number of cycles to lock for
+  lockPeriod: bigint;  // Corrected: single bigint, not list (fixing potential bug)
+  cityName?: string;   // For "stack" in ccd007
 }
 
-export interface MiningClaimTxArgs {
+export interface MiningClaimTxArgs extends BaseTxArgs {
   functionName: "claim-mining-reward";
   minerBlockHeight: bigint;
+  cityName?: string;  // For ccd006
 }
 
-export interface StackingClaimTxArgs {
+export interface StackingClaimTxArgs extends BaseTxArgs {
   functionName: "claim-stacking-reward";
   rewardCycle: bigint;
+  cityName?: string;  // For ccd007
 }
 
+// Union type for convenience in decodeTxArgs return
+export type DecodedTxArgs = MiningTxArgs | StackingTxArgs | MiningClaimTxArgs | StackingClaimTxArgs | null;
+
 export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
-  return (
-    typeof decoded === "object" &&
-    (decoded.functionName === "mine-tokens" ||
-      decoded.functionName === "mine-many" ||
-      decoded.functionName === "mine") &&
-    Array.isArray(decoded.amountsUstx) &&
-    decoded.amountsUstx.every((amt: any) => typeof amt === "bigint" && amt > 0n) // Basic validation: positive bigints
-  );
+  return typeof decoded === "object" && decoded.category === 'Mining' &&
+    (decoded.functionName === "mine-tokens" || decoded.functionName === "mine-many" || decoded.functionName === "mine") &&
+    Array.isArray(decoded.amountsUstx) && decoded.amountsUstx.every(amt => typeof amt === "bigint" && amt > 0n);
 }
 
 export function isValidStackingTxArgs(decoded: any): decoded is StackingTxArgs {
-  return (
-    typeof decoded === "object" &&
-    decoded.functionName === "stack-tokens" &&
-    typeof decoded.amountToken === "bigint" &&
-    decoded.amountToken > 0n &&
-    typeof decoded.lockPeriod === "bigint" &&
-    decoded.lockPeriod > 0n
-  );
+  return typeof decoded === "object" && decoded.category === 'Stacking' &&
+    (decoded.functionName === "stack-tokens" || decoded.functionName === "stack") &&
+    typeof decoded.amountToken === "bigint" && decoded.amountToken > 0n &&
+    typeof decoded.lockPeriod === "bigint" && decoded.lockPeriod > 0n;
 }
 
 export function isValidMiningClaimTxArgs(
   decoded: any
 ): decoded is MiningClaimTxArgs {
   return (
-    typeof decoded === "object" &&
+    typeof decoded === "object" && decoded.category === 'Mining Claim' &&
     decoded.functionName === "claim-mining-reward" &&
     typeof decoded.minerBlockHeight === "bigint" &&
     decoded.minerBlockHeight > 0n
@@ -63,90 +69,88 @@ export function isValidStackingClaimTxArgs(
   decoded: any
 ): decoded is StackingClaimTxArgs {
   return (
-    typeof decoded === "object" &&
+    typeof decoded === "object" && decoded.category === 'Stacking Claim' &&
     decoded.functionName === "claim-stacking-reward" &&
     typeof decoded.rewardCycle === "bigint" &&
     decoded.rewardCycle > 0n
   );
 }
 
-export function decodeTxArgs(tx: Transaction): any | null {
+export function decodeTxArgs(tx: Transaction): DecodedTxArgs {
   if (tx.tx_type !== "contract_call") return null;
-  const rawArgs = tx.contract_call.function_args || [];
 
+  const contractId = tx.contract_call.contract_id;
+  const func = tx.contract_call.function_name;
+  const entry = findEntry(contractId, func);
+  if (!entry) return null;  // Not in registry: unsupported
+
+  const rawArgs = tx.contract_call.function_args || [];
   const decodedArgs: any[] = [];
   for (const arg of rawArgs) {
     try {
-      const cv: ClarityValue = deserializeCV(
-        Buffer.from(arg.hex.replace(/^0x/, ""), "hex")
-      );
-      const decoded = decodeClarityValues(cv);
-      decodedArgs.push(decoded);
+      const cv: ClarityValue = deserializeCV(Buffer.from(arg.hex.replace(/^0x/, ""), "hex"));
+      decodedArgs.push(decodeClarityValues(cv));
     } catch (e) {
-      console.error(
-        "Failed to deserialize arg for tx " + tx.tx_id + ":",
-        arg,
-        e
-      );
+      console.error(`Failed to deserialize arg for tx ${tx.tx_id}:`, arg, e);
       return null;
     }
   }
 
-  // Reconstruct object with arg names if available, or by known order
-  const structured: any = { functionName: tx.contract_call.function_name };
+  const base: BaseTxArgs = {
+    functionName: func,
+    city: entry.city,
+    version: entry.version,
+    module: entry.module,
+    category: categorize(func),
+  };
 
-  // For simplicity, map by known function signatures (expand as needed)
-  switch (tx.contract_call.function_name) {
+  switch (func) {
     case "mine-tokens":
-      // First arg: uint amountUstx
-      structured.amountsUstx = [safeConvertToBigint(decodedArgs[0])];
-      break;
-    case "mine-many":
-      // First arg: list of uint (amounts)
-      structured.amountsUstx = decodedArgs[0].map((val: any) =>
-        safeConvertToBigint(val)
-      );
-      break;
-    case "mine":
-      // First arg is the city as a string
-      structured.cityName = decodedArgs[0];
-      // Second arg is a list of uints
-      structured.amountsUstx = decodedArgs[1].map((val: any) =>
-        safeConvertToBigint(val)
-      );
-      break;
-    case "stack-tokens":
-      // Assuming amountToken (uint), lockPeriod (uint)
-      structured.amountToken = safeConvertToBigint(decodedArgs[0]);
-      structured.lockPeriod = safeConvertToBigint(decodedArgs[1]);
-      break;
-    case "stack":
-      structured.cityName = decodedArgs[0];
-      structured.lockPeriods = decodedArgs[1].map((val: any) =>
-        safeConvertToBigint(val)
-      );
-      break;
-    case "claim-mining-reward":
-      // First arg can be city name (string) or the block height (uint)
-      if (typeof decodedArgs[0] === "string") {
-        structured.cityName = decodedArgs[0];
-        structured.minerBlockHeight = safeConvertToBigint(decodedArgs[1]);
-      } else {
-        structured.minerBlockHeight = safeConvertToBigint(decodedArgs[0]);
-      }
-      break;
-    case "claim-stacking-reward":
-      // First arg can be city name (string) or the reward cycle (uint)
-      if (decodedArgs.length === 2) {
-        structured.cityName = decodedArgs[0];
-        structured.rewardCycle = safeConvertToBigint(decodedArgs[1]);
-      } else {
-        structured.rewardCycle = safeConvertToBigint(decodedArgs[0]);
-      }
-      break;
-    default:
-      return null;
-  }
+      if (entry.module !== 'core' || decodedArgs.length !== 1 || typeof decodedArgs[0] !== 'number') return null;
+      return { ...base, amountsUstx: [safeConvertToBigint(decodedArgs[0])] };
 
-  return structured;
+    case "mine-many":
+      if (entry.module !== 'core' || decodedArgs.length !== 1 || !Array.isArray(decodedArgs[0])) return null;
+      return { ...base, amountsUstx: decodedArgs[0].map(safeConvertToBigint) };
+
+    case "mine":
+      if (entry.module !== 'mining' || decodedArgs.length !== 2 || typeof decodedArgs[0] !== 'string' || !Array.isArray(decodedArgs[1])) return null;
+      return { ...base, cityName: decodedArgs[0], amountsUstx: decodedArgs[1].map(safeConvertToBigint) };
+
+    case "stack-tokens":
+      if (entry.module !== 'core' || decodedArgs.length !== 2 || typeof decodedArgs[0] !== 'number' || typeof decodedArgs[1] !== 'number') return null;
+      return { ...base, amountToken: safeConvertToBigint(decodedArgs[0]), lockPeriod: safeConvertToBigint(decodedArgs[1]) };
+
+    case "stack":
+      if (entry.module !== 'stacking' || decodedArgs.length !== 3 || typeof decodedArgs[0] !== 'string' || typeof decodedArgs[1] !== 'number' || typeof decodedArgs[2] !== 'number') return null;
+      return { ...base, cityName: decodedArgs[0], amountToken: safeConvertToBigint(decodedArgs[1]), lockPeriod: safeConvertToBigint(decodedArgs[2]) };  // Corrected: not a list
+
+    case "claim-mining-reward":
+      if (entry.module === 'mining') {
+        if (decodedArgs.length !== 2 || typeof decodedArgs[0] !== 'string' || typeof decodedArgs[1] !== 'number') return null;
+        return { ...base, cityName: decodedArgs[0], minerBlockHeight: safeConvertToBigint(decodedArgs[1]) };
+      } else if (entry.module === 'core') {
+        if (decodedArgs.length !== 1 || typeof decodedArgs[0] !== 'number') return null;
+        return { ...base, minerBlockHeight: safeConvertToBigint(decodedArgs[0]) };
+      }
+      return null;
+
+    case "claim-stacking-reward":
+      if (entry.module === 'stacking') {
+        if (decodedArgs.length !== 2 || typeof decodedArgs[0] !== 'string' || typeof decodedArgs[1] !== 'number') return null;
+        return { ...base, cityName: decodedArgs[0], rewardCycle: safeConvertToBigint(decodedArgs[1]) };
+      } else if (entry.module === 'core') {
+        if (decodedArgs.length !== 1 || typeof decodedArgs[0] !== 'number') return null;
+        return { ...base, rewardCycle: safeConvertToBigint(decodedArgs[0]) };
+      }
+      return null;
+
+    default:
+      return null;  // Unsupported function (even if in registry)
+  }
+}
+
+export function getTxCategory(tx: Transaction): ReturnType<typeof categorize> | null {
+  if (tx.tx_type !== "contract_call") return null;
+  return categorize(tx.contract_call.function_name);
 }
