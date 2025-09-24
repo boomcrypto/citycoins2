@@ -4,7 +4,6 @@ import {
   Spinner,
   Box,
   IconButton,
-  Portal,
   Button,
   Link,
   Input,
@@ -200,18 +199,32 @@ function TransactionList({
   const Filters = () => (
     <Stack direction={{ base: "column", md: "row" }} gap={4}>
       <NativeSelect.Root size="sm" width="full">
-        <NativeSelect.Field value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-          {filterTypeCollection.items.map((item) => (
-            <option key={item.value} value={item.value}>{item.label}</option>
-          ))}
+        <NativeSelect.Field
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+        >
+          {filterTypeCollection.items.map(
+            (item: { value: string; label: string }) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            )
+          )}
         </NativeSelect.Field>
         <NativeSelect.Indicator />
       </NativeSelect.Root>
       <NativeSelect.Root size="sm" width="full">
-        <NativeSelect.Field value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          {filterStatusCollection.items.map((item) => (
-            <option key={item.value} value={item.value}>{item.label}</option>
-          ))}
+        <NativeSelect.Field
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          {filterStatusCollection.items.map(
+            (item: { value: string; label: string }) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            )
+          )}
         </NativeSelect.Field>
         <NativeSelect.Indicator />
       </NativeSelect.Root>
