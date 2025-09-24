@@ -1,9 +1,10 @@
-import { ClarityValue, deserializeCV } from "@stacks/transactions";
+import { ClarityValue, deserializeCV, uintCV, serializeCV, cvToHex } from "@stacks/transactions";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { decodeClarityValues, safeConvertToBigint } from "./clarity";
 import { Buffer } from "buffer";
 
 import { REGISTRY, findEntry, categorize, City, Version, Module } from '../config/contracts';
+import { HIRO_API } from "../store/common";
 
 export interface BaseTxArgs {
   functionName: string;
@@ -182,4 +183,58 @@ export function decodeTxArgs(tx: Transaction): DecodedTxArgs {
 export function getTxCategory(tx: Transaction): ReturnType<typeof categorize> | null {
   if (tx.tx_type !== "contract_call") return null;
   return categorize(tx.contract_call.function_name);
+}
+
+const CITY_CONFIG = {
+  mia: {
+    v1: { startHeight: 13456, cycleLength: 2100 },
+    v2: { startHeight: 70500, cycleLength: 2100 },
+  },
+  nyc: {
+    v1: { startHeight: 24497, cycleLength: 2100 },
+    v2: { startHeight: 70500, cycleLength: 2100 },
+  },
+};
+
+export function computeTargetedBlocks(tx: Transaction, decoded: MiningTxArgs): number[] {
+  if (tx.tx_status !== 'success') return [];
+  const N = decoded.amountsUstx.length;
+  const start = tx.block_height + 1;
+  return Array.from({ length: N }, (_, i) => start + i);
+}
+
+export function computeTargetedCycles(tx: Transaction, decoded: StackingTxArgs, city: City, version: Version): number[] {
+  if (tx.tx_status !== 'success') return [];
+  const config = CITY_CONFIG[city]?.[version];
+  if (!config) return [];
+  const currentCycle = Math.floor((tx.block_height - config.startHeight) / config.cycleLength);
+  const lock = Number(decoded.lockPeriod);
+  return Array.from({ length: lock }, (_, i) => currentCycle + 1 + i);
+}
+
+export async function fetchCallReadOnlyFunction(options: {
+  contractAddress: string;
+  contractName: string;
+  functionName: string;
+  functionArgs: ClarityValue[];
+  senderAddress: string;
+}): Promise<ClarityValue> {
+  const url = `${HIRO_API}/v2/contracts/call-read/${options.contractAddress}/${options.contractName}/${options.functionName}`;
+  const body = {
+    sender: options.senderAddress,
+    arguments: options.functionArgs.map(arg => cvToHex(serializeCV(arg))),
+  };
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const data = await response.json();
+  if (!data.okay) {
+    throw new Error(data.cause);
+  }
+  return deserializeCV(data.result);
 }

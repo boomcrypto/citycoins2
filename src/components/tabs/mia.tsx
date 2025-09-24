@@ -5,22 +5,15 @@ import {
   Button,
   Heading,
   Link,
+  Spinner,
   Stack,
   Table,
   Text,
 } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
-import {
-  stxAddressAtom,
-  transactionsAtom,
-  minedBlocksAtom,
-  claimedBlocksAtom,
-  stackedCyclesAtom,
-  claimedCyclesAtom,
-} from "../../store/stacks";
+import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
-import TransactionList from "../transaction-list";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
 import { openContractCall } from "@stacks/connect";
 import { buildCityTxFilter } from "../../config/contracts";
@@ -29,6 +22,17 @@ import {
   ContractCallTransaction,
 } from "@stacks/stacks-blockchain-api-types";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
+import {
+  decodeTxArgs,
+  isValidMiningTxArgs,
+  isValidStackingTxArgs,
+  isValidMiningClaimTxArgs,
+  isValidStackingClaimTxArgs,
+  computeTargetedBlocks,
+  computeTargetedCycles,
+  fetchCallReadOnlyFunction,
+} from "../../utilities/transactions";
+import { uintCV } from "@stacks/transactions";
 
 interface MiaProps {
   onOpenDetails: (tx: Transaction) => void;
@@ -43,12 +47,21 @@ function shortenPrincipal(addr: string): string {
   return `${addr.slice(0, 5)}...${addr.slice(-5)}`;
 }
 
+function shortenTxId(txId: string): string {
+  return txId ? `${txId.slice(0, 6)}...${txId.slice(-4)}` : "";
+}
+
+interface HistoryEntry {
+  id: number;
+  txId: string;
+  claimTxId?: string;
+  status: 'claimed' | 'unclaimed';
+  contractId: string;
+  functionName: string;
+}
+
 function Mia({ onOpenDetails }: MiaProps) {
   const stxAddress = useAtomValue(stxAddressAtom);
-  const minedBlocks = useAtomValue(minedBlocksAtom);
-  const claimedBlocks = useAtomValue(claimedBlocksAtom);
-  const stackedCycles = useAtomValue(stackedCyclesAtom);
-  const claimedCycles = useAtomValue(claimedCyclesAtom);
 
   const [hasChecked, setHasChecked] = useState(false);
   const [isEligible, setIsEligible] = useState(false);
@@ -80,6 +93,193 @@ function Mia({ onOpenDetails }: MiaProps) {
       </Stack>
     );
   }
+
+  const [miningHistory, setMiningHistory] = useState<HistoryEntry[]>([]);
+  const [isMiningLoading, setIsMiningLoading] = useState(true);
+
+  const [stackingHistory, setStackingHistory] = useState<HistoryEntry[]>([]);
+  const [isStackingLoading, setIsStackingLoading] = useState(true);
+
+  useEffect(() => {
+    // Collect claimed mining blocks from claim txs
+    const claimedMining: { block: number; claimTxId: string; contractId: string; functionName: string }[] = [];
+    filteredTransactions.forEach((tx) => {
+      const decoded = decodeTxArgs(tx);
+      if (tx.tx_status === 'success' && decoded && isValidMiningClaimTxArgs(decoded)) {
+        claimedMining.push({
+          block: Number(decoded.minerBlockHeight),
+          claimTxId: tx.tx_id,
+          contractId: tx.contract_call.contract_id,
+          functionName: tx.contract_call.function_name,
+        });
+      }
+    });
+
+    // Collect potential mining blocks from mining txs
+    const potentialMining = new Map<number, { txId: string; contractId: string; functionName: string }>();
+    filteredTransactions.forEach((tx) => {
+      const decoded = decodeTxArgs(tx);
+      if (decoded && isValidMiningTxArgs(decoded)) {
+        const blocks = computeTargetedBlocks(tx, decoded);
+        blocks.forEach((b) => {
+          if (!potentialMining.has(b)) {
+            potentialMining.set(b, {
+              txId: tx.tx_id,
+              contractId: tx.contract_call.contract_id,
+              functionName: tx.contract_call.function_name,
+            });
+          }
+        });
+      }
+    });
+
+    // Prepare history with claimed
+    const historyMining: HistoryEntry[] = claimedMining.map((c) => ({
+      id: c.block,
+      txId: '', // will fill later
+      claimTxId: c.claimTxId,
+      status: 'claimed',
+      contractId: c.contractId,
+      functionName: c.functionName,
+    }));
+
+    // Match mining tx for claimed
+    historyMining.forEach((entry) => {
+      const potential = potentialMining.get(entry.id);
+      if (potential) {
+        entry.txId = potential.txId;
+      } else {
+        entry.txId = 'Unknown';
+      }
+    });
+
+    // Filter potentials not claimed
+    const toCheckMining = Array.from(potentialMining.entries()).filter(([b]) => !claimedMining.some((c) => c.block === b));
+
+    setIsMiningLoading(true);
+    const checkMiningPromises = toCheckMining.map(async ([block, info]) => {
+      const [contractAddress, contractName] = info.contractId.split('.');
+      try {
+        const result = await fetchCallReadOnlyFunction({
+          contractAddress,
+          contractName,
+          functionName: 'claim-mining-reward',
+          functionArgs: [uintCV(block)],
+          senderAddress: stxAddress,
+        });
+        if (result.type === ClarityType.ResponseOk) {
+          return {
+            id: block,
+            txId: info.txId,
+            status: 'unclaimed' as const,
+            contractId: info.contractId,
+            functionName: info.functionName,
+          };
+        } else {
+          return null;
+        }
+      } catch (e) {
+        console.error(`Error checking mining block ${block}:`, e);
+        return null;
+      }
+    });
+
+    Promise.all(checkMiningPromises).then((results) => {
+      const unclaimedMining = results.filter((r): r is HistoryEntry => r !== null);
+      const fullHistory = [...historyMining, ...unclaimedMining].sort((a, b) => a.id - b.id);
+      setMiningHistory(fullHistory);
+      setIsMiningLoading(false);
+    });
+
+    // Similar for stacking
+    const claimedStacking: { cycle: number; claimTxId: string; contractId: string; functionName: string }[] = [];
+    filteredTransactions.forEach((tx) => {
+      const decoded = decodeTxArgs(tx);
+      if (tx.tx_status === 'success' && decoded && isValidStackingClaimTxArgs(decoded)) {
+        claimedStacking.push({
+          cycle: Number(decoded.rewardCycle),
+          claimTxId: tx.tx_id,
+          contractId: tx.contract_call.contract_id,
+          functionName: tx.contract_call.function_name,
+        });
+      }
+    });
+
+    const potentialStacking = new Map<number, { txId: string; contractId: string; functionName: string }>();
+    filteredTransactions.forEach((tx) => {
+      const decoded = decodeTxArgs(tx);
+      if (decoded && isValidStackingTxArgs(decoded) && decoded.city && decoded.version) {
+        const cycles = computeTargetedCycles(tx, decoded, decoded.city, decoded.version);
+        cycles.forEach((c) => {
+          if (!potentialStacking.has(c)) {
+            potentialStacking.set(c, {
+              txId: tx.tx_id,
+              contractId: tx.contract_call.contract_id,
+              functionName: tx.contract_call.function_name,
+            });
+          }
+        });
+      }
+    });
+
+    // Prepare history with claimed
+    const historyStacking: HistoryEntry[] = claimedStacking.map((c) => ({
+      id: c.cycle,
+      txId: '', // will fill later
+      claimTxId: c.claimTxId,
+      status: 'claimed',
+      contractId: c.contractId,
+      functionName: c.functionName,
+    }));
+
+    // Match stacking tx for claimed
+    historyStacking.forEach((entry) => {
+      const potential = potentialStacking.get(entry.id);
+      if (potential) {
+        entry.txId = potential.txId;
+      } else {
+        entry.txId = 'Unknown';
+      }
+    });
+
+    // Filter potentials not claimed
+    const toCheckStacking = Array.from(potentialStacking.entries()).filter(([c]) => !claimedStacking.some((cl) => cl.cycle === c));
+
+    setIsStackingLoading(true);
+    const checkStackingPromises = toCheckStacking.map(async ([cycle, info]) => {
+      const [contractAddress, contractName] = info.contractId.split('.');
+      try {
+        const result = await fetchCallReadOnlyFunction({
+          contractAddress,
+          contractName,
+          functionName: 'claim-stacking-reward',
+          functionArgs: [uintCV(cycle)],
+          senderAddress: stxAddress,
+        });
+        if (result.type === ClarityType.ResponseOk) {
+          return {
+            id: cycle,
+            txId: info.txId,
+            status: 'unclaimed' as const,
+            contractId: info.contractId,
+            functionName: info.functionName,
+          };
+        } else {
+          return null;
+        }
+      } catch (e) {
+        console.error(`Error checking stacking cycle ${cycle}:`, e);
+        return null;
+      }
+    });
+
+    Promise.all(checkStackingPromises).then((results) => {
+      const unclaimedStacking = results.filter((r): r is HistoryEntry => r !== null);
+      const fullHistory = [...historyStacking, ...unclaimedStacking].sort((a, b) => a.id - b.id);
+      setStackingHistory(fullHistory);
+      setIsStackingLoading(false);
+    });
+  }, [filteredTransactions, stxAddress]);
 
   const MIA_ASSET_ID = "miamicoin";
   const MIA_V1_CONTRACT =
@@ -247,64 +447,84 @@ function Mia({ onOpenDetails }: MiaProps) {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent>
-            <Stack gap={4}>
-              <Stack direction="row" gap={4} flexWrap="wrap">
-                <Badge variant="outline">
-                  Total Mined Blocks: {uniqueMinedBlocks.length}
-                </Badge>
-                <Badge colorScheme="green" variant="outline">
-                  Claimed: {claimedMinedCount}
-                </Badge>
-                <Badge colorScheme="red" variant="outline">
-                  Unclaimed: {unclaimedMinedCount}
-                </Badge>
+            {isMiningLoading ? (
+              <Stack align="center">
+                <Spinner />
+                <Text>Loading mining history...</Text>
               </Stack>
-              {uniqueMinedBlocks.length === 0 ? (
-                <Text>No matching transactions found.</Text>
-              ) : (
-                <Box overflowX="auto">
-                  <Table.Root variant="outline">
-                    <Table.Header>
-                      <Table.Row>
-                        <Table.ColumnHeader>Block</Table.ColumnHeader>
-                        <Table.ColumnHeader>Contract</Table.ColumnHeader>
-                        <Table.ColumnHeader>Function</Table.ColumnHeader>
-                        <Table.ColumnHeader>Status</Table.ColumnHeader>
-                      </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                      {uniqueMinedBlocks.map((block) => {
-                        const txId = blockToTx.get(block);
-                        const tx = filteredTransactions.find(
-                          (t) => t.tx_id === txId
-                        );
-                        const contract = tx
-                          ? shortenPrincipal(tx.contract_call.contract_id)
-                          : "Unknown";
-                        const func = tx
-                          ? tx.contract_call.function_name
-                          : "Unknown";
-                        const isClaimed = allClaimedBlocks.includes(block);
-                        return (
-                          <Table.Row key={block}>
-                            <Table.Cell>{block}</Table.Cell>
-                            <Table.Cell>{contract}</Table.Cell>
-                            <Table.Cell>{func}</Table.Cell>
+            ) : (
+              <Stack gap={4}>
+                <Stack direction="row" gap={4} flexWrap="wrap">
+                  <Badge variant="outline">
+                    Total Mined Blocks: {miningHistory.length}
+                  </Badge>
+                  <Badge colorScheme="green" variant="outline">
+                    Claimed: {miningHistory.filter(h => h.status === 'claimed').length}
+                  </Badge>
+                  <Badge colorScheme="red" variant="outline">
+                    Unclaimed: {miningHistory.filter(h => h.status === 'unclaimed').length}
+                  </Badge>
+                </Stack>
+                {miningHistory.length === 0 ? (
+                  <Text>No mining history found.</Text>
+                ) : (
+                  <Box overflowX="auto">
+                    <Table.Root variant="outline">
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.ColumnHeader>Block</Table.ColumnHeader>
+                          <Table.ColumnHeader>Mining TX</Table.ColumnHeader>
+                          <Table.ColumnHeader>Contract</Table.ColumnHeader>
+                          <Table.ColumnHeader>Function</Table.ColumnHeader>
+                          <Table.ColumnHeader>Status</Table.ColumnHeader>
+                          <Table.ColumnHeader>Claim TX</Table.ColumnHeader>
+                          <Table.ColumnHeader>Action</Table.ColumnHeader>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {miningHistory.map((entry) => (
+                          <Table.Row key={entry.id}>
+                            <Table.Cell>{entry.id}</Table.Cell>
                             <Table.Cell>
-                              <Badge
-                                colorScheme={isClaimed ? "green" : "red"}
+                              <Link
+                                href={`https://explorer.hiro.so/tx/${entry.txId}`}
+                                isExternal
                               >
-                                {isClaimed ? "Claimed" : "Unclaimed"}
+                                {shortenTxId(entry.txId)}
+                              </Link>
+                            </Table.Cell>
+                            <Table.Cell>{shortenPrincipal(entry.contractId)}</Table.Cell>
+                            <Table.Cell>{entry.functionName}</Table.Cell>
+                            <Table.Cell>
+                              <Badge colorScheme={entry.status === 'claimed' ? 'green' : 'red'}>
+                                {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
                               </Badge>
                             </Table.Cell>
+                            <Table.Cell>
+                              {entry.claimTxId ? (
+                                <Link
+                                  href={`https://explorer.hiro.so/tx/${entry.claimTxId}`}
+                                  isExternal
+                                >
+                                  {shortenTxId(entry.claimTxId)}
+                                </Link>
+                              ) : 'N/A'}
+                            </Table.Cell>
+                            <Table.Cell>
+                              {entry.status === 'unclaimed' && (
+                                <Button size="sm" onClick={() => console.log(`Claiming block ${entry.id}`)}>
+                                  Claim
+                                </Button>
+                              )}
+                            </Table.Cell>
                           </Table.Row>
-                        );
-                      })}
-                    </Table.Body>
-                  </Table.Root>
-                </Box>
-              )}
-            </Stack>
+                        ))}
+                      </Table.Body>
+                    </Table.Root>
+                  </Box>
+                )}
+              </Stack>
+            )}
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item value="stacking-history-mia">
@@ -313,64 +533,84 @@ function Mia({ onOpenDetails }: MiaProps) {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent>
-            <Stack gap={4}>
-              <Stack direction="row" gap={4} flexWrap="wrap">
-                <Badge variant="outline">
-                  Total Stacked Cycles: {uniqueStackedCycles.length}
-                </Badge>
-                <Badge colorScheme="green" variant="outline">
-                  Claimed: {claimedStackedCount}
-                </Badge>
-                <Badge colorScheme="red" variant="outline">
-                  Unclaimed: {unclaimedStackedCount}
-                </Badge>
+            {isStackingLoading ? (
+              <Stack align="center">
+                <Spinner />
+                <Text>Loading stacking history...</Text>
               </Stack>
-              {uniqueStackedCycles.length === 0 ? (
-                <Text>No matching transactions found.</Text>
-              ) : (
-                <Box overflowX="auto">
-                  <Table.Root variant="outline">
-                    <Table.Header>
-                      <Table.Row>
-                        <Table.ColumnHeader>Cycle</Table.ColumnHeader>
-                        <Table.ColumnHeader>Contract</Table.ColumnHeader>
-                        <Table.ColumnHeader>Function</Table.ColumnHeader>
-                        <Table.ColumnHeader>Status</Table.ColumnHeader>
-                      </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                      {uniqueStackedCycles.map((cycle) => {
-                        const txId = cycleToTx.get(cycle);
-                        const tx = filteredTransactions.find(
-                          (t) => t.tx_id === txId
-                        );
-                        const contract = tx
-                          ? shortenPrincipal(tx.contract_call.contract_id)
-                          : "Unknown";
-                        const func = tx
-                          ? tx.contract_call.function_name
-                          : "Unknown";
-                        const isClaimed = allClaimedCycles.includes(cycle);
-                        return (
-                          <Table.Row key={cycle}>
-                            <Table.Cell>{cycle}</Table.Cell>
-                            <Table.Cell>{contract}</Table.Cell>
-                            <Table.Cell>{func}</Table.Cell>
+            ) : (
+              <Stack gap={4}>
+                <Stack direction="row" gap={4} flexWrap="wrap">
+                  <Badge variant="outline">
+                    Total Stacked Cycles: {stackingHistory.length}
+                  </Badge>
+                  <Badge colorScheme="green" variant="outline">
+                    Claimed: {stackingHistory.filter(h => h.status === 'claimed').length}
+                  </Badge>
+                  <Badge colorScheme="red" variant="outline">
+                    Unclaimed: {stackingHistory.filter(h => h.status === 'unclaimed').length}
+                  </Badge>
+                </Stack>
+                {stackingHistory.length === 0 ? (
+                  <Text>No stacking history found.</Text>
+                ) : (
+                  <Box overflowX="auto">
+                    <Table.Root variant="outline">
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.ColumnHeader>Cycle</Table.ColumnHeader>
+                          <Table.ColumnHeader>Stacking TX</Table.ColumnHeader>
+                          <Table.ColumnHeader>Contract</Table.ColumnHeader>
+                          <Table.ColumnHeader>Function</Table.ColumnHeader>
+                          <Table.ColumnHeader>Status</Table.ColumnHeader>
+                          <Table.ColumnHeader>Claim TX</Table.ColumnHeader>
+                          <Table.ColumnHeader>Action</Table.ColumnHeader>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {stackingHistory.map((entry) => (
+                          <Table.Row key={entry.id}>
+                            <Table.Cell>{entry.id}</Table.Cell>
                             <Table.Cell>
-                              <Badge
-                                colorScheme={isClaimed ? "green" : "red"}
+                              <Link
+                                href={`https://explorer.hiro.so/tx/${entry.txId}`}
+                                isExternal
                               >
-                                {isClaimed ? "Claimed" : "Unclaimed"}
+                                {shortenTxId(entry.txId)}
+                              </Link>
+                            </Table.Cell>
+                            <Table.Cell>{shortenPrincipal(entry.contractId)}</Table.Cell>
+                            <Table.Cell>{entry.functionName}</Table.Cell>
+                            <Table.Cell>
+                              <Badge colorScheme={entry.status === 'claimed' ? 'green' : 'red'}>
+                                {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
                               </Badge>
                             </Table.Cell>
+                            <Table.Cell>
+                              {entry.claimTxId ? (
+                                <Link
+                                  href={`https://explorer.hiro.so/tx/${entry.claimTxId}`}
+                                  isExternal
+                                >
+                                  {shortenTxId(entry.claimTxId)}
+                                </Link>
+                              ) : 'N/A'}
+                            </Table.Cell>
+                            <Table.Cell>
+                              {entry.status === 'unclaimed' && (
+                                <Button size="sm" onClick={() => console.log(`Claiming cycle ${entry.id}`)}>
+                                  Claim
+                                </Button>
+                              )}
+                            </Table.Cell>
                           </Table.Row>
-                        );
-                      })}
-                    </Table.Body>
-                  </Table.Root>
-                </Box>
-              )}
-            </Stack>
+                        ))}
+                      </Table.Body>
+                    </Table.Root>
+                  </Box>
+                )}
+              </Stack>
+            )}
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item value="transactions-mia">
