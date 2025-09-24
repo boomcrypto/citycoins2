@@ -38,8 +38,15 @@ export interface StackingClaimTxArgs extends BaseTxArgs {
   cityName?: string;  // For ccd007
 }
 
+export interface TransferTxArgs extends BaseTxArgs {
+  functionName: "transfer";
+  amount: bigint;
+  recipient: string;
+  memo?: string | null;
+}
+
 // Union type for convenience in decodeTxArgs return
-export type DecodedTxArgs = MiningTxArgs | StackingTxArgs | MiningClaimTxArgs | StackingClaimTxArgs | null;
+export type DecodedTxArgs = MiningTxArgs | StackingTxArgs | MiningClaimTxArgs | StackingClaimTxArgs | TransferTxArgs | null;
 
 export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
   return typeof decoded === "object" && decoded.category === 'Mining' &&
@@ -76,6 +83,15 @@ export function isValidStackingClaimTxArgs(
   );
 }
 
+export function isValidTransferTxArgs(decoded: any): decoded is TransferTxArgs {
+  return (
+    typeof decoded === "object" && decoded.category === 'Transfer' &&
+    decoded.functionName === "transfer" &&
+    typeof decoded.amount === "bigint" && decoded.amount > 0n &&
+    typeof decoded.recipient === "string"
+  );
+}
+
 export function decodeTxArgs(tx: Transaction): DecodedTxArgs {
   if (tx.tx_type !== "contract_call") return null;
 
@@ -106,7 +122,7 @@ export function decodeTxArgs(tx: Transaction): DecodedTxArgs {
 
   switch (func) {
     case "mine-tokens":
-      if (entry.module !== 'core' || decodedArgs.length !== 1 || typeof decodedArgs[0] !== 'number') return null;
+      if (entry.module !== 'core' || decodedArgs.length < 1 || decodedArgs.length > 2 || typeof decodedArgs[0] !== 'number') return null;
       return { ...base, amountsUstx: [safeConvertToBigint(decodedArgs[0])] };
 
     case "mine-many":
@@ -144,6 +160,19 @@ export function decodeTxArgs(tx: Transaction): DecodedTxArgs {
         return { ...base, rewardCycle: safeConvertToBigint(decodedArgs[0]) };
       }
       return null;
+
+    case "transfer":
+      if (entry.module !== 'token' || decodedArgs.length < 2 || decodedArgs.length > 3 || typeof decodedArgs[0] !== 'number' || typeof decodedArgs[1] !== 'string') return null;
+      const transfer: TransferTxArgs = {
+        ...base,
+        functionName: func,
+        amount: safeConvertToBigint(decodedArgs[0]),
+        recipient: decodedArgs[1],
+      };
+      if (decodedArgs.length === 3) {
+        transfer.memo = decodedArgs[2];
+      }
+      return transfer;
 
     default:
       return null;  // Unsupported function (even if in registry)

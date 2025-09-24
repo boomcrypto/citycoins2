@@ -23,7 +23,7 @@ import { request } from "@stacks/connect";
 import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
 import TransactionList from "../transaction-list";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
-import { CONTRACTS } from "../../config/contracts"; // Import config for dynamic filter
+import { buildCityTxFilter } from "../../config/contracts";
 import { Box } from "@chakra-ui/react";
 
 interface NycProps {
@@ -57,61 +57,7 @@ function Nyc({ onOpenDetails }: NycProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   // Build NYC_TX_FILTER dynamically from config to include all relevant contracts/functions
-  const NYC_TX_FILTER: { contract: string; functions: string[] }[] = [
-    // Core contracts
-    {
-      contract: CONTRACTS.nyc.v1.core,
-      functions: [
-        ...CONTRACTS.nyc.functions.mining,
-        ...CONTRACTS.nyc.functions.miningClaims,
-        ...CONTRACTS.nyc.functions.stacking,
-        ...CONTRACTS.nyc.functions.stackingClaims,
-      ],
-    },
-    {
-      contract: CONTRACTS.nyc.v1.token,
-      functions: CONTRACTS.nyc.functions.transfer,
-    },
-    {
-      contract: CONTRACTS.nyc.v2.core,
-      functions: [
-        ...CONTRACTS.nyc.functions.mining,
-        ...CONTRACTS.nyc.functions.miningClaims,
-        ...CONTRACTS.nyc.functions.stacking,
-        ...CONTRACTS.nyc.functions.stackingClaims,
-      ],
-    },
-    {
-      contract: CONTRACTS.nyc.v2.token,
-      functions: CONTRACTS.nyc.functions.transfer,
-    },
-    // Mining contracts (v1 and v2)
-    ...(CONTRACTS.nyc.miningV1
-      ? [
-          {
-            contract: CONTRACTS.nyc.miningV1,
-            functions: CONTRACTS.nyc.functions.mining,
-          },
-        ]
-      : []),
-    ...(CONTRACTS.nyc.miningV2
-      ? [
-          {
-            contract: CONTRACTS.nyc.miningV2,
-            functions: CONTRACTS.nyc.functions.mining,
-          },
-        ]
-      : []),
-    // Stacking contracts (if needed)
-    ...(CONTRACTS.nyc.stackingV2
-      ? [
-          {
-            contract: CONTRACTS.nyc.stackingV2,
-            functions: CONTRACTS.nyc.functions.stacking,
-          },
-        ]
-      : []),
-  ];
+  const NYC_TX_FILTER = buildCityTxFilter('nyc');
 
   const filteredTransactions = useAtomValue(transactionsAtom).filter((tx) => {
     if (tx.tx_type !== "contract_call") return false;
@@ -121,7 +67,6 @@ function Nyc({ onOpenDetails }: NycProps) {
       (filter) =>
         filter.contract === contractId && filter.functions.includes(func)
     );
-    //console.log(`Checking tx ${tx.tx_id} for NYC filter: contract=${contractId}, function=${func}, matches=${matches}`); // Debug log
     return matches;
   });
 

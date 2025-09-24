@@ -2,7 +2,7 @@
 
 export type City = 'mia' | 'nyc';
 export type Version = 'v1' | 'v2';
-export type Module = 'core' | 'mining' | 'stacking';
+export type Module = 'core' | 'mining' | 'stacking' | 'token';
 
 export const CORE_FUNCTIONS = [
   'mine-tokens',           // (uint, optional(buff 34))
@@ -21,6 +21,8 @@ export const CCD007_FUNCTIONS = [
   'stack',                 // (string-ascii 10, uint, uint)
   'claim-stacking-reward', // (string-ascii 10, uint)
 ] as const;
+
+export const TOKEN_FUNCTIONS = ['transfer'] as const;
 
 type ContractId = `${string}.${string}`;
 
@@ -101,6 +103,28 @@ export const REGISTRY: Entry[] = [
     contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking',
     functions: CCD007_FUNCTIONS,
   },
+  // MIA token
+  {
+    city: 'mia', version: 'v1', module: 'token',
+    contract: 'SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token',
+    functions: TOKEN_FUNCTIONS,
+  },
+  {
+    city: 'mia', version: 'v2', module: 'token',
+    contract: 'SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-token-v2',
+    functions: TOKEN_FUNCTIONS,
+  },
+  // NYC token
+  {
+    city: 'nyc', version: 'v1', module: 'token',
+    contract: 'SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token',
+    functions: TOKEN_FUNCTIONS,
+  },
+  {
+    city: 'nyc', version: 'v2', module: 'token',
+    contract: 'SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2',
+    functions: TOKEN_FUNCTIONS,
+  },
 ];
 
 // Build the same structure you used in NYC/MIA components:
@@ -111,11 +135,12 @@ export function buildCityTxFilter(city: City) {
 }
 
 // Convenience: quick category from function name
-export function categorize(func: string): 'Mining' | 'Mining Claim' | 'Stacking' | 'Stacking Claim' | 'Other' {
+export function categorize(func: string): 'Mining' | 'Mining Claim' | 'Stacking' | 'Stacking Claim' | 'Transfer' | 'Other' {
   if (['mine-tokens', 'mine-many', 'mine'].includes(func)) return 'Mining';
   if (func === 'claim-mining-reward') return 'Mining Claim';
   if (['stack-tokens', 'stack'].includes(func)) return 'Stacking';
   if (func === 'claim-stacking-reward') return 'Stacking Claim';
+  if (func === 'transfer') return 'Transfer';
   return 'Other';
 }
 
