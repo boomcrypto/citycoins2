@@ -8,6 +8,7 @@ import {
   isValidStackingTxArgs,
   isValidMiningClaimTxArgs,
   isValidStackingClaimTxArgs,
+  isValidTransferTxArgs,
 } from "../utilities/transactions";
 
 import { ClarityValue, deserializeCV } from "@stacks/transactions";
@@ -100,6 +101,13 @@ function TransactionArguments({ tx }: { tx: Transaction }) {
     decodedType = "Stacking Claim";
     gridItems = [
       { label: "Reward Cycle", value: decoded.rewardCycle.toString() },
+    ];
+  } else if (isValidTransferTxArgs(decoded)) {
+    decodedType = "Transfer";
+    gridItems = [
+      { label: "Amount", value: formatMicroAmount(Number(decoded.amount)) },
+      { label: "Recipient", value: shortenPrincipal(decoded.recipient) },
+      ...(decoded.memo ? [{ label: "Memo", value: decoded.memo }] : []),
     ];
   }
 
