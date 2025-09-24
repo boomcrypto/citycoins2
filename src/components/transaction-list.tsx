@@ -198,13 +198,13 @@ function TransactionList({
 
   // Helper component for filters
   const Filters = () => (
-    <Stack direction="row" gap={4} flexWrap="wrap">
+    <Stack direction={{ base: "column", md: "row" }} gap={4}>
       <Select.Root
         collection={filterTypeCollection}
         value={[filterType]}
         onValueChange={(e) => setFilterType(e.value[0])}
         size="sm"
-        w="auto"
+        width="full"
       >
         <Select.HiddenSelect />
         <Select.Control>
@@ -233,7 +233,7 @@ function TransactionList({
         value={[filterStatus]}
         onValueChange={(e) => setFilterStatus(e.value[0])}
         size="sm"
-        w="auto"
+        width="full"
       >
         <Select.HiddenSelect />
         <Select.Control>
@@ -261,7 +261,7 @@ function TransactionList({
         placeholder="Search by TXID"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        w="auto"
+        width="full"
       />
     </Stack>
   );
