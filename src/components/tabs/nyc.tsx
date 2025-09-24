@@ -21,7 +21,7 @@ import {
 import SignIn from "../auth/sign-in";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
-import { request } from "@stacks/connect";
+import { openContractCall } from "@stacks/connect";
 import {
   AddressBalanceResponse,
   ContractCallTransaction,
@@ -141,11 +141,18 @@ function Nyc({ onOpenDetails }: NycProps) {
     if (v2PostCondition) { postConditions.push(v2PostCondition) };
     */
     try {
-      await request("stx_callContract", {
-        contract: `${address}.${name}`,
+      await openContractCall({
+        contractAddress: address,
+        contractName: name,
         functionName: "redeem-nyc",
         functionArgs: [],
-        postConditionMode: "allow",
+        postConditionMode: 0x02, // allow
+        onFinish: (data) => {
+          console.log("Redemption transaction finished:", data);
+        },
+        onCancel: () => {
+          console.log("Redemption transaction cancelled");
+        },
       });
     } catch (error) {
       console.error("Error executing redemption:", error);

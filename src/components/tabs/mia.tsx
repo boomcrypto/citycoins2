@@ -22,7 +22,7 @@ import SignIn from "../auth/sign-in";
 import TransactionList from "../transaction-list";
 import { useState } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
-import { request } from "@stacks/connect";
+import { openContractCall } from "@stacks/connect";
 import { buildCityTxFilter } from "../../config/contracts";
 import {
   AddressBalanceResponse,
@@ -128,11 +128,18 @@ function Mia({ onOpenDetails }: MiaProps) {
     console.log("Executing redemption...");
     const [address, name] = MIA_REDEMPTION_CONTRACT.split(".");
     try {
-      await request("stx_callContract", {
-        contract: `${address}.${name}`,
+      await openContractCall({
+        contractAddress: address,
+        contractName: name,
         functionName: "redeem-mia",
         functionArgs: [],
-        postConditionMode: "allow",
+        postConditionMode: 0x02, // allow
+        onFinish: (data) => {
+          console.log("Redemption transaction finished:", data);
+        },
+        onCancel: () => {
+          console.log("Redemption transaction cancelled");
+        },
       });
     } catch (error) {
       console.error("Error executing redemption:", error);

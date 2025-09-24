@@ -10,7 +10,6 @@ import {
   Badge,
   Table,
   NativeSelect,
-  createListCollection,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
 import { useAtom, useAtomValue } from "jotai";
@@ -56,25 +55,21 @@ function getCategoryColor(category: string): string {
   }
 }
 
-const filterTypeCollection = createListCollection({
-  items: [
-    { label: "All Types", value: "All" },
-    { label: "Mining", value: "Mining" },
-    { label: "Mining Claim", value: "Mining Claim" },
-    { label: "Stacking", value: "Stacking" },
-    { label: "Stacking Claim", value: "Stacking Claim" },
-    { label: "Transfer", value: "Transfer" },
-    { label: "Other", value: "Other" },
-  ],
-});
+const filterTypeItems = [
+  { label: "All Types", value: "All" },
+  { label: "Mining", value: "Mining" },
+  { label: "Mining Claim", value: "Mining Claim" },
+  { label: "Stacking", value: "Stacking" },
+  { label: "Stacking Claim", value: "Stacking Claim" },
+  { label: "Transfer", value: "Transfer" },
+  { label: "Other", value: "Other" },
+];
 
-const filterStatusCollection = createListCollection({
-  items: [
-    { label: "All Statuses", value: "All" },
-    { label: "Success", value: "success" },
-    { label: "Failed", value: "failed" },
-  ],
-});
+const filterStatusItems = [
+  { label: "All Statuses", value: "All" },
+  { label: "Success", value: "success" },
+  { label: "Failed", value: "failed" },
+];
 
 function TransactionList({
   transactions,
@@ -203,13 +198,11 @@ function TransactionList({
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
         >
-          {filterTypeCollection.items.map(
-            (item: { value: string; label: string }) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            )
-          )}
+          {filterTypeItems.map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
         </NativeSelect.Field>
         <NativeSelect.Indicator />
       </NativeSelect.Root>
@@ -218,13 +211,11 @@ function TransactionList({
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
         >
-          {filterStatusCollection.items.map(
-            (item: { value: string; label: string }) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            )
-          )}
+          {filterStatusItems.map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
         </NativeSelect.Field>
         <NativeSelect.Indicator />
       </NativeSelect.Root>
