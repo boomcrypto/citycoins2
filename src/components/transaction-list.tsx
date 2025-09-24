@@ -10,7 +10,7 @@ import {
   Input,
   Badge,
   Table,
-  Select,
+  NativeSelect,
   createListCollection,
 } from "@chakra-ui/react";
 import { IoMdRefresh } from "react-icons/io";
@@ -199,64 +199,22 @@ function TransactionList({
   // Helper component for filters
   const Filters = () => (
     <Stack direction={{ base: "column", md: "row" }} gap={4}>
-      <Select.Root
-        collection={filterTypeCollection}
-        value={[filterType]}
-        onValueChange={(e) => setFilterType(e.value[0])}
-        size="sm"
-        width="full"
-      >
-        <Select.HiddenSelect />
-        <Select.Control>
-          <Select.Trigger>
-            <Select.ValueText>All Types</Select.ValueText>
-          </Select.Trigger>
-          <Select.IndicatorGroup>
-            <Select.Indicator />
-          </Select.IndicatorGroup>
-        </Select.Control>
-        <Portal>
-          <Select.Positioner>
-            <Select.Content>
-              {filterTypeCollection.items.map((item) => (
-                <Select.Item item={item} key={item.value}>
-                  {item.label}
-                  <Select.ItemIndicator />
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Portal>
-      </Select.Root>
-      <Select.Root
-        collection={filterStatusCollection}
-        value={[filterStatus]}
-        onValueChange={(e) => setFilterStatus(e.value[0])}
-        size="sm"
-        width="full"
-      >
-        <Select.HiddenSelect />
-        <Select.Control>
-          <Select.Trigger>
-            <Select.ValueText>All Statuses</Select.ValueText>
-          </Select.Trigger>
-          <Select.IndicatorGroup>
-            <Select.Indicator />
-          </Select.IndicatorGroup>
-        </Select.Control>
-        <Portal>
-          <Select.Positioner>
-            <Select.Content>
-              {filterStatusCollection.items.map((item) => (
-                <Select.Item item={item} key={item.value}>
-                  {item.label}
-                  <Select.ItemIndicator />
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Portal>
-      </Select.Root>
+      <NativeSelect.Root size="sm" width="full">
+        <NativeSelect.Field value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+          {filterTypeCollection.items.map((item) => (
+            <option key={item.value} value={item.value}>{item.label}</option>
+          ))}
+        </NativeSelect.Field>
+        <NativeSelect.Indicator />
+      </NativeSelect.Root>
+      <NativeSelect.Root size="sm" width="full">
+        <NativeSelect.Field value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+          {filterStatusCollection.items.map((item) => (
+            <option key={item.value} value={item.value}>{item.label}</option>
+          ))}
+        </NativeSelect.Field>
+        <NativeSelect.Indicator />
+      </NativeSelect.Root>
       <Input
         placeholder="Search by TXID"
         value={searchTerm}
