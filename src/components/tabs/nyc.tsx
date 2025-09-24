@@ -1,11 +1,13 @@
 import {
   Accordion,
+  Badge,
+  Box,
   Button,
   Heading,
   Link,
   Stack,
+  Table,
   Text,
-  Badge,
 } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
 import {
@@ -27,7 +29,6 @@ import {
 import TransactionList from "../transaction-list";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { buildCityTxFilter } from "../../config/contracts";
-import { Box } from "@chakra-ui/react";
 
 interface NycProps {
   onOpenDetails: (tx: Transaction) => void;
@@ -171,6 +172,26 @@ function Nyc({ onOpenDetails }: NycProps) {
     cycles.forEach((cycle) => cycleToTx.set(cycle, tx.tx_id));
   });
 
+  const uniqueMinedBlocks = Array.from(
+    new Set(
+      filteredTransactions.flatMap((tx) => minedBlocks.get(tx.tx_id) || [])
+    )
+  ).sort((a, b) => a - b);
+  const claimedMinedCount = uniqueMinedBlocks.filter((block) =>
+    allClaimedBlocks.includes(block)
+  ).length;
+  const unclaimedMinedCount = uniqueMinedBlocks.length - claimedMinedCount;
+
+  const uniqueStackedCycles = Array.from(
+    new Set(
+      filteredTransactions.flatMap((tx) => stackedCycles.get(tx.tx_id) || [])
+    )
+  ).sort((a, b) => a - b);
+  const claimedStackedCount = uniqueStackedCycles.filter((cycle) =>
+    allClaimedCycles.includes(cycle)
+  ).length;
+  const unclaimedStackedCount = uniqueStackedCycles.length - claimedStackedCount;
+
   return (
     <Stack gap={4}>
       <Heading size="4xl">NYC Tools</Heading>
@@ -228,48 +249,64 @@ function Nyc({ onOpenDetails }: NycProps) {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent>
-            {Array.from(
-              new Set(
-                filteredTransactions.flatMap(
-                  (tx) => minedBlocks.get(tx.tx_id) || []
-                )
-              )
-            ).sort((a, b) => a - b).length === 0 ? (
-              <Text>No matching transactions found.</Text>
-            ) : (
-              <Stack gap={4}>
-                {Array.from(
-                  new Set(
-                    filteredTransactions.flatMap(
-                      (tx) => minedBlocks.get(tx.tx_id) || []
-                    )
-                  )
-                )
-                  .sort((a, b) => a - b)
-                  .map((block) => {
-                    const txId = blockToTx.get(block);
-                    const tx = filteredTransactions.find(
-                      (t) => t.tx_id === txId
-                    );
-                    const contract = tx
-                      ? shortenPrincipal(tx.contract_call.contract_id)
-                      : "Unknown";
-                    const func = tx
-                      ? tx.contract_call.function_name
-                      : "Unknown";
-                    return (
-                      <Text key={block}>
-                        Block {block} - {contract} {func}{" "}
-                        {allClaimedBlocks.includes(block) ? (
-                          <Badge colorScheme="green">Claimed</Badge>
-                        ) : (
-                          <Badge colorScheme="red">Unclaimed</Badge>
-                        )}
-                      </Text>
-                    );
-                  })}
+            <Stack gap={4}>
+              <Stack direction="row" gap={4} flexWrap="wrap">
+                <Badge variant="outline">
+                  Total Mined Blocks: {uniqueMinedBlocks.length}
+                </Badge>
+                <Badge colorScheme="green" variant="outline">
+                  Claimed: {claimedMinedCount}
+                </Badge>
+                <Badge colorScheme="red" variant="outline">
+                  Unclaimed: {unclaimedMinedCount}
+                </Badge>
               </Stack>
-            )}
+              {uniqueMinedBlocks.length === 0 ? (
+                <Text>No matching transactions found.</Text>
+              ) : (
+                <Box overflowX="auto">
+                  <Table.Root variant="outline">
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.ColumnHeader>Block</Table.ColumnHeader>
+                        <Table.ColumnHeader>Contract</Table.ColumnHeader>
+                        <Table.ColumnHeader>Function</Table.ColumnHeader>
+                        <Table.ColumnHeader>Status</Table.ColumnHeader>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {uniqueMinedBlocks.map((block) => {
+                        const txId = blockToTx.get(block);
+                        const tx = filteredTransactions.find(
+                          (t) => t.tx_id === txId
+                        );
+                        const contract = tx
+                          ? shortenPrincipal(tx.contract_call.contract_id)
+                          : "Unknown";
+                        const func = tx
+                          ? tx.contract_call.function_name
+                          : "Unknown";
+                        const isClaimed = allClaimedBlocks.includes(block);
+                        return (
+                          <Table.Row key={block}>
+                            <Table.Cell>{block}</Table.Cell>
+                            <Table.Cell>{contract}</Table.Cell>
+                            <Table.Cell>{func}</Table.Cell>
+                            <Table.Cell>
+                              <Badge
+                                colorScheme={isClaimed ? "green" : "red"}
+                              >
+                                {isClaimed ? "Claimed" : "Unclaimed"}
+                              </Badge>
+                            </Table.Cell>
+                          </Table.Row>
+                        );
+                      })}
+                    </Table.Body>
+                  </Table.Root>
+                </Box>
+              )}
+            </Stack>
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item value="stacking-history-nyc">
@@ -278,48 +315,64 @@ function Nyc({ onOpenDetails }: NycProps) {
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent>
-            {Array.from(
-              new Set(
-                filteredTransactions.flatMap(
-                  (tx) => stackedCycles.get(tx.tx_id) || []
-                )
-              )
-            ).sort((a, b) => a - b).length === 0 ? (
-              <Text>No matching transactions found.</Text>
-            ) : (
-              <Stack gap={4}>
-                {Array.from(
-                  new Set(
-                    filteredTransactions.flatMap(
-                      (tx) => stackedCycles.get(tx.tx_id) || []
-                    )
-                  )
-                )
-                  .sort((a, b) => a - b)
-                  .map((cycle) => {
-                    const txId = cycleToTx.get(cycle);
-                    const tx = filteredTransactions.find(
-                      (t) => t.tx_id === txId
-                    );
-                    const contract = tx
-                      ? shortenPrincipal(tx.contract_call.contract_id)
-                      : "Unknown";
-                    const func = tx
-                      ? tx.contract_call.function_name
-                      : "Unknown";
-                    return (
-                      <Text key={cycle}>
-                        Cycle {cycle} - {contract} {func}{" "}
-                        {allClaimedCycles.includes(cycle) ? (
-                          <Badge colorScheme="green">Claimed</Badge>
-                        ) : (
-                          <Badge colorScheme="red">Unclaimed</Badge>
-                        )}
-                      </Text>
-                    );
-                  })}
+            <Stack gap={4}>
+              <Stack direction="row" gap={4} flexWrap="wrap">
+                <Badge variant="outline">
+                  Total Stacked Cycles: {uniqueStackedCycles.length}
+                </Badge>
+                <Badge colorScheme="green" variant="outline">
+                  Claimed: {claimedStackedCount}
+                </Badge>
+                <Badge colorScheme="red" variant="outline">
+                  Unclaimed: {unclaimedStackedCount}
+                </Badge>
               </Stack>
-            )}
+              {uniqueStackedCycles.length === 0 ? (
+                <Text>No matching transactions found.</Text>
+              ) : (
+                <Box overflowX="auto">
+                  <Table.Root variant="outline">
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.ColumnHeader>Cycle</Table.ColumnHeader>
+                        <Table.ColumnHeader>Contract</Table.ColumnHeader>
+                        <Table.ColumnHeader>Function</Table.ColumnHeader>
+                        <Table.ColumnHeader>Status</Table.ColumnHeader>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {uniqueStackedCycles.map((cycle) => {
+                        const txId = cycleToTx.get(cycle);
+                        const tx = filteredTransactions.find(
+                          (t) => t.tx_id === txId
+                        );
+                        const contract = tx
+                          ? shortenPrincipal(tx.contract_call.contract_id)
+                          : "Unknown";
+                        const func = tx
+                          ? tx.contract_call.function_name
+                          : "Unknown";
+                        const isClaimed = allClaimedCycles.includes(cycle);
+                        return (
+                          <Table.Row key={cycle}>
+                            <Table.Cell>{cycle}</Table.Cell>
+                            <Table.Cell>{contract}</Table.Cell>
+                            <Table.Cell>{func}</Table.Cell>
+                            <Table.Cell>
+                              <Badge
+                                colorScheme={isClaimed ? "green" : "red"}
+                              >
+                                {isClaimed ? "Claimed" : "Unclaimed"}
+                              </Badge>
+                            </Table.Cell>
+                          </Table.Row>
+                        );
+                      })}
+                    </Table.Body>
+                  </Table.Root>
+                </Box>
+              )}
+            </Stack>
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item value="transactions-nyc">
