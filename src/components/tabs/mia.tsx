@@ -162,7 +162,7 @@ function Mia({ onOpenDetails }: MiaProps) {
       <Heading size="4xl">MIA Tools</Heading>
       <Text>Access tools and utilities for MiamiCoin (MIA) below.</Text>
       <Accordion.Root collapsible defaultValue={["redeem-mia"]}>
-        <Accordion.Item>
+        <Accordion.Item value="redeem-mia">
           <Accordion.ItemTrigger>
             <Heading size="xl">Redeem MIA</Heading>
             <Accordion.ItemIndicator />
@@ -212,7 +212,7 @@ function Mia({ onOpenDetails }: MiaProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item>
+        <Accordion.Item value="mining-history-mia">
           <Accordion.ItemTrigger>
             <Heading size="xl">MIA Mining History</Heading>
             <Accordion.ItemIndicator />
@@ -262,7 +262,7 @@ function Mia({ onOpenDetails }: MiaProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item>
+        <Accordion.Item value="stacking-history-mia">
           <Accordion.ItemTrigger>
             <Heading size="xl">MIA Stacking History</Heading>
             <Accordion.ItemIndicator />
@@ -312,7 +312,7 @@ function Mia({ onOpenDetails }: MiaProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item>
+        <Accordion.Item value="transactions-mia">
           <Accordion.ItemTrigger>
             <Heading size="xl">MIA Transactions</Heading>
             <Accordion.ItemIndicator />

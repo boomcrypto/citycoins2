@@ -176,7 +176,7 @@ function Nyc({ onOpenDetails }: NycProps) {
       <Heading size="4xl">NYC Tools</Heading>
       <Text>Access tools and utilities for NewYorkCityCoin (NYC) below.</Text>
       <Accordion.Root collapsible defaultValue={["redeem-nyc"]}>
-        <Accordion.Item>
+        <Accordion.Item value="redeem-nyc">
           <Accordion.ItemTrigger>
             <Heading size="xl">Redeem NYC</Heading>
             <Accordion.ItemIndicator />
@@ -222,7 +222,7 @@ function Nyc({ onOpenDetails }: NycProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item>
+        <Accordion.Item value="mining-history-nyc">
           <Accordion.ItemTrigger>
             <Heading size="xl">NYC Mining History</Heading>
             <Accordion.ItemIndicator />
@@ -272,7 +272,7 @@ function Nyc({ onOpenDetails }: NycProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item>
+        <Accordion.Item value="stacking-history-nyc">
           <Accordion.ItemTrigger>
             <Heading size="xl">NYC Stacking History</Heading>
             <Accordion.ItemIndicator />
@@ -322,7 +322,7 @@ function Nyc({ onOpenDetails }: NycProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item>
+        <Accordion.Item value="transactions-nyc">
           <Accordion.ItemTrigger>
             <Heading size="xl">NYC Transactions</Heading>
             <Accordion.ItemIndicator />
