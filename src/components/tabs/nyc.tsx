@@ -92,7 +92,6 @@ function Nyc({ onOpenDetails }: NycProps) {
   const [isStackingLoading, setIsStackingLoading] = useState(true);
 
   useEffect(() => {
-    if (!stxAddress) return;
     // Collect claimed mining blocks from claim txs
     const claimedMining: {
       block: number;
@@ -196,7 +195,9 @@ function Nyc({ onOpenDetails }: NycProps) {
 
     Promise.all(checkMiningPromises)
       .then((results) => {
-        const unclaimedMining = results.filter(r => r !== null) as HistoryEntry[];
+        const unclaimedMining = results.filter(
+          (r) => r !== null
+        ) as HistoryEntry[];
         const fullHistory = [...historyMining, ...unclaimedMining].sort(
           (a, b) => a.id - b.id
         );
@@ -317,7 +318,9 @@ function Nyc({ onOpenDetails }: NycProps) {
 
     Promise.all(checkStackingPromises)
       .then((results) => {
-        const unclaimedStacking = results.filter(r => r !== null) as HistoryEntry[];
+        const unclaimedStacking = results.filter(
+          (r) => r !== null
+        ) as HistoryEntry[];
         const fullHistory = [...historyStacking, ...unclaimedStacking].sort(
           (a, b) => a.id - b.id
         );
@@ -340,8 +343,6 @@ function Nyc({ onOpenDetails }: NycProps) {
     "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd012-redemption-nyc";
 
   const checkEligibility = async () => {
-    if (!stxAddress) return;
-
     setIsLoading(true);
     try {
       const url = `${HIRO_API}/extended/v1/address/${stxAddress}/balances`;
@@ -407,7 +408,7 @@ function Nyc({ onOpenDetails }: NycProps) {
       <Heading size="4xl">NYC Tools</Heading>
       <Text>Access tools and utilities for NewYorkCityCoin (NYC) below.</Text>
       <Accordion.Root collapsible defaultValue={["redeem-nyc"]}>
-        <Accordion.Item value="redeem-nyc">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">Redeem NYC</Heading>
             <Accordion.ItemIndicator />
@@ -453,7 +454,7 @@ function Nyc({ onOpenDetails }: NycProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item value="mining-history-nyc">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">NYC Mining History</Heading>
             <Accordion.ItemIndicator />
@@ -505,7 +506,8 @@ function Nyc({ onOpenDetails }: NycProps) {
                             <Table.Cell>
                               <Link
                                 href={`https://explorer.hiro.so/tx/${entry.txId}`}
-                                isExternal
+                                rel="noopener noreferrer"
+                                target="_blank"
                               >
                                 {shortenTxId(entry.txId)}
                               </Link>
@@ -528,7 +530,8 @@ function Nyc({ onOpenDetails }: NycProps) {
                               {entry.claimTxId ? (
                                 <Link
                                   href={`https://explorer.hiro.so/tx/${entry.claimTxId}`}
-                                  isExternal
+                                  rel="noopener noreferrer"
+                                  target="_blank"
                                 >
                                   {shortenTxId(entry.claimTxId)}
                                 </Link>
@@ -558,7 +561,7 @@ function Nyc({ onOpenDetails }: NycProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item value="stacking-history-nyc">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">NYC Stacking History</Heading>
             <Accordion.ItemIndicator />
@@ -613,7 +616,8 @@ function Nyc({ onOpenDetails }: NycProps) {
                             <Table.Cell>
                               <Link
                                 href={`https://explorer.hiro.so/tx/${entry.txId}`}
-                                isExternal
+                                rel="noopener noreferrer"
+                                target="_blank"
                               >
                                 {shortenTxId(entry.txId)}
                               </Link>
@@ -636,7 +640,8 @@ function Nyc({ onOpenDetails }: NycProps) {
                               {entry.claimTxId ? (
                                 <Link
                                   href={`https://explorer.hiro.so/tx/${entry.claimTxId}`}
-                                  isExternal
+                                  rel="noopener noreferrer"
+                                  target="_blank"
                                 >
                                   {shortenTxId(entry.claimTxId)}
                                 </Link>
@@ -666,7 +671,7 @@ function Nyc({ onOpenDetails }: NycProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item value="transactions-nyc">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">NYC Transactions</Heading>
             <Accordion.ItemIndicator />

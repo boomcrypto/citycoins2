@@ -34,6 +34,7 @@ import {
   computeTargetedCycles,
   fetchCallReadOnlyFunction,
 } from "../../utilities/transactions";
+import TransactionList from "../transaction-list";
 
 interface MiaProps {
   onOpenDetails: (tx: Transaction) => void;
@@ -69,6 +70,19 @@ function Mia({ onOpenDetails }: MiaProps) {
     );
   }) as ContractCallTransaction[];
 
+  if (!stxAddress) {
+    return (
+      <Stack gap={4}>
+        <Heading size="4xl">MIA Tools</Heading>
+        <Text>
+          Wallet connection required to access tools and utilities for MiamiCoin
+          (MIA).
+        </Text>
+        <SignIn />
+      </Stack>
+    );
+  }
+
   const [miningHistory, setMiningHistory] = useState<HistoryEntry[]>([]);
   const [isMiningLoading, setIsMiningLoading] = useState(true);
 
@@ -76,7 +90,6 @@ function Mia({ onOpenDetails }: MiaProps) {
   const [isStackingLoading, setIsStackingLoading] = useState(true);
 
   useEffect(() => {
-    if (!stxAddress) return;
     // Collect claimed mining blocks from claim txs
     const claimedMining: {
       block: number;
@@ -180,7 +193,9 @@ function Mia({ onOpenDetails }: MiaProps) {
 
     Promise.all(checkMiningPromises)
       .then((results) => {
-        const unclaimedMining = results.filter(r => r !== null) as HistoryEntry[];
+        const unclaimedMining = results.filter(
+          (r) => r !== null
+        ) as HistoryEntry[];
         const fullHistory = [...historyMining, ...unclaimedMining].sort(
           (a, b) => a.id - b.id
         );
@@ -301,7 +316,9 @@ function Mia({ onOpenDetails }: MiaProps) {
 
     Promise.all(checkStackingPromises)
       .then((results) => {
-        const unclaimedStacking = results.filter(r => r !== null) as HistoryEntry[];
+        const unclaimedStacking = results.filter(
+          (r) => r !== null
+        ) as HistoryEntry[];
         const fullHistory = [...historyStacking, ...unclaimedStacking].sort(
           (a, b) => a.id - b.id
         );
@@ -313,19 +330,6 @@ function Mia({ onOpenDetails }: MiaProps) {
         setIsStackingLoading(false);
       });
   }, [filteredTransactions, stxAddress]);
-
-  if (!stxAddress) {
-    return (
-      <Stack gap={4}>
-        <Heading size="4xl">MIA Tools</Heading>
-        <Text>
-          Wallet connection required to access tools and utilities for MiamiCoin
-          (MIA).
-        </Text>
-        <SignIn />
-      </Stack>
-    );
-  }
 
   const MIA_ASSET_ID = "miamicoin";
   const MIA_V1_CONTRACT =
@@ -339,8 +343,6 @@ function Mia({ onOpenDetails }: MiaProps) {
   const checkEligibility = async () => {
     console.log("Pending CCIP-026 vote and approval...");
     return;
-
-    if (!stxAddress) return;
 
     setIsLoading(true);
     try {
@@ -374,7 +376,7 @@ function Mia({ onOpenDetails }: MiaProps) {
     console.log("Executing redemption...");
     const [address, name] = MIA_REDEMPTION_CONTRACT.split(".");
     try {
-      await openContractCall({
+      openContractCall({
         contractAddress: address,
         contractName: name,
         functionName: "redeem-mia",
@@ -397,7 +399,7 @@ function Mia({ onOpenDetails }: MiaProps) {
       <Heading size="4xl">MIA Tools</Heading>
       <Text>Access tools and utilities for MiamiCoin (MIA) below.</Text>
       <Accordion.Root collapsible defaultValue={["redeem-mia"]}>
-        <Accordion.Item value="redeem-mia">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">Redeem MIA</Heading>
             <Accordion.ItemIndicator />
@@ -447,7 +449,7 @@ function Mia({ onOpenDetails }: MiaProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item value="mining-history-mia">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">MIA Mining History</Heading>
             <Accordion.ItemIndicator />
@@ -499,7 +501,8 @@ function Mia({ onOpenDetails }: MiaProps) {
                             <Table.Cell>
                               <Link
                                 href={`https://explorer.hiro.so/tx/${entry.txId}`}
-                                isExternal
+                                rel="noopener noreferrer"
+                                target="_blank"
                               >
                                 {shortenTxId(entry.txId)}
                               </Link>
@@ -522,7 +525,8 @@ function Mia({ onOpenDetails }: MiaProps) {
                               {entry.claimTxId ? (
                                 <Link
                                   href={`https://explorer.hiro.so/tx/${entry.claimTxId}`}
-                                  isExternal
+                                  rel="noopener noreferrer"
+                                  target="_blank"
                                 >
                                   {shortenTxId(entry.claimTxId)}
                                 </Link>
@@ -552,7 +556,7 @@ function Mia({ onOpenDetails }: MiaProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item value="stacking-history-mia">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">MIA Stacking History</Heading>
             <Accordion.ItemIndicator />
@@ -607,7 +611,8 @@ function Mia({ onOpenDetails }: MiaProps) {
                             <Table.Cell>
                               <Link
                                 href={`https://explorer.hiro.so/tx/${entry.txId}`}
-                                isExternal
+                                rel="noopener noreferrer"
+                                target="_blank"
                               >
                                 {shortenTxId(entry.txId)}
                               </Link>
@@ -630,7 +635,8 @@ function Mia({ onOpenDetails }: MiaProps) {
                               {entry.claimTxId ? (
                                 <Link
                                   href={`https://explorer.hiro.so/tx/${entry.claimTxId}`}
-                                  isExternal
+                                  rel="noopener noreferrer"
+                                  target="_blank"
                                 >
                                   {shortenTxId(entry.claimTxId)}
                                 </Link>
@@ -660,7 +666,7 @@ function Mia({ onOpenDetails }: MiaProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
-        <Accordion.Item value="transactions-mia">
+        <Accordion.Item>
           <Accordion.ItemTrigger>
             <Heading size="xl">MIA Transactions</Heading>
             <Accordion.ItemIndicator />
