@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { ContractCallTransaction, Transaction } from "@stacks/stacks-blockchain-api-types";
-import { ClarityType, uintCV } from "@stacks/transactions";
+import { ContractCallTransaction } from "@stacks/stacks-blockchain-api-types";
 import {
   decodeTxArgs,
   isValidMiningTxArgs,
@@ -9,15 +8,13 @@ import {
   isValidStackingClaimTxArgs,
   computeTargetedBlocks,
   computeTargetedCycles,
-  fetchCallReadOnlyFunction,
   getUserId,
   checkMiningWinner,
   checkStackingCycle,
-  REGISTRY,
 } from "../utilities/transactions";
-import { City, Version } from "../utilities/contracts";
+import { City, REGISTRY, Version } from "../utilities/contracts";
 import { useAtomValue, useSetAtom } from "jotai";
-import { stxAddressAtom, userIdsAtom } from "../store/stacks";
+import { userIdsAtom } from "../store/stacks";
 
 export interface HistoryEntry {
   id: number;
