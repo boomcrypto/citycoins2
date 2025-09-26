@@ -13,13 +13,13 @@ import {
   getUserId,
   checkMiningWinner,
   checkStackingCycle,
-  findEntry,
+  REGISTRY,
 } from "../utilities/transactions";
-import { City, Version, REGISTRY } from "../utilities/contracts";
-import { useAtomValue } from "jotai";
-import { stxAddressAtom } from "../store/stacks";
+import { City, Version } from "../utilities/contracts";
+import { useAtomValue, useSetAtom } from "jotai";
+import { stxAddressAtom, userIdsAtom } from "../store/stacks";
 
-interface HistoryEntry {
+export interface HistoryEntry {
   id: number;
   txId: string;
   claimTxId?: string;
@@ -39,8 +39,8 @@ export function useCityHistory(
   const [stackingHistory, setStackingHistory] = useState<HistoryEntry[]>([]);
   const [isStackingLoading, setIsStackingLoading] = useState(true);
 
-  // Local cache for userIds (per contract; in production, use Jotai atoms)
-  const [userIdCache, setUserIdCache] = useState<Map<string, bigint>>(new Map());
+  const userIds = useAtomValue(userIdsAtom);
+  const setUserIds = useSetAtom(userIdsAtom);
 
   useEffect(() => {
     if (!stxAddress) {
@@ -48,7 +48,6 @@ export function useCityHistory(
       setIsMiningLoading(false);
       setStackingHistory([]);
       setIsStackingLoading(false);
-      setUserIdCache(new Map());
       return;
     }
 
@@ -74,7 +73,7 @@ export function useCityHistory(
 
         filteredTransactions.forEach((tx) => {
           const decoded = decodeTxArgs(tx);
-          const entry = findEntry(tx.contract_call.contract_id, tx.contract_call.function_name);
+          const entry = REGISTRY.find(e => e.contract === tx.contract_call.contract_id && e.functions.includes(tx.contract_call.function_name));
           if (!entry || tx.tx_status !== "success" || !decoded) return;
 
           if (isValidMiningClaimTxArgs(decoded)) {
@@ -108,7 +107,7 @@ export function useCityHistory(
 
         filteredTransactions.forEach((tx) => {
           const decoded = decodeTxArgs(tx);
-          const entry = findEntry(tx.contract_call.contract_id, tx.contract_call.function_name);
+          const entry = REGISTRY.find(e => e.contract === tx.contract_call.contract_id && e.functions.includes(tx.contract_call.function_name));
           if (!entry || tx.tx_status !== "success" || !decoded) return;
 
           if (isValidMiningTxArgs(decoded) && decoded.city && decoded.version) {
@@ -149,28 +148,24 @@ export function useCityHistory(
           ...claimedMining.map(c => c.contractId),
           ...claimedStacking.map(c => c.contractId),
         ]);
-        const userIds = new Map<string, bigint>();
+        const runtimeUserIds = new Map<string, bigint>();
         for (const contractId of uniqueContracts) {
-          const entry = findEntry(contractId, ''); // Find any matching entry
-          if (entry && entry.module === 'core') {
-            // Core has own get-user-id
+          const entry = REGISTRY.find(e => e.contract === contractId);
+          if (!entry) continue;
+          const key = entry.module === 'core' ? `${entry.city}-${entry.module}-${entry.version}` : 'ccd003';
+          const cachedUserIdStr = userIds[key];
+          let userId: bigint | undefined;
+          if (cachedUserIdStr) {
+            userId = BigInt(cachedUserIdStr);
+            runtimeUserIds.set(contractId, userId);
+          } else {
             try {
-              const userId = await getUserId(stxAddress, contractId);
-              userIds.set(contractId, userId);
-              setUserIdCache(prev => new Map(prev).set(contractId, userId));
+              userId = entry.module === 'core' ? await getUserId(stxAddress, contractId) : await getUserId(stxAddress);
+              setUserIds(prev => ({ ...prev, [key]: userId!.toString() }));
+              runtimeUserIds.set(contractId, userId!);
             } catch (e) {
               console.error(`Failed to fetch userId for ${contractId}:`, e);
             }
-          } else {
-            // ccd006/007 use shared ccd003
-            try {
-              const userId = await getUserId(stxAddress);
-              userIds.set('ccd003', userId); // Shared
-              setUserIdCache(prev => new Map(prev).set('ccd003', userId));
-            } catch (e) {
-              console.error('Failed to fetch shared userId:', e);
-            }
-            break; // Only once for shared
           }
         }
 
@@ -220,7 +215,7 @@ export function useCityHistory(
 
         const miningChecks = toCheckMining.map(async (item) => {
           try {
-            const userId = userIdCache.get(item.contractId) || userIdCache.get('ccd003');
+            const userId = runtimeUserIds.get(item.contractId);
             const isWinner = await checkMiningWinner(item.entry, item.block, stxAddress, userId);
             if (isWinner) {
               return {
@@ -269,7 +264,7 @@ export function useCityHistory(
 
         const stackingChecks = toCheckStacking.map(async (item) => {
           try {
-            const userId = userIdCache.get(item.contractId) || userIdCache.get('ccd003');
+            const userId = runtimeUserIds.get(item.contractId);
             if (!userId) return null;
             const isStacked = await checkStackingCycle(item.entry, item.cycle, stxAddress, userId);
             if (isStacked) {
@@ -314,7 +309,7 @@ export function useCityHistory(
     return () => {
       isMounted = false;
     };
-  }, [filteredTransactions, stxAddress, userIdCache]);
+  }, [filteredTransactions, stxAddress, userIds]);
 
   return { miningHistory, isMiningLoading, stackingHistory, isStackingLoading };
 }

@@ -24,9 +24,9 @@ import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
 import { shortenPrincipal, shortenTxId } from "../../utilities/clarity";
 import { buildCityTxFilter } from "../../utilities/contracts";
 import TransactionList from "../transaction-list";
-import { useCityHistory } from "../../hooks/useCityHistory";
-import { findEntry, REGISTRY, City } from "../../utilities/contracts";
-import { uintCV, principalCV } from "@stacks/transactions";
+import { useCityHistory, HistoryEntry } from "../../hooks/useCityHistory";
+import { findEntry, REGISTRY } from "../../utilities/contracts";
+import { uintCV, stringAsciiCV } from "@stacks/transactions";
 
 interface MiaProps {
   onOpenDetails: (tx: Transaction) => void;
@@ -143,9 +143,8 @@ function Mia({ onOpenDetails }: MiaProps) {
     if (contractEntry.module === "core") {
       functionArgs = [uintCV(entry.id)];
     } else if (contractEntry.module === "mining") {
-      const cityId = 0; // MIA
-      functionArgs = [uintCV(cityId), principalCV(stxAddress), uintCV(entry.id)];
-      functionName = "claim-mining-reward"; // Adjust if different
+      const cityName = contractEntry.city === 'mia' ? stringAsciiCV('MIA') : stringAsciiCV('NYC');
+      functionArgs = [cityName, uintCV(entry.id)];
     }
 
     openContractCall({
@@ -170,9 +169,8 @@ function Mia({ onOpenDetails }: MiaProps) {
     if (contractEntry.module === "core") {
       functionArgs = [uintCV(entry.id)];
     } else if (contractEntry.module === "stacking") {
-      const cityId = 0; // MIA
-      functionArgs = [uintCV(cityId), principalCV(stxAddress), uintCV(entry.id)];
-      functionName = "claim-stacking-reward"; // Adjust if different
+      const cityName = contractEntry.city === 'mia' ? stringAsciiCV('MIA') : stringAsciiCV('NYC');
+      functionArgs = [cityName, uintCV(entry.id)];
     }
 
     openContractCall({
@@ -283,4 +281,192 @@ function Mia({ onOpenDetails }: MiaProps) {
                           <Table.ColumnHeader>Function</Table.ColumnHeader>
                           <Table.ColumnHeader>Status</Table.ColumnHeader>
                           <Table.ColumnHeader>Claim TX</Table.ColumnHeader>
-                          <Table.ColumnHeader>Action</
+                          <Table.ColumnHeader>Action</Table.ColumnHeader>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {miningHistory.map((entry) => (
+                          <Table.Row key={entry.id}>
+                            <Table.Cell>{entry.id}</Table.Cell>
+                            <Table.Cell>
+                              <Link
+                                href={`https://explorer.hiro.so/tx/${entry.txId}`}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                              >
+                                {shortenTxId(entry.txId)}
+                              </Link>
+                            </Table.Cell>
+                            <Table.Cell>
+                              {shortenPrincipal(entry.contractId)}
+                            </Table.Cell>
+                            <Table.Cell>{entry.functionName}</Table.Cell>
+                            <Table.Cell>
+                              <Badge
+                                colorScheme={
+                                  entry.status === "claimed" ? "green" : "red"
+                                }
+                              >
+                                {entry.status.charAt(0).toUpperCase() +
+                                  entry.status.slice(1)}
+                              </Badge>
+                            </Table.Cell>
+                            <Table.Cell>
+                              {entry.claimTxId ? (
+                                <Link
+                                  href={`https://explorer.hiro.so/tx/${entry.claimTxId}`}
+                                  rel="noopener noreferrer"
+                                  target="_blank"
+                                >
+                                  {shortenTxId(entry.claimTxId)}
+                                </Link>
+                              ) : (
+                                "N/A"
+                              )}
+                            </Table.Cell>
+                            <Table.Cell>
+                              {entry.status === "unclaimed" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleClaimMining(entry)}
+                                >
+                                  Claim
+                                </Button>
+                              )}
+                            </Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table.Root>
+                  </Box>
+                )}
+              </Stack>
+            )}
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <Heading size="xl">MIA Stacking History</Heading>
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            {isStackingLoading ? (
+              <Stack align="center">
+                <Spinner />
+                <Text>Loading stacking history...</Text>
+              </Stack>
+            ) : (
+              <Stack gap={4}>
+                <Stack direction="row" gap={4} flexWrap="wrap">
+                  <Badge variant="outline">
+                    Total Stacked Cycles: {stackingHistory.length}
+                  </Badge>
+                  <Badge colorScheme="green" variant="outline">
+                    Claimed:{" "}
+                    {
+                      stackingHistory.filter((h) => h.status === "claimed")
+                        .length
+                    }
+                  </Badge>
+                  <Badge colorScheme="red" variant="outline">
+                    Unclaimed:{" "}
+                    {
+                      stackingHistory.filter((h) => h.status === "unclaimed")
+                        .length
+                    }
+                  </Badge>
+                </Stack>
+                {stackingHistory.length === 0 ? (
+                  <Text>No stacking history found.</Text>
+                ) : (
+                  <Box overflowX="auto">
+                    <Table.Root variant="outline">
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.ColumnHeader>Cycle</Table.ColumnHeader>
+                          <Table.ColumnHeader>Stacking TX</Table.ColumnHeader>
+                          <Table.ColumnHeader>Contract</Table.ColumnHeader>
+                          <Table.ColumnHeader>Function</Table.ColumnHeader>
+                          <Table.ColumnHeader>Status</Table.ColumnHeader>
+                          <Table.ColumnHeader>Claim TX</Table.ColumnHeader>
+                          <Table.ColumnHeader>Action</Table.ColumnHeader>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {stackingHistory.map((entry) => (
+                          <Table.Row key={entry.id}>
+                            <Table.Cell>{entry.id}</Table.Cell>
+                            <Table.Cell>
+                              <Link
+                                href={`https://explorer.hiro.so/tx/${entry.txId}`}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                              >
+                                {shortenTxId(entry.txId)}
+                              </Link>
+                            </Table.Cell>
+                            <Table.Cell>
+                              {shortenPrincipal(entry.contractId)}
+                            </Table.Cell>
+                            <Table.Cell>{entry.functionName}</Table.Cell>
+                            <Table.Cell>
+                              <Badge
+                                colorScheme={
+                                  entry.status === "claimed" ? "green" : "red"
+                                }
+                              >
+                                {entry.status.charAt(0).toUpperCase() +
+                                  entry.status.slice(1)}
+                              </Badge>
+                            </Table.Cell>
+                            <Table.Cell>
+                              {entry.claimTxId ? (
+                                <Link
+                                  href={`https://explorer.hiro.so/tx/${entry.claimTxId}`}
+                                  rel="noopener noreferrer"
+                                  target="_blank"
+                                >
+                                  {shortenTxId(entry.claimTxId)}
+                                </Link>
+                              ) : (
+                                "N/A"
+                              )}
+                            </Table.Cell>
+                            <Table.Cell>
+                              {entry.status === "unclaimed" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleClaimStacking(entry)}
+                                >
+                                  Claim
+                                </Button>
+                              )}
+                            </Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table.Root>
+                  </Box>
+                )}
+              </Stack>
+            )}
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item>
+          <Accordion.ItemTrigger>
+            <Heading size="xl">MIA Transactions</Heading>
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <TransactionList
+              transactions={filteredTransactions}
+              onOpenDetails={onOpenDetails}
+            />
+          </Accordion.ItemContent>
+        </Accordion.Item>
+      </Accordion.Root>
+    </Stack>
+  );
+}
+
+export default Mia;

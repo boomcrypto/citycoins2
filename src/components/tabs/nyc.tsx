@@ -24,7 +24,9 @@ import { fancyFetch, HIRO_API } from "../../store/common";
 import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
 import { shortenPrincipal, shortenTxId } from "../../utilities/clarity";
 import { buildCityTxFilter } from "../../utilities/contracts";
-import { useCityHistory } from "../../hooks/useCityHistory";
+import { useCityHistory, HistoryEntry } from "../../hooks/useCityHistory";
+import { findEntry, REGISTRY } from "../../utilities/contracts";
+import { uintCV, stringAsciiCV } from "@stacks/transactions";
 
 interface NycProps {
   onOpenDetails: (tx: Transaction) => void;
@@ -137,6 +139,58 @@ function Nyc({ onOpenDetails }: NycProps) {
     } catch (error) {
       console.error("Error executing redemption:", error);
     }
+  };
+
+  const handleClaimMining = (entry: HistoryEntry) => {
+    const contractEntry = findEntry(entry.contractId, entry.functionName);
+    if (!contractEntry || !stxAddress) return;
+
+    const [address, name] = entry.contractId.split(".");
+    let functionName = "claim-mining-reward";
+    let functionArgs: any[] = [];
+
+    if (contractEntry.module === "core") {
+      functionArgs = [uintCV(entry.id)];
+    } else if (contractEntry.module === "mining") {
+      const cityName = contractEntry.city === 'mia' ? stringAsciiCV('MIA') : stringAsciiCV('NYC');
+      functionArgs = [cityName, uintCV(entry.id)];
+    }
+
+    openContractCall({
+      contractAddress: address,
+      contractName: name,
+      functionName,
+      functionArgs,
+      postConditionMode: 0x02,
+      onFinish: (data) => console.log("Mining claim finished:", data),
+      onCancel: () => console.log("Mining claim cancelled"),
+    });
+  };
+
+  const handleClaimStacking = (entry: HistoryEntry) => {
+    const contractEntry = findEntry(entry.contractId, entry.functionName);
+    if (!contractEntry || !stxAddress) return;
+
+    const [address, name] = entry.contractId.split(".");
+    let functionName = "claim-stacking-reward";
+    let functionArgs: any[] = [];
+
+    if (contractEntry.module === "core") {
+      functionArgs = [uintCV(entry.id)];
+    } else if (contractEntry.module === "stacking") {
+      const cityName = contractEntry.city === 'mia' ? stringAsciiCV('MIA') : stringAsciiCV('NYC');
+      functionArgs = [cityName, uintCV(entry.id)];
+    }
+
+    openContractCall({
+      contractAddress: address,
+      contractName: name,
+      functionName,
+      functionArgs,
+      postConditionMode: 0x02,
+      onFinish: (data) => console.log("Stacking claim finished:", data),
+      onCancel: () => console.log("Stacking claim cancelled"),
+    });
   };
 
   return (
@@ -279,9 +333,7 @@ function Nyc({ onOpenDetails }: NycProps) {
                               {entry.status === "unclaimed" && (
                                 <Button
                                   size="sm"
-                                  onClick={() =>
-                                    console.log(`Claiming block ${entry.id}`)
-                                  }
+                                  onClick={() => handleClaimMining(entry)}
                                 >
                                   Claim
                                 </Button>
@@ -389,9 +441,7 @@ function Nyc({ onOpenDetails }: NycProps) {
                               {entry.status === "unclaimed" && (
                                 <Button
                                   size="sm"
-                                  onClick={() =>
-                                    console.log(`Claiming cycle ${entry.id}`)
-                                  }
+                                  onClick={() => handleClaimStacking(entry)}
                                 >
                                   Claim
                                 </Button>
