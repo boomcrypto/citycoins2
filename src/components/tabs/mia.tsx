@@ -164,6 +164,7 @@ function Mia({ onOpenDetails }: MiaProps) {
           return {
             id: block,
             txId: info.txId,
+            claimTxId: undefined,
             status: "unclaimed" as const,
             contractId: info.contractId,
             functionName: info.functionName,
@@ -286,6 +287,7 @@ function Mia({ onOpenDetails }: MiaProps) {
           return {
             id: cycle,
             txId: info.txId,
+            claimTxId: undefined,
             status: "unclaimed" as const,
             contractId: info.contractId,
             functionName: info.functionName,
