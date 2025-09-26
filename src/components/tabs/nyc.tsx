@@ -196,9 +196,7 @@ function Nyc({ onOpenDetails }: NycProps) {
 
     Promise.all(checkMiningPromises)
       .then((results) => {
-        const unclaimedMining = results.filter(
-          (r): r is HistoryEntry => r !== null
-        ) as HistoryEntry[];
+        const unclaimedMining = results.filter(r => r !== null) as HistoryEntry[];
         const fullHistory = [...historyMining, ...unclaimedMining].sort(
           (a, b) => a.id - b.id
         );
@@ -319,9 +317,7 @@ function Nyc({ onOpenDetails }: NycProps) {
 
     Promise.all(checkStackingPromises)
       .then((results) => {
-        const unclaimedStacking = results.filter(
-          (r): r is HistoryEntry => r !== null
-        ) as HistoryEntry[];
+        const unclaimedStacking = results.filter(r => r !== null) as HistoryEntry[];
         const fullHistory = [...historyStacking, ...unclaimedStacking].sort(
           (a, b) => a.id - b.id
         );
