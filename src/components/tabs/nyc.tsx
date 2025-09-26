@@ -198,7 +198,7 @@ function Nyc({ onOpenDetails }: NycProps) {
       .then((results) => {
         const unclaimedMining = results.filter(
           (r): r is HistoryEntry => r !== null
-        );
+        ) as HistoryEntry[];
         const fullHistory = [...historyMining, ...unclaimedMining].sort(
           (a, b) => a.id - b.id
         );
@@ -321,7 +321,7 @@ function Nyc({ onOpenDetails }: NycProps) {
       .then((results) => {
         const unclaimedStacking = results.filter(
           (r): r is HistoryEntry => r !== null
-        );
+        ) as HistoryEntry[];
         const fullHistory = [...historyStacking, ...unclaimedStacking].sort(
           (a, b) => a.id - b.id
         );
