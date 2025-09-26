@@ -24,7 +24,7 @@ interface HistoryEntry {
 
 export function useCityHistory(
   filteredTransactions: ContractCallTransaction[],
-  stxAddress: string
+  stxAddress: string | null
 ) {
   const [miningHistory, setMiningHistory] = useState<HistoryEntry[]>([]);
   const [isMiningLoading, setIsMiningLoading] = useState(true);
@@ -33,6 +33,14 @@ export function useCityHistory(
   const [isStackingLoading, setIsStackingLoading] = useState(true);
 
   useEffect(() => {
+    if (!stxAddress) {
+      setMiningHistory([]);
+      setIsMiningLoading(false);
+      setStackingHistory([]);
+      setIsStackingLoading(false);
+      return;
+    }
+
     // Collect claimed mining blocks from claim txs
     const claimedMining: {
       block: number;
@@ -40,24 +48,21 @@ export function useCityHistory(
       contractId: string;
       functionName: string;
     }[] = [];
-    filteredTransactions.forEach(
-      (tx) => {
-        const decoded = decodeTxArgs(tx);
-        if (
-          tx.tx_status === "success" &&
-          decoded &&
-          isValidMiningClaimTxArgs(decoded)
-        ) {
-          claimedMining.push({
-            block: Number(decoded.minerBlockHeight),
-            claimTxId: tx.tx_id,
-            contractId: tx.contract_call.contract_id,
-            functionName: tx.contract_call.function_name,
-          });
-        }
-      },
-      [filteredTransactions, stxAddress]
-    );
+    filteredTransactions.forEach((tx) => {
+      const decoded = decodeTxArgs(tx);
+      if (
+        tx.tx_status === "success" &&
+        decoded &&
+        isValidMiningClaimTxArgs(decoded)
+      ) {
+        claimedMining.push({
+          block: Number(decoded.minerBlockHeight),
+          claimTxId: tx.tx_id,
+          contractId: tx.contract_call.contract_id,
+          functionName: tx.contract_call.function_name,
+        });
+      }
+    });
 
     // Collect potential mining blocks from mining txs
     const potentialMining = new Map<

@@ -59,6 +59,8 @@ function Mia({ onOpenDetails }: MiaProps) {
     );
   }) as ContractCallTransaction[];
 
+  const { miningHistory, isMiningLoading, stackingHistory, isStackingLoading } = useCityHistory(filteredTransactions, stxAddress);
+
   if (!stxAddress) {
     return (
       <Stack gap={4}>
@@ -71,8 +73,6 @@ function Mia({ onOpenDetails }: MiaProps) {
       </Stack>
     );
   }
-
-  const { miningHistory, isMiningLoading, stackingHistory, isStackingLoading } = useCityHistory(filteredTransactions, stxAddress);
 
   const MIA_ASSET_ID = "miamicoin";
   const MIA_V1_CONTRACT =

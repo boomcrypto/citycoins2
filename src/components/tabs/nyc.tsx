@@ -62,6 +62,8 @@ function Nyc({ onOpenDetails }: NycProps) {
     return matches;
   }) as ContractCallTransaction[];
 
+  const { miningHistory, isMiningLoading, stackingHistory, isStackingLoading } = useCityHistory(filteredTransactions, stxAddress);
+
   if (!stxAddress) {
     return (
       <Stack gap={4}>
@@ -74,8 +76,6 @@ function Nyc({ onOpenDetails }: NycProps) {
       </Stack>
     );
   }
-
-  const { miningHistory, isMiningLoading, stackingHistory, isStackingLoading } = useCityHistory(filteredTransactions, stxAddress);
 
   const NYC_ASSET_ID = "newyorkcitycoin";
   const NYC_V1_CONTRACT =
