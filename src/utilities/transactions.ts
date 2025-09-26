@@ -1,9 +1,7 @@
-import { ClarityValue, deserializeCV, uintCV, serializeCV, cvToHex, principalCV, ClarityType, ResponseOkCV, NoneCV, SomeCV } from "@stacks/transactions";
+import { ClarityValue, deserializeCV, uintCV, cvToHex, principalCV, ClarityType, ResponseOkCV, SomeCV } from "@stacks/transactions";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { decodeClarityValues, safeConvertToBigint } from "./clarity";
-import { Buffer } from "buffer";
-
-import { REGISTRY, findEntry, categorize, City, Version, Module, USER_REGISTRY_CONTRACT, USER_REGISTRY_FUNCTIONS, CITY_ID_MAP } from './contracts';
+import { findEntry, categorize, City, Version, Module, USER_REGISTRY_CONTRACT, CITY_ID_MAP } from './contracts';
 import { HIRO_API } from "../store/common";
 
 export interface BaseTxArgs {
@@ -52,7 +50,7 @@ export type DecodedTxArgs = MiningTxArgs | StackingTxArgs | MiningClaimTxArgs | 
 export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
   return typeof decoded === "object" && decoded.category === 'Mining' &&
     (decoded.functionName === "mine-tokens" || decoded.functionName === "mine-many" || decoded.functionName === "mine") &&
-    Array.isArray(decoded.amountsUstx) && decoded.amountsUstx.every(amt => typeof amt === "bigint" && amt > 0n);
+    Array.isArray(decoded.amountsUstx) && decoded.amountsUstx.every((amt: unknown) => typeof amt === "bigint" && amt > 0n);
 }
 
 export function isValidStackingTxArgs(decoded: any): decoded is StackingTxArgs {
@@ -105,7 +103,7 @@ export function decodeTxArgs(tx: Transaction): DecodedTxArgs {
   const decodedArgs: any[] = [];
   for (const arg of rawArgs) {
     try {
-      const cv: ClarityValue = deserializeCV(Buffer.from(arg.hex.replace(/^0x/, ""), "hex"));
+      const cv: ClarityValue = deserializeCV(arg.hex);
       decodedArgs.push(decodeClarityValues(cv));
     } catch (e) {
       console.error(`Failed to deserialize arg for tx ${tx.tx_id}:`, arg, e);
@@ -222,7 +220,7 @@ export async function fetchCallReadOnlyFunction(options: {
   const url = `${HIRO_API}/v2/contracts/call-read/${options.contractAddress}/${options.contractName}/${options.functionName}`;
   const body = {
     sender: options.senderAddress,
-    arguments: options.functionArgs.map(arg => cvToHex(serializeCV(arg))),
+    arguments: options.functionArgs.map(arg => cvToHex(arg)),
   };
   const response = await fetch(url, {
     method: 'POST',
