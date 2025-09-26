@@ -122,41 +122,41 @@ export function decodeTxArgs(tx: Transaction): DecodedTxArgs {
   switch (func) {
     case "mine-tokens":
       if (entry.module !== 'core' || decodedArgs.length < 1 || decodedArgs.length > 2 || typeof decodedArgs[0] !== 'number') return null;
-      return { ...base, amountsUstx: [safeConvertToBigint(decodedArgs[0])] };
+      return { ...base, functionName: func as const, amountsUstx: [safeConvertToBigint(decodedArgs[0])] } as MiningTxArgs;
 
     case "mine-many":
       if (entry.module !== 'core' || decodedArgs.length !== 1 || !Array.isArray(decodedArgs[0])) return null;
-      return { ...base, amountsUstx: decodedArgs[0].map(safeConvertToBigint) };
+      return { ...base, functionName: func as const, amountsUstx: decodedArgs[0].map(safeConvertToBigint) } as MiningTxArgs;
 
     case "mine":
       if (entry.module !== 'mining' || decodedArgs.length !== 2 || typeof decodedArgs[0] !== 'string' || !Array.isArray(decodedArgs[1])) return null;
-      return { ...base, cityName: decodedArgs[0], amountsUstx: decodedArgs[1].map(safeConvertToBigint) };
+      return { ...base, functionName: func as const, cityName: decodedArgs[0], amountsUstx: decodedArgs[1].map(safeConvertToBigint) } as MiningTxArgs;
 
     case "stack-tokens":
       if (entry.module !== 'core' || decodedArgs.length !== 2 || typeof decodedArgs[0] !== 'number' || typeof decodedArgs[1] !== 'number') return null;
-      return { ...base, amountToken: safeConvertToBigint(decodedArgs[0]), lockPeriod: safeConvertToBigint(decodedArgs[1]) };
+      return { ...base, functionName: func as const, amountToken: safeConvertToBigint(decodedArgs[0]), lockPeriod: safeConvertToBigint(decodedArgs[1]) } as StackingTxArgs;
 
     case "stack":
       if (entry.module !== 'stacking' || decodedArgs.length !== 3 || typeof decodedArgs[0] !== 'string' || typeof decodedArgs[1] !== 'number' || typeof decodedArgs[2] !== 'number') return null;
-      return { ...base, cityName: decodedArgs[0], amountToken: safeConvertToBigint(decodedArgs[1]), lockPeriod: safeConvertToBigint(decodedArgs[2]) };  // Corrected: not a list
+      return { ...base, functionName: func as const, cityName: decodedArgs[0], amountToken: safeConvertToBigint(decodedArgs[1]), lockPeriod: safeConvertToBigint(decodedArgs[2]) } as StackingTxArgs;
 
     case "claim-mining-reward":
       if (entry.module === 'mining') {
         if (decodedArgs.length !== 2 || typeof decodedArgs[0] !== 'string' || typeof decodedArgs[1] !== 'number') return null;
-        return { ...base, cityName: decodedArgs[0], minerBlockHeight: safeConvertToBigint(decodedArgs[1]) };
+        return { ...base, functionName: func as const, cityName: decodedArgs[0], minerBlockHeight: safeConvertToBigint(decodedArgs[1]) } as MiningClaimTxArgs;
       } else if (entry.module === 'core') {
         if (decodedArgs.length !== 1 || typeof decodedArgs[0] !== 'number') return null;
-        return { ...base, minerBlockHeight: safeConvertToBigint(decodedArgs[0]) };
+        return { ...base, functionName: func as const, minerBlockHeight: safeConvertToBigint(decodedArgs[0]) } as MiningClaimTxArgs;
       }
       return null;
 
     case "claim-stacking-reward":
       if (entry.module === 'stacking') {
         if (decodedArgs.length !== 2 || typeof decodedArgs[0] !== 'string' || typeof decodedArgs[1] !== 'number') return null;
-        return { ...base, cityName: decodedArgs[0], rewardCycle: safeConvertToBigint(decodedArgs[1]) };
+        return { ...base, functionName: func as const, cityName: decodedArgs[0], rewardCycle: safeConvertToBigint(decodedArgs[1]) } as StackingClaimTxArgs;
       } else if (entry.module === 'core') {
         if (decodedArgs.length !== 1 || typeof decodedArgs[0] !== 'number') return null;
-        return { ...base, rewardCycle: safeConvertToBigint(decodedArgs[0]) };
+        return { ...base, functionName: func as const, rewardCycle: safeConvertToBigint(decodedArgs[0]) } as StackingClaimTxArgs;
       }
       return null;
 
@@ -164,7 +164,7 @@ export function decodeTxArgs(tx: Transaction): DecodedTxArgs {
       if (entry.module !== 'token' || decodedArgs.length < 2 || decodedArgs.length > 3 || typeof decodedArgs[0] !== 'number' || typeof decodedArgs[1] !== 'string') return null;
       const transfer: TransferTxArgs = {
         ...base,
-        functionName: func,
+        functionName: func as const,
         amount: safeConvertToBigint(decodedArgs[0]),
         recipient: decodedArgs[1],
       };
