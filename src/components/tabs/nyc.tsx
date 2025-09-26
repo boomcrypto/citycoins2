@@ -10,6 +10,7 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
+import { useState } from "react";
 import { useAtomValue } from "jotai";
 import { openContractCall } from "@stacks/connect";
 import {
@@ -23,20 +24,10 @@ import { fancyFetch, HIRO_API } from "../../store/common";
 import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
 import { shortenPrincipal, shortenTxId } from "../../utilities/clarity";
 import { buildCityTxFilter } from "../../utilities/contracts";
-import { ClarityType, uintCV } from "@stacks/transactions";
 import { useCityHistory } from "../../hooks/useCityHistory";
 
 interface NycProps {
   onOpenDetails: (tx: Transaction) => void;
-}
-
-interface HistoryEntry {
-  id: number;
-  txId: string;
-  claimTxId?: string;
-  status: "claimed" | "unclaimed";
-  contractId: string;
-  functionName: string;
 }
 
 function Nyc({ onOpenDetails }: NycProps) {
@@ -62,7 +53,8 @@ function Nyc({ onOpenDetails }: NycProps) {
     return matches;
   }) as ContractCallTransaction[];
 
-  const { miningHistory, isMiningLoading, stackingHistory, isStackingLoading } = useCityHistory(filteredTransactions, stxAddress);
+  const { miningHistory, isMiningLoading, stackingHistory, isStackingLoading } =
+    useCityHistory(filteredTransactions, stxAddress);
 
   if (!stxAddress) {
     return (
@@ -117,7 +109,7 @@ function Nyc({ onOpenDetails }: NycProps) {
     }
   };
 
-  const executeRedemption = async () => {
+  const executeRedemption = () => {
     console.log("Executing redemption...");
     const [address, name] = NYC_REDEMPTION_CONTRACT.split(".");
     /* Need to double check post conditions required here
@@ -129,7 +121,7 @@ function Nyc({ onOpenDetails }: NycProps) {
     if (v2PostCondition) { postConditions.push(v2PostCondition) };
     */
     try {
-      await openContractCall({
+      openContractCall({
         contractAddress: address,
         contractName: name,
         functionName: "redeem-nyc",

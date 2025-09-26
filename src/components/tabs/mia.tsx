@@ -10,6 +10,7 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
+import { useState } from "react";
 import { useAtomValue } from "jotai";
 import { openContractCall } from "@stacks/connect";
 import {
@@ -27,15 +28,6 @@ import { useCityHistory } from "../../hooks/useCityHistory";
 
 interface MiaProps {
   onOpenDetails: (tx: Transaction) => void;
-}
-
-interface HistoryEntry {
-  id: number;
-  txId: string;
-  claimTxId?: string;
-  status: "claimed" | "unclaimed";
-  contractId: string;
-  functionName: string;
 }
 
 function Mia({ onOpenDetails }: MiaProps) {
@@ -59,7 +51,8 @@ function Mia({ onOpenDetails }: MiaProps) {
     );
   }) as ContractCallTransaction[];
 
-  const { miningHistory, isMiningLoading, stackingHistory, isStackingLoading } = useCityHistory(filteredTransactions, stxAddress);
+  const { miningHistory, isMiningLoading, stackingHistory, isStackingLoading } =
+    useCityHistory(filteredTransactions, stxAddress);
 
   if (!stxAddress) {
     return (
