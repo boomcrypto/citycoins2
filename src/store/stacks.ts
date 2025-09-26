@@ -51,6 +51,12 @@ export const acctBalancesAtom = atomWithStorage(
   null
 );
 
+// New: User ID cache per city (for core) and shared (for ccd003)
+export const userIdsAtom = atomWithStorage<Record<string, string | null>>(
+  "citycoins-stacks-userIds",
+  {} // e.g., { 'mia-core-v1': '123', 'ccd003': '456' }
+);
+
 export const stacksLocalStorageAtoms = [
   blockHeightsAtom,
   stxAddressAtom,
@@ -58,6 +64,7 @@ export const stacksLocalStorageAtoms = [
   acctTxsAtom,
   acctMempoolTxsAtom,
   acctBalancesAtom,
+  userIdsAtom,
 ];
 
 /////////////////////////

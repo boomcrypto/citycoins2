@@ -1,9 +1,9 @@
-import { ClarityValue, deserializeCV, uintCV, serializeCV, cvToHex } from "@stacks/transactions";
+import { ClarityValue, deserializeCV, uintCV, serializeCV, cvToHex, principalCV, ClarityType, ResponseOkCV, NoneCV, SomeCV } from "@stacks/transactions";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { decodeClarityValues, safeConvertToBigint } from "./clarity";
 import { Buffer } from "buffer";
 
-import { REGISTRY, findEntry, categorize, City, Version, Module } from './contracts';
+import { REGISTRY, findEntry, categorize, City, Version, Module, USER_REGISTRY_CONTRACT, USER_REGISTRY_FUNCTIONS, CITY_ID_MAP } from './contracts';
 import { HIRO_API } from "../store/common";
 
 export interface BaseTxArgs {
@@ -237,4 +237,135 @@ export async function fetchCallReadOnlyFunction(options: {
     throw new Error(data.cause);
   }
   return deserializeCV(data.result);
+}
+
+// Helper to get cityId from city
+export function getCityId(city: City): number {
+  return CITY_ID_MAP[city];
+}
+
+// Helper to fetch userId from registry or core contract
+export async function getUserId(principal: string, contractId?: string): Promise<bigint> {
+  if (!principal) throw new Error('Principal required');
+  let contractAddress: string;
+  let contractName: string;
+  let functionName = 'get-user-id';
+
+  if (contractId) {
+    [contractAddress, contractName] = contractId.split('.');
+  } else {
+    // Default to shared ccd003
+    contractAddress = USER_REGISTRY_CONTRACT.split('.')[0];
+    contractName = USER_REGISTRY_CONTRACT.split('.')[1];
+  }
+
+  const result = await fetchCallReadOnlyFunction({
+    contractAddress,
+    contractName,
+    functionName,
+    functionArgs: [principalCV(principal)],
+    senderAddress: principal,
+  });
+
+  if (result.type !== ClarityType.UInt) {
+    throw new Error('Invalid userId response');
+  }
+
+  return safeConvertToBigint(result.value);
+}
+
+// Helper to check if user won a mining block (unclaimed if true and no claim tx)
+export async function checkMiningWinner(
+  entry: { contract: string; readonlyFunctions?: { miningCheck?: string }; city: City; module: Module },
+  block: number,
+  principal: string,
+  userId?: bigint
+): Promise<boolean> {
+  if (!entry.readonlyFunctions?.miningCheck) {
+    throw new Error('No mining check function available');
+  }
+
+  const [contractAddress, contractName] = entry.contract.split('.');
+  const functionName = entry.readonlyFunctions.miningCheck;
+  let functionArgs: ClarityValue[] = [];
+
+  if (entry.module === 'core') {
+    // Core: is-block-winner (user principal) (minerBlockHeight uint)
+    functionArgs = [principalCV(principal), uintCV(block)];
+  } else if (entry.module === 'mining') {
+    // ccd006: is-block-winner (cityId uint) (user principal) (claimHeight uint)
+    const cityId = getCityId(entry.city);
+    functionArgs = [uintCV(cityId), principalCV(principal), uintCV(block)];
+  } else {
+    throw new Error('Unsupported module for mining check');
+  }
+
+  const result = await fetchCallReadOnlyFunction({
+    contractAddress,
+    contractName,
+    functionName,
+    functionArgs,
+    senderAddress: principal,
+  });
+
+  // Assume bool true for winner (adjust if ResponseOk)
+  return result.type === ClarityType.BoolTrue;
+}
+
+// Helper to check if user stacked in a cycle (unclaimed if Some with amount >0 and no claim tx)
+export async function checkStackingCycle(
+  entry: { contract: string; readonlyFunctions?: { stackingCheck?: string }; city: City; module: Module },
+  cycle: number,
+  principal: string,
+  userId: bigint
+): Promise<boolean> {
+  if (!entry.readonlyFunctions?.stackingCheck) {
+    throw new Error('No stacking check function available');
+  }
+  if (!userId) {
+    throw new Error('UserId required for stacking check');
+  }
+
+  const [contractAddress, contractName] = entry.contract.split('.');
+  const functionName = entry.readonlyFunctions.stackingCheck;
+  let functionArgs: ClarityValue[] = [];
+
+  if (entry.module === 'core') {
+    // Core: get-stacker-at-cycle (rewardCycle uint) (userId uint) -> optional {amount: uint, lock: uint}
+    functionArgs = [uintCV(cycle), uintCV(Number(userId))];
+  } else if (entry.module === 'stacking') {
+    // ccd007: get-stacker (cityId uint) (cycle uint) (userId uint) -> ResponseOk {amount: uint}
+    const cityId = getCityId(entry.city);
+    functionArgs = [uintCV(cityId), uintCV(cycle), uintCV(Number(userId))];
+  } else {
+    throw new Error('Unsupported module for stacking check');
+  }
+
+  const result = await fetchCallReadOnlyFunction({
+    contractAddress,
+    contractName,
+    functionName,
+    functionArgs,
+    senderAddress: principal,
+  });
+
+  let isStacked = false;
+
+  if (entry.module === 'core') {
+    // Optional Some with amount >0
+    if (result.type === ClarityType.OptionalSome) {
+      const some = result as SomeCV;
+      const decoded = decodeClarityValues(some.value);
+      isStacked = decoded.amount > 0n;
+    }
+  } else if (entry.module === 'stacking') {
+    // ResponseOk with amount >0
+    if (result.type === ClarityType.ResponseOk) {
+      const ok = result as ResponseOkCV;
+      const decoded = decodeClarityValues(ok.value);
+      isStacked = decoded.amount > 0n;
+    }
+  }
+
+  return isStacked;
 }

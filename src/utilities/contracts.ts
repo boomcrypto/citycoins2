@@ -1,5 +1,3 @@
-// Minimal registry + helpers for mining/stacking only
-
 export type City = 'mia' | 'nyc';
 export type Version = 'v1' | 'v2';
 export type Module = 'core' | 'mining' | 'stacking' | 'token';
@@ -32,6 +30,11 @@ type Entry = {
   module: Module;
   contract: ContractId; // fully-qualified (address.name)
   functions: readonly string[];
+  readonlyFunctions?: {
+    miningCheck?: string; // e.g., 'is-block-winner' or 'can-claim-mining-reward'
+    stackingCheck?: string; // e.g., 'get-stacker' or 'get-stacker-at-cycle'
+    getUserId?: string; // e.g., 'get-user-id'
+  };
 };
 
 // REGISTRY: mining + stacking only
@@ -41,11 +44,21 @@ export const REGISTRY: Entry[] = [
     city: 'mia', version: 'v1', module: 'core',
     contract: 'SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1',
     functions: CORE_FUNCTIONS,
+    readonlyFunctions: {
+      miningCheck: 'is-block-winner',
+      stackingCheck: 'get-stacker-at-cycle',
+      getUserId: 'get-user-id',
+    },
   },
   {
     city: 'mia', version: 'v2', module: 'core',
     contract: 'SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2',
     functions: CORE_FUNCTIONS,
+    readonlyFunctions: {
+      miningCheck: 'is-block-winner',
+      stackingCheck: 'get-stacker-at-cycle',
+      getUserId: 'get-user-id',
+    },
   },
 
   // NYC core
@@ -53,11 +66,21 @@ export const REGISTRY: Entry[] = [
     city: 'nyc', version: 'v1', module: 'core',
     contract: 'SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1',
     functions: CORE_FUNCTIONS,
+    readonlyFunctions: {
+      miningCheck: 'is-block-winner',
+      stackingCheck: 'get-stacker-at-cycle',
+      getUserId: 'get-user-id',
+    },
   },
   {
     city: 'nyc', version: 'v2', module: 'core',
     contract: 'SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2',
     functions: CORE_FUNCTIONS,
+    readonlyFunctions: {
+      miningCheck: 'is-block-winner',
+      stackingCheck: 'get-stacker-at-cycle',
+      getUserId: 'get-user-id',
+    },
   },
 
   // Shared mining (ccd006) v1 & v2
@@ -65,21 +88,33 @@ export const REGISTRY: Entry[] = [
     city: 'mia', version: 'v1', module: 'mining',
     contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining',
     functions: CCD006_FUNCTIONS,
+    readonlyFunctions: {
+      miningCheck: 'is-block-winner',
+    },
   },
   {
     city: 'mia', version: 'v2', module: 'mining',
     contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining-v2',
     functions: CCD006_FUNCTIONS,
+    readonlyFunctions: {
+      miningCheck: 'is-block-winner',
+    },
   },
   {
     city: 'nyc', version: 'v1', module: 'mining',
     contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining',
     functions: CCD006_FUNCTIONS,
+    readonlyFunctions: {
+      miningCheck: 'is-block-winner',
+    },
   },
   {
     city: 'nyc', version: 'v2', module: 'mining',
     contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining-v2',
     functions: CCD006_FUNCTIONS,
+    readonlyFunctions: {
+      miningCheck: 'is-block-winner',
+    },
   },
 
   // Shared stacking (ccd007)
@@ -87,21 +122,33 @@ export const REGISTRY: Entry[] = [
     city: 'mia', version: 'v1', module: 'stacking',
     contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking',
     functions: CCD007_FUNCTIONS,
+    readonlyFunctions: {
+      stackingCheck: 'get-stacker',
+    },
   },
   {
     city: 'mia', version: 'v2', module: 'stacking',
     contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking',
     functions: CCD007_FUNCTIONS,
+    readonlyFunctions: {
+      stackingCheck: 'get-stacker',
+    },
   },
   {
     city: 'nyc', version: 'v1', module: 'stacking',
     contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking',
     functions: CCD007_FUNCTIONS,
+    readonlyFunctions: {
+      stackingCheck: 'get-stacker',
+    },
   },
   {
     city: 'nyc', version: 'v2', module: 'stacking',
     contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking',
     functions: CCD007_FUNCTIONS,
+    readonlyFunctions: {
+      stackingCheck: 'get-stacker',
+    },
   },
   // MIA token
   {
@@ -126,6 +173,16 @@ export const REGISTRY: Entry[] = [
     functions: TOKEN_FUNCTIONS,
   },
 ];
+
+// Shared user registry for ccd006/007
+export const USER_REGISTRY_CONTRACT = 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd003-user-registry' as const;
+export const USER_REGISTRY_FUNCTIONS = ['get-user-id'] as const;
+
+// City ID mapping (MIA=0, NYC=1 per CityCoins spec)
+export const CITY_ID_MAP: Record<City, number> = {
+  mia: 0,
+  nyc: 1,
+};
 
 // Build the same structure you used in NYC/MIA components:
 export function buildCityTxFilter(city: City) {
