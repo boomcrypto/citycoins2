@@ -193,16 +193,21 @@ function Nyc({ onOpenDetails }: NycProps) {
       }
     });
 
-    Promise.all(checkMiningPromises).then((results) => {
-      const unclaimedMining = results.filter(
-        (r): r is HistoryEntry => r !== null
-      );
-      const fullHistory = [...historyMining, ...unclaimedMining].sort(
-        (a, b) => a.id - b.id
-      );
-      setMiningHistory(fullHistory);
-      setIsMiningLoading(false);
-    });
+    Promise.all(checkMiningPromises)
+      .then((results) => {
+        const unclaimedMining = results.filter(
+          (r): r is HistoryEntry => r !== null
+        );
+        const fullHistory = [...historyMining, ...unclaimedMining].sort(
+          (a, b) => a.id - b.id
+        );
+        setMiningHistory(fullHistory);
+        setIsMiningLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error processing mining claims:", error);
+        setIsMiningLoading(false);
+      });
 
     // Similar for stacking
     const claimedStacking: {
@@ -310,16 +315,21 @@ function Nyc({ onOpenDetails }: NycProps) {
       }
     });
 
-    Promise.all(checkStackingPromises).then((results) => {
-      const unclaimedStacking = results.filter(
-        (r): r is HistoryEntry => r !== null
-      );
-      const fullHistory = [...historyStacking, ...unclaimedStacking].sort(
-        (a, b) => a.id - b.id
-      );
-      setStackingHistory(fullHistory);
-      setIsStackingLoading(false);
-    });
+    Promise.all(checkStackingPromises)
+      .then((results) => {
+        const unclaimedStacking = results.filter(
+          (r): r is HistoryEntry => r !== null
+        );
+        const fullHistory = [...historyStacking, ...unclaimedStacking].sort(
+          (a, b) => a.id - b.id
+        );
+        setStackingHistory(fullHistory);
+        setIsStackingLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error processing stacking claims:", error);
+        setIsStackingLoading(false);
+      });
   }, [filteredTransactions, stxAddress]);
 
   const NYC_ASSET_ID = "newyorkcitycoin";
