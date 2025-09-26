@@ -11,31 +11,18 @@ import {
   Table,
   NativeSelect,
 } from "@chakra-ui/react";
-import { IoMdRefresh } from "react-icons/io";
+import { useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
+import { IoMdRefresh } from "react-icons/io";
+import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
 import { formatDate } from "../store/common";
-import { Transaction } from "@stacks/stacks-blockchain-api-types";
-import { useState } from "react";
-
+import { shortenTxId } from "../utilities/clarity";
 import { getTxCategory } from "../utilities/transactions";
 
 interface TransactionListProps {
   transactions: Transaction[];
   onOpenDetails: (tx: Transaction) => void;
-}
-
-function shortenPrincipal(addr: string): string {
-  if (!addr) return "";
-  if (addr.includes(".")) {
-    const [address, contract] = addr.split(".");
-    return `${address.slice(0, 5)}...${address.slice(-5)}.${contract}`;
-  }
-  return `${addr.slice(0, 5)}...${addr.slice(-5)}`;
-}
-
-function shortenTxId(txId: string): string {
-  return txId ? `${txId.slice(0, 6)}...${txId.slice(-4)}` : "";
 }
 
 function getCategoryColor(category: string): string {

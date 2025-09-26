@@ -153,3 +153,26 @@ export function safeConvertToBigint(value: unknown): bigint {
 
   throw new Error(`Cannot convert ${typeof value} to BigInt`);
 }
+
+/**
+ * Shortens a Stacks address or principal for display purposes
+ * @param addr - The Stacks address or principal to shorten
+ * @returns Shortened address or principal (e.g., "SP2H8...27SA5" or "SP2H8...27SA5.contract")
+ */
+export function shortenPrincipal(addr: string): string {
+  if (!addr) return "";
+  if (addr.includes(".")) {
+    const [address, contract] = addr.split(".");
+    return `${address.slice(0, 5)}...${address.slice(-5)}.${contract}`;
+  }
+  return `${addr.slice(0, 5)}...${addr.slice(-5)}`;
+}
+
+/**
+ * Shortens a transaction ID for display purposes
+ * @param txId - The transaction ID to shorten
+ * @returns Shortened transaction ID (e.g., "0x1234...abcd")
+ */
+export function shortenTxId(txId: string): string {
+  return txId ? `${txId.slice(0, 6)}...${txId.slice(-4)}` : "";
+}

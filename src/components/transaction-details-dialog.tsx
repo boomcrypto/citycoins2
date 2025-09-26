@@ -12,8 +12,10 @@ import {
   Separator,
 } from "@chakra-ui/react";
 import { Fragment } from "react";
-import { formatDate, formatMicroAmount } from "../store/common";
+import { useAtomValue } from "jotai";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
+import { ClarityValue, deserializeCV } from "@stacks/transactions";
+import { formatDate, formatMicroAmount } from "../store/common";
 import {
   decodeTxArgs,
   isValidMiningTxArgs,
@@ -22,26 +24,13 @@ import {
   isValidStackingClaimTxArgs,
   isValidTransferTxArgs,
 } from "../utilities/transactions";
-
-import { ClarityValue, deserializeCV } from "@stacks/transactions";
-import { decodeClarityValues } from "../utilities/clarity";
-import { Buffer } from "buffer";
-import { useAtomValue } from "jotai";
 import { minedBlocksAtom } from "../store/stacks";
+import { decodeClarityValues, shortenPrincipal } from "../utilities/clarity";
 
 interface TransactionDetailsDialogProps {
   tx: Transaction | null;
   isOpen: boolean;
   onClose: () => void;
-}
-
-function shortenPrincipal(addr: string): string {
-  if (!addr) return "";
-  if (addr.includes(".")) {
-    const [address, contract] = addr.split(".");
-    return `${address.slice(0, 5)}...${address.slice(-5)}.${contract}`;
-  }
-  return `${addr.slice(0, 5)}...${addr.slice(-5)}`;
 }
 
 function TransactionArguments({ tx }: { tx: Transaction }) {
@@ -340,10 +329,7 @@ function TransactionEvents({ tx }: { tx: Transaction }) {
               let decodedPrint: any;
               try {
                 const cv: ClarityValue = deserializeCV(
-                  Buffer.from(
-                    event.contract_log.value.hex.replace(/^0x/, ""),
-                    "hex"
-                  )
+                  event.contract_log.value.hex
                 );
                 decodedPrint = decodeClarityValues(cv);
               } catch (e) {

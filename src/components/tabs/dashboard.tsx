@@ -20,7 +20,11 @@ import {
   stackingTransactionsAtom,
   votingTransactionsAtom,
 } from "../../store/citycoins";
-import { stxAddressAtom, transactionFetchStatusAtom, transactionsAtom } from "../../store/stacks";
+import {
+  stxAddressAtom,
+  transactionFetchStatusAtom,
+  transactionsAtom,
+} from "../../store/stacks";
 import SignIn from "../auth/sign-in";
 import TransactionList from "../transaction-list";
 
@@ -68,7 +72,7 @@ function Dashboard() {
         gap={2}
       >
         <Text fontWeight="bold">{stxAddress}</Text>
-        <Text size="sm">{`${transactions.length} transactions detected`}</Text>
+        <Text fontSize="sm">{`${transactions.length} transactions detected`}</Text>
         <Button onClick={() => selectTransactions("all")}>Show All</Button>
       </Stack>
       <Separator />
@@ -89,12 +93,13 @@ function Dashboard() {
           </Stat.Root>
           <IconButton
             colorScheme={selectedTransactionType === "mining" ? "blue" : "gray"}
-            icon={<MdFilterList />}
             aria-label="Filter transactions"
             title="Filter Transactions"
             size="xs"
             onClick={() => selectTransactions("mining")}
-          />
+          >
+            <MdFilterList />
+          </IconButton>
         </Stack>
         <Stack
           direction="row"
@@ -109,12 +114,13 @@ function Dashboard() {
             colorScheme={
               selectedTransactionType === "mining-claims" ? "blue" : "gray"
             }
-            icon={<MdFilterList />}
             aria-label="Filter transactions"
             title="Filter Transactions"
             size="xs"
             onClick={() => selectTransactions("mining-claims")}
-          />
+          >
+            <MdFilterList />
+          </IconButton>
         </Stack>
         <Stack
           direction="row"
@@ -129,12 +135,13 @@ function Dashboard() {
             colorScheme={
               selectedTransactionType === "stacking" ? "blue" : "gray"
             }
-            icon={<MdFilterList />}
             aria-label="Filter transactions"
             title="Filter Transactions"
             size="xs"
             onClick={() => selectTransactions("stacking")}
-          />
+          >
+            <MdFilterList />
+          </IconButton>
         </Stack>
         <Stack
           direction="row"
@@ -149,12 +156,13 @@ function Dashboard() {
             colorScheme={
               selectedTransactionType === "stacking-claims" ? "blue" : "gray"
             }
-            icon={<MdFilterList />}
             aria-label="Filter transactions"
             title="Filter Transactions"
             size="xs"
             onClick={() => selectTransactions("stacking-claims")}
-          />
+          >
+            <MdFilterList />
+          </IconButton>
         </Stack>
         <Stack
           direction="row"
@@ -167,18 +175,25 @@ function Dashboard() {
           </Stat.Root>
           <IconButton
             colorScheme={selectedTransactionType === "voting" ? "blue" : "gray"}
-            icon={<MdFilterList />}
             aria-label="Filter transactions"
             title="Filter Transactions"
             size="xs"
             onClick={() => selectTransactions("voting")}
-          />
+          >
+            <MdFilterList />
+          </IconButton>
         </Stack>
       </Stack>
       <Separator />
-      {fetchStatus.isLoading && <Text>Loading transactions... {fetchStatus.progress}%</Text>}
-      {fetchStatus.error && <Text color="red.500">Error: {fetchStatus.error}</Text>}
-      <Button onClick={() => updateTransactions(allTransactions)}>Refresh Transactions</Button>
+      {fetchStatus.isLoading && (
+        <Text>Loading transactions... {fetchStatus.progress}%</Text>
+      )}
+      {fetchStatus.error && (
+        <Text color="red.500">Error: {fetchStatus.error}</Text>
+      )}
+      <Button onClick={() => updateTransactions(allTransactions)}>
+        Refresh Transactions
+      </Button>
       <TransactionList transactions={selectedTransactions} />
     </Stack>
   );

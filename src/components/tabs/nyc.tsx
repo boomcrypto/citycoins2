@@ -10,19 +10,20 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
-import { useAtomValue } from "jotai";
-import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
-import SignIn from "../auth/sign-in";
 import { useEffect, useState } from "react";
-import { fancyFetch, HIRO_API } from "../../store/common";
+import { useAtomValue } from "jotai";
 import { openContractCall } from "@stacks/connect";
 import {
   AddressBalanceResponse,
   ContractCallTransaction,
+  Transaction,
 } from "@stacks/stacks-blockchain-api-types";
+import SignIn from "../auth/sign-in";
 import TransactionList from "../transaction-list";
-import { Transaction } from "@stacks/stacks-blockchain-api-types";
-import { buildCityTxFilter } from "../../config/contracts";
+import { fancyFetch, HIRO_API } from "../../store/common";
+import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
+import { shortenPrincipal, shortenTxId } from "../../utilities/clarity";
+import { buildCityTxFilter } from "../../utilities/contracts";
 import {
   decodeTxArgs,
   isValidMiningTxArgs,
@@ -33,30 +34,17 @@ import {
   computeTargetedCycles,
   fetchCallReadOnlyFunction,
 } from "../../utilities/transactions";
-import { uintCV } from "@stacks/transactions";
+import { ClarityType, uintCV } from "@stacks/transactions";
 
 interface NycProps {
   onOpenDetails: (tx: Transaction) => void;
-}
-
-function shortenPrincipal(addr: string): string {
-  if (!addr) return "";
-  if (addr.includes(".")) {
-    const [address, contract] = addr.split(".");
-    return `${address.slice(0, 5)}...${address.slice(-5)}.${contract}`;
-  }
-  return `${addr.slice(0, 5)}...${addr.slice(-5)}`;
-}
-
-function shortenTxId(txId: string): string {
-  return txId ? `${txId.slice(0, 6)}...${txId.slice(-4)}` : "";
 }
 
 interface HistoryEntry {
   id: number;
   txId: string;
   claimTxId?: string;
-  status: 'claimed' | 'unclaimed';
+  status: "claimed" | "unclaimed";
   contractId: string;
   functionName: string;
 }
@@ -104,22 +92,38 @@ function Nyc({ onOpenDetails }: NycProps) {
   const [isStackingLoading, setIsStackingLoading] = useState(true);
 
   useEffect(() => {
+    if (!stxAddress) return;
     // Collect claimed mining blocks from claim txs
-    const claimedMining: { block: number; claimTxId: string; contractId: string; functionName: string }[] = [];
-    filteredTransactions.forEach((tx) => {
-      const decoded = decodeTxArgs(tx);
-      if (tx.tx_status === 'success' && decoded && isValidMiningClaimTxArgs(decoded)) {
-        claimedMining.push({
-          block: Number(decoded.minerBlockHeight),
-          claimTxId: tx.tx_id,
-          contractId: tx.contract_call.contract_id,
-          functionName: tx.contract_call.function_name,
-        });
-      }
-    });
+    const claimedMining: {
+      block: number;
+      claimTxId: string;
+      contractId: string;
+      functionName: string;
+    }[] = [];
+    filteredTransactions.forEach(
+      (tx) => {
+        const decoded = decodeTxArgs(tx);
+        if (
+          tx.tx_status === "success" &&
+          decoded &&
+          isValidMiningClaimTxArgs(decoded)
+        ) {
+          claimedMining.push({
+            block: Number(decoded.minerBlockHeight),
+            claimTxId: tx.tx_id,
+            contractId: tx.contract_call.contract_id,
+            functionName: tx.contract_call.function_name,
+          });
+        }
+      },
+      [filteredTransactions, stxAddress]
+    );
 
     // Collect potential mining blocks from mining txs
-    const potentialMining = new Map<number, { txId: string; contractId: string; functionName: string }>();
+    const potentialMining = new Map<
+      number,
+      { txId: string; contractId: string; functionName: string }
+    >();
     filteredTransactions.forEach((tx) => {
       const decoded = decodeTxArgs(tx);
       if (decoded && isValidMiningTxArgs(decoded)) {
@@ -139,9 +143,9 @@ function Nyc({ onOpenDetails }: NycProps) {
     // Prepare history with claimed
     const historyMining: HistoryEntry[] = claimedMining.map((c) => ({
       id: c.block,
-      txId: '', // will fill later
+      txId: "", // will fill later
       claimTxId: c.claimTxId,
-      status: 'claimed',
+      status: "claimed",
       contractId: c.contractId,
       functionName: c.functionName,
     }));
@@ -152,21 +156,23 @@ function Nyc({ onOpenDetails }: NycProps) {
       if (potential) {
         entry.txId = potential.txId;
       } else {
-        entry.txId = 'Unknown';
+        entry.txId = "Unknown";
       }
     });
 
     // Filter potentials not claimed
-    const toCheckMining = Array.from(potentialMining.entries()).filter(([b]) => !claimedMining.some((c) => c.block === b));
+    const toCheckMining = Array.from(potentialMining.entries()).filter(
+      ([b]) => !claimedMining.some((c) => c.block === b)
+    );
 
     setIsMiningLoading(true);
     const checkMiningPromises = toCheckMining.map(async ([block, info]) => {
-      const [contractAddress, contractName] = info.contractId.split('.');
+      const [contractAddress, contractName] = info.contractId.split(".");
       try {
         const result = await fetchCallReadOnlyFunction({
           contractAddress,
           contractName,
-          functionName: 'claim-mining-reward',
+          functionName: "claim-mining-reward",
           functionArgs: [uintCV(block)],
           senderAddress: stxAddress,
         });
@@ -174,7 +180,7 @@ function Nyc({ onOpenDetails }: NycProps) {
           return {
             id: block,
             txId: info.txId,
-            status: 'unclaimed' as const,
+            status: "unclaimed" as const,
             contractId: info.contractId,
             functionName: info.functionName,
           };
@@ -188,17 +194,30 @@ function Nyc({ onOpenDetails }: NycProps) {
     });
 
     Promise.all(checkMiningPromises).then((results) => {
-      const unclaimedMining = results.filter((r): r is HistoryEntry => r !== null);
-      const fullHistory = [...historyMining, ...unclaimedMining].sort((a, b) => a.id - b.id);
+      const unclaimedMining = results.filter(
+        (r): r is HistoryEntry => r !== null
+      );
+      const fullHistory = [...historyMining, ...unclaimedMining].sort(
+        (a, b) => a.id - b.id
+      );
       setMiningHistory(fullHistory);
       setIsMiningLoading(false);
     });
 
     // Similar for stacking
-    const claimedStacking: { cycle: number; claimTxId: string; contractId: string; functionName: string }[] = [];
+    const claimedStacking: {
+      cycle: number;
+      claimTxId: string;
+      contractId: string;
+      functionName: string;
+    }[] = [];
     filteredTransactions.forEach((tx) => {
       const decoded = decodeTxArgs(tx);
-      if (tx.tx_status === 'success' && decoded && isValidStackingClaimTxArgs(decoded)) {
+      if (
+        tx.tx_status === "success" &&
+        decoded &&
+        isValidStackingClaimTxArgs(decoded)
+      ) {
         claimedStacking.push({
           cycle: Number(decoded.rewardCycle),
           claimTxId: tx.tx_id,
@@ -208,11 +227,24 @@ function Nyc({ onOpenDetails }: NycProps) {
       }
     });
 
-    const potentialStacking = new Map<number, { txId: string; contractId: string; functionName: string }>();
+    const potentialStacking = new Map<
+      number,
+      { txId: string; contractId: string; functionName: string }
+    >();
     filteredTransactions.forEach((tx) => {
       const decoded = decodeTxArgs(tx);
-      if (decoded && isValidStackingTxArgs(decoded) && decoded.city && decoded.version) {
-        const cycles = computeTargetedCycles(tx, decoded, decoded.city, decoded.version);
+      if (
+        decoded &&
+        isValidStackingTxArgs(decoded) &&
+        decoded.city &&
+        decoded.version
+      ) {
+        const cycles = computeTargetedCycles(
+          tx,
+          decoded,
+          decoded.city,
+          decoded.version
+        );
         cycles.forEach((c) => {
           if (!potentialStacking.has(c)) {
             potentialStacking.set(c, {
@@ -228,9 +260,9 @@ function Nyc({ onOpenDetails }: NycProps) {
     // Prepare history with claimed
     const historyStacking: HistoryEntry[] = claimedStacking.map((c) => ({
       id: c.cycle,
-      txId: '', // will fill later
+      txId: "", // will fill later
       claimTxId: c.claimTxId,
-      status: 'claimed',
+      status: "claimed",
       contractId: c.contractId,
       functionName: c.functionName,
     }));
@@ -241,21 +273,23 @@ function Nyc({ onOpenDetails }: NycProps) {
       if (potential) {
         entry.txId = potential.txId;
       } else {
-        entry.txId = 'Unknown';
+        entry.txId = "Unknown";
       }
     });
 
     // Filter potentials not claimed
-    const toCheckStacking = Array.from(potentialStacking.entries()).filter(([c]) => !claimedStacking.some((cl) => cl.cycle === c));
+    const toCheckStacking = Array.from(potentialStacking.entries()).filter(
+      ([c]) => !claimedStacking.some((cl) => cl.cycle === c)
+    );
 
     setIsStackingLoading(true);
     const checkStackingPromises = toCheckStacking.map(async ([cycle, info]) => {
-      const [contractAddress, contractName] = info.contractId.split('.');
+      const [contractAddress, contractName] = info.contractId.split(".");
       try {
         const result = await fetchCallReadOnlyFunction({
           contractAddress,
           contractName,
-          functionName: 'claim-stacking-reward',
+          functionName: "claim-stacking-reward",
           functionArgs: [uintCV(cycle)],
           senderAddress: stxAddress,
         });
@@ -263,7 +297,7 @@ function Nyc({ onOpenDetails }: NycProps) {
           return {
             id: cycle,
             txId: info.txId,
-            status: 'unclaimed' as const,
+            status: "unclaimed" as const,
             contractId: info.contractId,
             functionName: info.functionName,
           };
@@ -277,8 +311,12 @@ function Nyc({ onOpenDetails }: NycProps) {
     });
 
     Promise.all(checkStackingPromises).then((results) => {
-      const unclaimedStacking = results.filter((r): r is HistoryEntry => r !== null);
-      const fullHistory = [...historyStacking, ...unclaimedStacking].sort((a, b) => a.id - b.id);
+      const unclaimedStacking = results.filter(
+        (r): r is HistoryEntry => r !== null
+      );
+      const fullHistory = [...historyStacking, ...unclaimedStacking].sort(
+        (a, b) => a.id - b.id
+      );
       setStackingHistory(fullHistory);
       setIsStackingLoading(false);
     });
@@ -356,7 +394,6 @@ function Nyc({ onOpenDetails }: NycProps) {
     }
   };
 
-
   return (
     <Stack gap={4}>
       <Heading size="4xl">NYC Tools</Heading>
@@ -426,10 +463,15 @@ function Nyc({ onOpenDetails }: NycProps) {
                     Total Mined Blocks: {miningHistory.length}
                   </Badge>
                   <Badge colorScheme="green" variant="outline">
-                    Claimed: {miningHistory.filter(h => h.status === 'claimed').length}
+                    Claimed:{" "}
+                    {miningHistory.filter((h) => h.status === "claimed").length}
                   </Badge>
                   <Badge colorScheme="red" variant="outline">
-                    Unclaimed: {miningHistory.filter(h => h.status === 'unclaimed').length}
+                    Unclaimed:{" "}
+                    {
+                      miningHistory.filter((h) => h.status === "unclaimed")
+                        .length
+                    }
                   </Badge>
                 </Stack>
                 {miningHistory.length === 0 ? (
@@ -460,11 +502,18 @@ function Nyc({ onOpenDetails }: NycProps) {
                                 {shortenTxId(entry.txId)}
                               </Link>
                             </Table.Cell>
-                            <Table.Cell>{shortenPrincipal(entry.contractId)}</Table.Cell>
+                            <Table.Cell>
+                              {shortenPrincipal(entry.contractId)}
+                            </Table.Cell>
                             <Table.Cell>{entry.functionName}</Table.Cell>
                             <Table.Cell>
-                              <Badge colorScheme={entry.status === 'claimed' ? 'green' : 'red'}>
-                                {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
+                              <Badge
+                                colorScheme={
+                                  entry.status === "claimed" ? "green" : "red"
+                                }
+                              >
+                                {entry.status.charAt(0).toUpperCase() +
+                                  entry.status.slice(1)}
                               </Badge>
                             </Table.Cell>
                             <Table.Cell>
@@ -475,11 +524,18 @@ function Nyc({ onOpenDetails }: NycProps) {
                                 >
                                   {shortenTxId(entry.claimTxId)}
                                 </Link>
-                              ) : 'N/A'}
+                              ) : (
+                                "N/A"
+                              )}
                             </Table.Cell>
                             <Table.Cell>
-                              {entry.status === 'unclaimed' && (
-                                <Button size="sm" onClick={() => console.log(`Claiming block ${entry.id}`)}>
+                              {entry.status === "unclaimed" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    console.log(`Claiming block ${entry.id}`)
+                                  }
+                                >
                                   Claim
                                 </Button>
                               )}
@@ -512,10 +568,18 @@ function Nyc({ onOpenDetails }: NycProps) {
                     Total Stacked Cycles: {stackingHistory.length}
                   </Badge>
                   <Badge colorScheme="green" variant="outline">
-                    Claimed: {stackingHistory.filter(h => h.status === 'claimed').length}
+                    Claimed:{" "}
+                    {
+                      stackingHistory.filter((h) => h.status === "claimed")
+                        .length
+                    }
                   </Badge>
                   <Badge colorScheme="red" variant="outline">
-                    Unclaimed: {stackingHistory.filter(h => h.status === 'unclaimed').length}
+                    Unclaimed:{" "}
+                    {
+                      stackingHistory.filter((h) => h.status === "unclaimed")
+                        .length
+                    }
                   </Badge>
                 </Stack>
                 {stackingHistory.length === 0 ? (
@@ -546,11 +610,18 @@ function Nyc({ onOpenDetails }: NycProps) {
                                 {shortenTxId(entry.txId)}
                               </Link>
                             </Table.Cell>
-                            <Table.Cell>{shortenPrincipal(entry.contractId)}</Table.Cell>
+                            <Table.Cell>
+                              {shortenPrincipal(entry.contractId)}
+                            </Table.Cell>
                             <Table.Cell>{entry.functionName}</Table.Cell>
                             <Table.Cell>
-                              <Badge colorScheme={entry.status === 'claimed' ? 'green' : 'red'}>
-                                {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
+                              <Badge
+                                colorScheme={
+                                  entry.status === "claimed" ? "green" : "red"
+                                }
+                              >
+                                {entry.status.charAt(0).toUpperCase() +
+                                  entry.status.slice(1)}
                               </Badge>
                             </Table.Cell>
                             <Table.Cell>
@@ -561,11 +632,18 @@ function Nyc({ onOpenDetails }: NycProps) {
                                 >
                                   {shortenTxId(entry.claimTxId)}
                                 </Link>
-                              ) : 'N/A'}
+                              ) : (
+                                "N/A"
+                              )}
                             </Table.Cell>
                             <Table.Cell>
-                              {entry.status === 'unclaimed' && (
-                                <Button size="sm" onClick={() => console.log(`Claiming cycle ${entry.id}`)}>
+                              {entry.status === "unclaimed" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    console.log(`Claiming cycle ${entry.id}`)
+                                  }
+                                >
                                   Claim
                                 </Button>
                               )}

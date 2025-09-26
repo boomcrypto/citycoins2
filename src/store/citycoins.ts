@@ -3,7 +3,7 @@
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { transactionsAtom } from "./stacks";
 import { atom } from "jotai";
-import { CONTRACTS, CoinType, VOTING_CONTRACTS } from "../config/contracts";
+import { CONTRACTS, CoinType, VOTING_CONTRACTS } from "../utilities/contracts";
 
 // helpers for selecting specific transaction types
 

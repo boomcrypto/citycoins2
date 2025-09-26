@@ -3,7 +3,7 @@ import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { decodeClarityValues, safeConvertToBigint } from "./clarity";
 import { Buffer } from "buffer";
 
-import { REGISTRY, findEntry, categorize, City, Version, Module } from '../config/contracts';
+import { REGISTRY, findEntry, categorize, City, Version, Module } from './contracts';
 import { HIRO_API } from "../store/common";
 
 export interface BaseTxArgs {
