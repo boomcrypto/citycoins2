@@ -88,4 +88,5 @@ Follow sequentially; test after each (e.g., load page, check console for fetches
 ## Revision History
 - **Initial Plan**: High-level overview from first analysis.
 - **Update 1**: Incorporated `cities.js`, prioritization (N2F/N2H), API spacing, historical focus, structured userIds, modularity for new filters.
+- **Update 2**: Updated to use `citycoins-protocol.js` pattern for CITY_CONFIG (versions: legacyV1/legacyV2/daoV1/daoV2; helpers like getVersionByBlock/getCitySettings). Extend for transaction matching (e.g., add .transactionFilters to config with functions per module/version; use in buildCityTxFilter/decodeTxArgs). Emphasize clean/simple/modular code (e.g., export helpers for easy extension; no hardcodes; add redemption as new module with .redemption: { contract, functions: ['redeem-mia'] }).
 - **Next Updates**: Add after each implementation phase (e.g., post-N2F testing notes).
