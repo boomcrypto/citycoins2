@@ -6,7 +6,14 @@ import {
 import { HIRO_API, fancyFetch, sleep } from "./common";
 import { Setter, atom } from "jotai";
 import LZString from "lz-string";
-import { decodeTxArgs, isValidMiningTxArgs, isValidMiningClaimTxArgs, isValidStackingTxArgs, isValidStackingClaimTxArgs } from "../utilities/transactions";
+import {
+  decodeTxArgs,
+  isValidMiningTxArgs,
+  isValidMiningClaimTxArgs,
+  isValidStackingTxArgs,
+  isValidStackingClaimTxArgs,
+  computeTargetedCycles,
+} from "../utilities/transactions";
 
 /////////////////////////
 // TYPES
@@ -63,11 +70,15 @@ export const userIdsAtom = atomWithStorage<Record<string, string | null>>(
 );
 
 // Helper to generate user ID cache key
-export function getUserIdKey(city: 'mia' | 'nyc', module: 'core' | 'mining' | 'stacking' | 'token', version?: 'legacyV1' | 'legacyV2' | 'daoV1' | 'daoV2'): string {
-  if (module === 'core') {
+export function getUserIdKey(
+  city: "mia" | "nyc",
+  module: "core" | "mining" | "stacking" | "token",
+  version?: "legacyV1" | "legacyV2" | "daoV1" | "daoV2"
+): string {
+  if (module === "core") {
     return `${city}-core-${version}`;
-  } else if (module === 'mining' || module === 'stacking') {
-    return 'ccd003-shared';
+  } else if (module === "mining" || module === "stacking") {
+    return "ccd003-shared";
   }
   // token has no user ID
   throw new Error(`Unsupported module for user ID: ${module}`);
@@ -77,6 +88,7 @@ export const stacksLocalStorageAtoms = [
   blockHeightsAtom,
   stxAddressAtom,
   bnsNameAtom,
+  txsTimestampAtom,
   acctTxsAtom,
   acctMempoolTxsAtom,
   acctBalancesAtom,
@@ -146,7 +158,12 @@ export const minedBlocksAtom = atom((get) => {
   const transactions = get(transactionsAtom);
   const map = new Map<string, number[]>();
   for (const tx of transactions) {
-    if (tx.tx_type === 'contract_call' && ['mine-tokens', 'mine-many', 'mine'].includes(tx.contract_call.function_name)) {
+    if (
+      tx.tx_type === "contract_call" &&
+      ["mine-tokens", "mine-many", "mine"].includes(
+        tx.contract_call.function_name
+      )
+    ) {
       const decoded = decodeTxArgs(tx);
       if (decoded && isValidMiningTxArgs(decoded)) {
         const numBlocks = decoded.amountsUstx.length;
@@ -165,7 +182,10 @@ export const claimedBlocksAtom = atom((get) => {
   const transactions = get(transactionsAtom);
   const map = new Map<string, number[]>();
   for (const tx of transactions) {
-    if (tx.tx_type === 'contract_call' && tx.contract_call.function_name === 'claim-mining-reward') {
+    if (
+      tx.tx_type === "contract_call" &&
+      tx.contract_call.function_name === "claim-mining-reward"
+    ) {
       const decoded = decodeTxArgs(tx);
       if (decoded && isValidMiningClaimTxArgs(decoded)) {
         const block = Number(decoded.minerBlockHeight);
@@ -180,10 +200,24 @@ export const stackedCyclesAtom = atom((get) => {
   const transactions = get(transactionsAtom);
   const map = new Map<string, number[]>();
   for (const tx of transactions) {
-    if (tx.tx_type === 'contract_call' && (tx.contract_call.function_name === 'stack-tokens' || tx.contract_call.function_name === 'stack')) {
+    if (
+      tx.tx_type === "contract_call" &&
+      (tx.contract_call.function_name === "stack-tokens" ||
+        tx.contract_call.function_name === "stack")
+    ) {
       const decoded = decodeTxArgs(tx);
-      if (decoded && isValidStackingTxArgs(decoded) && decoded.city && decoded.version) {
-        const cycles = computeTargetedCycles(tx, decoded, decoded.city, decoded.version);
+      if (
+        decoded &&
+        isValidStackingTxArgs(decoded) &&
+        decoded.city &&
+        decoded.version
+      ) {
+        const cycles = computeTargetedCycles(
+          tx,
+          decoded,
+          decoded.city,
+          decoded.version
+        );
         map.set(tx.tx_id, cycles);
       }
     }
@@ -195,7 +229,10 @@ export const claimedCyclesAtom = atom((get) => {
   const transactions = get(transactionsAtom);
   const map = new Map<string, number[]>();
   for (const tx of transactions) {
-    if (tx.tx_type === 'contract_call' && tx.contract_call.function_name === 'claim-stacking-reward') {
+    if (
+      tx.tx_type === "contract_call" &&
+      tx.contract_call.function_name === "claim-stacking-reward"
+    ) {
       const decoded = decodeTxArgs(tx);
       if (decoded && isValidStackingClaimTxArgs(decoded)) {
         const cycle = Number(decoded.rewardCycle);

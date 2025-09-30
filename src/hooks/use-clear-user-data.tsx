@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { WritableAtom } from "jotai";
 import { RESET, useAtomCallback } from "jotai/utils";
 import { commonLocalStorageAtoms } from "../store/common";
-import { acctMempoolTxsAtom, acctTxsAtom, stacksLocalStorageAtoms, txsTimestampAtom, userIdsAtom } from "../store/stacks";
+import { stacksLocalStorageAtoms } from "../store/stacks";
 import { ccip016LocalStorageAtoms } from "../store/ccip-016";
 
 type AnyWritableAtom = WritableAtom<any, any, any>;
@@ -23,12 +23,6 @@ export const useClearUserData = () => {
 
       // reset all localstorage atoms
       allLocalStorageAtoms.forEach(resetAtom);
-
-      // Explicitly clear transactions and timestamp
-      set(acctTxsAtom, '');
-      set(txsTimestampAtom, 0);
-      set(userIdsAtom, {});
-      set(acctMempoolTxsAtom, []);
     }, [])
   );
 
