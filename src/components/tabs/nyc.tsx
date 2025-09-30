@@ -12,22 +12,29 @@ import {
   TooltipRoot,
 } from "@chakra-ui/react";
 import { useMemo, useEffect } from "react";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { openContractCall } from "@stacks/connect";
 import {
-  AddressBalanceResponse,
   ContractCallTransaction,
   Transaction,
 } from "@stacks/stacks-blockchain-api-types";
 import SignIn from "../auth/sign-in";
 import TransactionList from "../transaction-list";
-import { fancyFetch, HIRO_API } from "../../store/common";
 import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
 import { shortenPrincipal, shortenTxId } from "../../utilities/clarity";
 import { buildCityTxFilter } from "../../utilities/contracts";
 import { useCityHistory, HistoryEntry } from "../../hooks/useCityHistory";
 import { findEntry, REGISTRY } from "../../utilities/contracts";
 import { uintCV, stringAsciiCV } from "@stacks/transactions";
+import {
+  nycBalancesAtom,
+  nycEligibilityAtom,
+  nycFormattedBalancesAtom,
+  useCheckCityEligibility,
+  useResetCityEligibility,
+  CITY_INFO,
+} from "../../store/city-balances";
+import { getCityConfig } from "../../config/city-config";
 
 interface NycProps {
   onOpenDetails: (tx: Transaction) => void;
