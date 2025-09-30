@@ -82,12 +82,20 @@
    - Progress: Decoder resilient (partials + guards); errors graceful (unknown status, raw fallbacks). N2F complete—app robust to edge txs.
    - Questions/Notes: 'Unknown' status prevents false claims; raw UI covers decode gaps. Ready for N2H (rate limiting, TTL).
 
-6. **Step E: N2H Enhancements** – In Progress.
+6. **Step E: N2H Enhancements** – Completed.
    - **Rate Limiting and Backoff**: Enhanced `fancyFetch` with exponential backoff (2s, 4s, 8s on 429/5xx, max 3 retries). Added `rateLimitedFetch` wrapper (5 calls/sec). Updated `fetchCallReadOnlyFunction` to use it; batched checks in `useCityHistory` (chunks of 5 + 500ms sleep). Confirmed: Handles simulated 429s without blocking; reduces bursts.
    - **Storage Hygiene**: Added `txsTimestampAtom`; `decompressedAcctTxsAtom` checks staleness (>1 day) and logs refetch trigger (no auto-refetch yet—manual via setter). Expanded `useClearUserData` to clear txs/timestamp/mempool explicitly. No TTL on userIds (permanent). Updated sign-out to use hook fully. Confirmed: Clears on disconnect; stale txs detected.
    - **UI/UX Polish**: Added debounced search (300ms) in `transaction-list.tsx`; summaries with tooltips/links to tabs; empty states with SignIn. Per-section spinners (size="sm") and 'unknown' tooltips in tabs. Explorer links for unknown events in dialog. MIA redemption tooltip for pending status. Confirmed: Smooth search; tooltips visible; no shifts on load.
    - Progress: App efficient (no API blocks, clean storage, polished UX). Initial N2H done—ready for extensibility (e.g., redemption).
    - Questions/Notes: UserIds permanent but cleared on sign-out; txs refetch manual for now (add auto in future?). Test feedback: Simulate errors, check clears, UI interactions.
+
+7. **Step F: Component Refactor and Hardcode Removal** – Planned.
+   - **Address setState in useEffect Issues**: Refactor MIA and NYC components to use Jotai atoms for state like balances, eligibility, and loading (e.g., create `miaBalancesAtom`, `nycBalancesAtom` in a new `store/city-balances.ts` file). Move eligibility checks to atom updaters or derived atoms to avoid direct setState in effects. Ensure transactions are computed once in `stacks.ts` and shared across tabs via `transactionsAtom` and filters.
+   - **Remove Hardcoded Contracts**: Replace hardcoded constants (e.g., `MIA_V1_CONTRACT`, `NYC_REDEMPTION_CONTRACT`) in MIA/NYC with dynamic lookups from `REGISTRY` and `getCityConfig` (e.g., `findEntry` for contracts, config for deployers/names). Update redemption handlers to use config-driven addresses/functions.
+   - **Deprecate Dashboard Tab**: Remove or comment out `src/components/tabs/dashboard.tsx` and its import in `page-content.tsx`. Update `activeTabAtom` default if needed. Suggest shell command to delete the file.
+   - **Centralize Transaction Handling**: Ensure `filteredTransactions` in MIA/NYC use shared `transactionsAtom` without duplication; compute once in a new hook or atom if needed for cross-tab consistency.
+   - Progress: Will centralize state in Jotai, reduce bugs from effects, and make code more maintainable.
+   - Questions/Notes: New store file for city-specific atoms? Test eligibility/refetch on tab switch. Confirm no regressions in claim handlers after dynamic lookups.
 
 After each step:
 - Run targeted tests (dev terminal).
