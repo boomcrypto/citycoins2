@@ -1,8 +1,8 @@
 import { ClarityValue, deserializeCV, uintCV, cvToHex, principalCV, ClarityType, ResponseOkCV, SomeCV } from "@stacks/transactions";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { decodeClarityValues, safeConvertToBigint } from "./clarity";
-import { findEntry, categorize, City, Version, Module, USER_REGISTRY_CONTRACT, CITY_ID_MAP, getCityConfig } from './contracts';
-import { CITY_CONFIG, getVersionByBlock, getVersionByCycle } from '../config/city-config';
+import { findEntry, categorize, City, Version, Module, USER_REGISTRY_CONTRACT, CITY_ID_MAP } from './contracts';
+import { CITY_CONFIG, getCityConfig, getVersionByBlock, getVersionByCycle } from '../config/city-config';
 import { HIRO_API } from "../store/common";
 
 export interface BaseTxArgs {
