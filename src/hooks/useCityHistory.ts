@@ -257,8 +257,10 @@ export function useCityHistory(
 
         const miningChecks = toCheckMining.map(async (item) => {
           try {
+            // Ensure entry has version for validation
+            const entryWithVersion = { ...item.entry, version: item.entry.version };
             const userId = runtimeUserIds.get(item.contractId);
-            const isWinner = await checkMiningWinner(item.entry, item.block, stxAddress, userId);
+            const isWinner = await checkMiningWinner(entryWithVersion, item.block, stxAddress, userId);
             if (isWinner) {
               return {
                 id: item.block,
@@ -306,9 +308,11 @@ export function useCityHistory(
 
         const stackingChecks = toCheckStacking.map(async (item) => {
           try {
+            // Ensure entry has version for validation
+            const entryWithVersion = { ...item.entry, version: item.entry.version };
             const userId = runtimeUserIds.get(item.contractId);
             if (!userId) return null;
-            const isStacked = await checkStackingCycle(item.entry, item.cycle, stxAddress, userId);
+            const isStacked = await checkStackingCycle(entryWithVersion, item.cycle, stxAddress, userId);
             if (isStacked) {
               return {
                 id: item.cycle,

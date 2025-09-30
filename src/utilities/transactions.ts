@@ -2,7 +2,7 @@ import { ClarityValue, deserializeCV, uintCV, cvToHex, principalCV, ClarityType,
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { decodeClarityValues, safeConvertToBigint } from "./clarity";
 import { findEntry, categorize, City, Version, Module, USER_REGISTRY_CONTRACT, CITY_ID_MAP, getCityConfig } from './contracts';
-import { CITY_CONFIG } from '../config/city-config';
+import { CITY_CONFIG, getVersionByBlock, getVersionByCycle } from '../config/city-config';
 import { HIRO_API } from "../store/common";
 
 export interface BaseTxArgs {
@@ -190,7 +190,19 @@ export function computeTargetedBlocks(tx: Transaction, decoded: MiningTxArgs): n
   if (tx.tx_status !== 'success') return [];
   const N = decoded.amountsUstx.length;
   const start = tx.block_height + 1;
-  return Array.from({ length: N }, (_, i) => start + i);
+  const blocks = Array.from({ length: N }, (_, i) => start + i);
+
+  // Validate against mining window using version helpers
+  const version = getVersionByBlock(decoded.city!, blocks[0]);
+  if (!version) {
+    console.warn(`Invalid mining blocks for ${decoded.city} at height ${blocks[0]}`);
+    return [];
+  }
+  const config = getCityConfig(decoded.city!, version);
+  if (!config || !config.mining.activated || blocks[0] < config.mining.activationBlock) return [];
+  if (config.mining.shutdown && blocks[blocks.length - 1] > config.mining.shutdownBlock!) return [];
+
+  return blocks;
 }
 
 export function computeTargetedCycles(tx: Transaction, decoded: StackingTxArgs, city: City, version: Version): number[] {
@@ -198,14 +210,21 @@ export function computeTargetedCycles(tx: Transaction, decoded: StackingTxArgs, 
   const configVersion = getCityConfig(city, version);
   if (!configVersion) return [];
   const genesisBlock = configVersion.stacking.genesisBlock;
-  const currentCycle = Math.floor((tx.block_height - genesisBlock) / CYCLE_LENGTH);
+  const cycleLength = configVersion.stacking.cycleLength;
+  const currentCycle = Math.floor((tx.block_height - genesisBlock) / cycleLength);
   const lock = Number(decoded.lockPeriod);
   // Validate against startCycle and endCycle if defined
   const startCycle = configVersion.stacking.startCycle;
   const endCycle = configVersion.stacking.endCycle;
   const cycles = Array.from({ length: lock }, (_, i) => currentCycle + 1 + i);
-  if (startCycle !== undefined && cycles[0] < startCycle) return [];
-  if (endCycle !== undefined && cycles[cycles.length - 1] > endCycle) return [];
+  if (startCycle !== undefined && cycles[0] < startCycle) {
+    console.warn(`Invalid stacking cycles for ${city} version ${version}: starts before ${startCycle}`);
+    return [];
+  }
+  if (endCycle !== undefined && cycles[cycles.length - 1] > endCycle) {
+    console.warn(`Invalid stacking cycles for ${city} version ${version}: exceeds ${endCycle}`);
+    return [];
+  }
   return cycles;
 }
 
@@ -273,11 +292,21 @@ export async function getUserId(principal: string, contractId?: string): Promise
 
 // Helper to check if user won a mining block (unclaimed if true and no claim tx)
 export async function checkMiningWinner(
-  entry: { contract: string; readonlyFunctions?: { miningCheck?: string }; city: City; module: Module },
+  entry: { contract: string; readonlyFunctions?: { miningCheck?: string }; city: City; module: Module; version: Version },
   block: number,
   principal: string,
   userId?: bigint
 ): Promise<boolean> {
+  // Maturity check: validate block against version window
+  const version = getVersionByBlock(entry.city, block);
+  if (!version || version !== entry.version) {
+    console.warn(`Block ${block} invalid for ${entry.city} version ${entry.version}`);
+    return false;
+  }
+  const config = getCityConfig(entry.city, entry.version);
+  if (!config || !config.mining.activated || block < config.mining.activationBlock) return false;
+  if (config.mining.shutdown && block > config.mining.shutdownBlock!) return false;
+
   if (!entry.readonlyFunctions?.miningCheck) {
     throw new Error('No mining check function available');
   }
@@ -311,11 +340,21 @@ export async function checkMiningWinner(
 
 // Helper to check if user stacked in a cycle (unclaimed if Some with amount >0 and no claim tx)
 export async function checkStackingCycle(
-  entry: { contract: string; readonlyFunctions?: { stackingCheck?: string }; city: City; module: Module },
+  entry: { contract: string; readonlyFunctions?: { stackingCheck?: string }; city: City; module: Module; version: Version },
   cycle: number,
   principal: string,
   userId: bigint
 ): Promise<boolean> {
+  // Maturity check: validate cycle against version window
+  const version = getVersionByCycle(entry.city, cycle);
+  if (!version || version !== entry.version) {
+    console.warn(`Cycle ${cycle} invalid for ${entry.city} version ${entry.version}`);
+    return false;
+  }
+  const config = getCityConfig(entry.city, entry.version);
+  if (!config || cycle < config.stacking.startCycle) return false;
+  if (config.stacking.endCycle !== undefined && cycle > config.stacking.endCycle) return false;
+
   if (!entry.readonlyFunctions?.stackingCheck) {
     throw new Error('No stacking check function available');
   }

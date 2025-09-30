@@ -167,15 +167,10 @@ export const stackedCyclesAtom = atom((get) => {
   const transactions = get(transactionsAtom);
   const map = new Map<string, number[]>();
   for (const tx of transactions) {
-    if (tx.tx_type === 'contract_call' && tx.contract_call.function_name === 'stack-tokens') {
+    if (tx.tx_type === 'contract_call' && (tx.contract_call.function_name === 'stack-tokens' || tx.contract_call.function_name === 'stack')) {
       const decoded = decodeTxArgs(tx);
-      if (decoded && isValidStackingTxArgs(decoded)) {
-        const lockPeriod = Number(decoded.lockPeriod);
-        // For NYC, genesis block 24497, cycle length 2100
-        const genesisBlock = 24497;
-        const cycleLength = 2100;
-        const startCycle = Math.floor((tx.block_height - genesisBlock) / cycleLength) + 1;
-        const cycles = Array.from({length: lockPeriod}, (_, i) => startCycle + i);
+      if (decoded && isValidStackingTxArgs(decoded) && decoded.city && decoded.version) {
+        const cycles = computeTargetedCycles(tx, decoded, decoded.city, decoded.version);
         map.set(tx.tx_id, cycles);
       }
     }

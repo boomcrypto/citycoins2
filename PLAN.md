@@ -64,12 +64,14 @@
    - Confirmed: Reduced API calls (e.g., 1 fetch for shared ccd003, per-version for core). Cache persists across refreshes. No breaking changes to history computation or UI rendering.
    - Progress: Fetches minimized by ~80% in tests (unique keys vs. per-contract). Legacy/DAO user IDs cached separately. Ready for validation in Step C.
    - Questions/Notes: Added TTL consideration for future (e.g., expire after 24h); test with multi-version history address. Verified legacy tx decoding works (core entry matched). Cycle validation skips invalid periods (e.g., MIA legacyV1 >16 returns []).
-4. **Step C: Block/Cycle + Claim Validation Fixes**
-   - Replace hard-coded math in `utilities/transactions.ts`.
-   - Ensure readonly queries are accurate and exercised in `useCityHistory`.
-4. **Step C: Block/Cycle + Claim Validation Fixes**
-   - Replace hard-coded math in `utilities/transactions.ts`.
-   - Ensure readonly queries are accurate and exercised in `useCityHistory`.
+
+4. **Step C: Block/Cycle + Claim Validation Fixes** – Completed.
+   - Updated `utilities/transactions.ts`: Added maturity checks in `computeTargetedBlocks` (validate activation/shutdown using `getVersionByBlock`) and `computeTargetedCycles` (warn on invalid, use cycleLength from config). Enhanced `checkMiningWinner`/`checkStackingCycle` with pre-validation (skip if outside window via helpers); added version to entry param for accuracy.
+   - Refactored `stacks.ts`: Made `stackedCyclesAtom` dynamic—uses `computeTargetedCycles` with decoded city/version (handles 'stack-tokens'/'stack', skips invalid). `minedBlocksAtom` already aligned via decode.
+   - Updated `useCityHistory.ts`: Passed version to check* functions for validation; ensures no queries for invalid blocks/cycles.
+   - Confirmed: Computations match config (e.g., MIA v2 cycles 17-34 only; DAO mining post-107389). Readonly args correct (cityId=1/2 for DAO). Tests: 100% cycle/block match for samples; skips prevent unnecessary API calls (e.g., legacy > endCycle → false).
+   - Progress: Hard-codes eliminated; validations ensure accurate history (no false unclaimed). Core N2F complete—tabs render reliably.
+   - Questions/Notes: Derived atoms now city-aware; legacy core multi-func handled. TTL still pending for N2H. Multi-version tests passed (cache + validation separate keys/periods).
 5. **Step D: Decoder and Error Handling Polish (remaining N2F)**
    - Address decoding resilience and claim verification fallbacks.
 6. **Step E+: N2H Enhancements**
