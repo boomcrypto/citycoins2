@@ -9,9 +9,9 @@ import {
   Stack,
   Table,
   Text,
-  Tooltip,
+  TooltipRoot,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAtomValue } from "jotai";
 import { openContractCall } from "@stacks/connect";
 import {
@@ -146,13 +146,13 @@ function Nyc({ onOpenDetails }: NycProps) {
   };
 
   const handleClaimMining = (entry: HistoryEntry) => {
-    if (entry.status !== 'unclaimed' || !stxAddress) {
-      console.warn('Invalid claim: status or address invalid');
+    if (entry.status !== "unclaimed" || !stxAddress) {
+      console.warn("Invalid claim: status or address invalid");
       return;
     }
     const contractEntry = findEntry(entry.contractId, entry.functionName);
     if (!contractEntry) {
-      console.warn('Invalid claim: missing contract entry');
+      console.warn("Invalid claim: missing contract entry");
       return;
     }
 
@@ -163,10 +163,13 @@ function Nyc({ onOpenDetails }: NycProps) {
     if (contractEntry.module === "core") {
       functionArgs = [uintCV(entry.id)];
     } else if (contractEntry.module === "mining") {
-      const cityName = contractEntry.city === 'mia' ? stringAsciiCV('MIA') : stringAsciiCV('NYC');
+      const cityName =
+        contractEntry.city === "mia"
+          ? stringAsciiCV("MIA")
+          : stringAsciiCV("NYC");
       functionArgs = [cityName, uintCV(entry.id)];
     } else {
-      console.warn('Invalid claim: unsupported module for mining');
+      console.warn("Invalid claim: unsupported module for mining");
       return;
     }
 
@@ -182,13 +185,13 @@ function Nyc({ onOpenDetails }: NycProps) {
   };
 
   const handleClaimStacking = (entry: HistoryEntry) => {
-    if (entry.status !== 'unclaimed' || !stxAddress) {
-      console.warn('Invalid claim: status or address invalid');
+    if (entry.status !== "unclaimed" || !stxAddress) {
+      console.warn("Invalid claim: status or address invalid");
       return;
     }
     const contractEntry = findEntry(entry.contractId, entry.functionName);
     if (!contractEntry) {
-      console.warn('Invalid claim: missing contract entry');
+      console.warn("Invalid claim: missing contract entry");
       return;
     }
 
@@ -199,10 +202,13 @@ function Nyc({ onOpenDetails }: NycProps) {
     if (contractEntry.module === "core") {
       functionArgs = [uintCV(entry.id)];
     } else if (contractEntry.module === "stacking") {
-      const cityName = contractEntry.city === 'mia' ? stringAsciiCV('MIA') : stringAsciiCV('NYC');
+      const cityName =
+        contractEntry.city === "mia"
+          ? stringAsciiCV("MIA")
+          : stringAsciiCV("NYC");
       functionArgs = [cityName, uintCV(entry.id)];
     } else {
-      console.warn('Invalid claim: unsupported module for stacking');
+      console.warn("Invalid claim: unsupported module for stacking");
       return;
     }
 
@@ -363,9 +369,9 @@ function Nyc({ onOpenDetails }: NycProps) {
                                 </Button>
                               )}
                               {entry.status === "unknown" && (
-                                <Tooltip label="Check failed—view details or retry">
+                                <TooltipRoot content="Check failed—view details or retry">
                                   <Badge colorScheme="gray">Unknown</Badge>
-                                </Tooltip>
+                                </TooltipRoot>
                               )}
                             </Table.Cell>
                           </Table.Row>
@@ -476,9 +482,9 @@ function Nyc({ onOpenDetails }: NycProps) {
                                 </Button>
                               )}
                               {entry.status === "unknown" && (
-                                <Tooltip label="Check failed—view details or retry">
+                                <TooltipRoot content="Check failed—view details or retry">
                                   <Badge colorScheme="gray">Unknown</Badge>
-                                </Tooltip>
+                                </TooltipRoot>
                               )}
                             </Table.Cell>
                           </Table.Row>
