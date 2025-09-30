@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ContractCallTransaction } from "@stacks/stacks-blockchain-api-types";
 import {
   decodeTxArgs,
@@ -38,6 +38,11 @@ export function useCityHistory(
 
   const userIds = useAtomValue(userIdsAtom);
   const setUserIds = useSetAtom(userIdsAtom);
+  const userIdsRef = useRef(userIds);
+
+  useEffect(() => {
+    userIdsRef.current = userIds;
+  }, [userIds]);
 
   useEffect(() => {
     if (!stxAddress) {
@@ -171,7 +176,7 @@ export function useCityHistory(
         // Fetch missing user IDs in batch (only if not cached)
         const missingKeys: string[] = [];
         uniqueKeys.forEach(key => {
-          const cachedUserIdStr = userIds[key];
+          const cachedUserIdStr = userIdsRef.current[key];
           if (!cachedUserIdStr) {
             missingKeys.push(key);
           }
@@ -210,7 +215,7 @@ export function useCityHistory(
           if (!entry || entry.module === 'token') continue;
           try {
             const key = getUserIdKey(entry.city, entry.module, entry.version);
-            const cachedUserIdStr = userIds[key];
+            const cachedUserIdStr = userIdsRef.current[key];
             if (cachedUserIdStr) {
               const userId = BigInt(cachedUserIdStr);
               runtimeUserIds.set(contractId, userId);
@@ -407,7 +412,7 @@ export function useCityHistory(
     return () => {
       isMounted = false;
     };
-  }, [filteredTransactions, stxAddress, userIds]);
+  }, [filteredTransactions, stxAddress]); // Removed userIds from deps to prevent loop
 
   return { miningHistory, isMiningLoading, stackingHistory, isStackingLoading };
 }
