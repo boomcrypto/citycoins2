@@ -99,10 +99,7 @@ export const decompressedAcctTxsAtom = atom((get) => {
       LZString.decompress(acctTxs)
     );
     if (isStale && decompressedTxs.length > 0) {
-      // Trigger refetch if stale
-      const setTransactions = getSetTransactions(); // Access setter indirectly via callback if needed
-      console.log("Transactions stale (>1 day), triggering refetch");
-      // Note: In practice, trigger via useEffect in component or setter call
+      console.log("Transactions stale (>1 day), manual refetch recommended");
     }
     return decompressedTxs;
   } catch (error) {
