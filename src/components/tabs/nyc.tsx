@@ -45,16 +45,19 @@ function Nyc({ onOpenDetails }: NycProps) {
   // Build NYC_TX_FILTER dynamically from config to include all relevant contracts/functions
   const NYC_TX_FILTER = buildCityTxFilter("nyc");
 
-  const filteredTransactions = useAtomValue(transactionsAtom).filter((tx) => {
-    if (tx.tx_type !== "contract_call") return false;
-    const contractId = tx.contract_call.contract_id;
-    const func = tx.contract_call.function_name;
-    const matches = NYC_TX_FILTER.some(
-      (filter) =>
-        filter.contract === contractId && filter.functions.includes(func)
-    );
-    return matches;
-  }) as ContractCallTransaction[];
+  const transactions = useAtomValue(transactionsAtom);
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((tx) => {
+      if (tx.tx_type !== "contract_call") return false;
+      const contractId = tx.contract_call.contract_id;
+      const func = tx.contract_call.function_name;
+      const matches = NYC_TX_FILTER.some(
+        (filter) =>
+          filter.contract === contractId && filter.functions.includes(func)
+      );
+      return matches;
+    }) as ContractCallTransaction[];
+  }, [transactions, NYC_TX_FILTER]);
 
   const { miningHistory, isMiningLoading, stackingHistory, isStackingLoading } =
     useCityHistory(filteredTransactions, stxAddress);
