@@ -1,5 +1,5 @@
 export type City = 'mia' | 'nyc';
-export type Version = 'v1' | 'v2';
+export type Version = 'legacyV1' | 'legacyV2' | 'daoV1' | 'daoV2';
 export type Module = 'core' | 'mining' | 'stacking' | 'token';
 
 export const CORE_FUNCTIONS = [
@@ -22,6 +22,8 @@ export const CCD007_FUNCTIONS = [
 
 export const TOKEN_FUNCTIONS = ['transfer'] as const;
 
+import { CITY_CONFIG, CITY_IDS, VERSIONS } from '../config/city-config';
+
 type ContractId = `${string}.${string}`;
 
 type Entry = {
@@ -37,152 +39,110 @@ type Entry = {
   };
 };
 
-// REGISTRY: mining + stacking only
-export const REGISTRY: Entry[] = [
-  // MIA core
-  {
-    city: 'mia', version: 'v1', module: 'core',
-    contract: 'SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-core-v1',
-    functions: CORE_FUNCTIONS,
-    readonlyFunctions: {
-      miningCheck: 'is-block-winner',
-      stackingCheck: 'get-stacker-at-cycle',
-      getUserId: 'get-user-id',
-    },
-  },
-  {
-    city: 'mia', version: 'v2', module: 'core',
-    contract: 'SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-core-v2',
-    functions: CORE_FUNCTIONS,
-    readonlyFunctions: {
-      miningCheck: 'is-block-winner',
-      stackingCheck: 'get-stacker-at-cycle',
-      getUserId: 'get-user-id',
-    },
-  },
+// Dynamic REGISTRY builder using config
+function buildRegistry(): Entry[] {
+  const registry: Entry[] = [];
 
-  // NYC core
-  {
-    city: 'nyc', version: 'v1', module: 'core',
-    contract: 'SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1',
-    functions: CORE_FUNCTIONS,
-    readonlyFunctions: {
-      miningCheck: 'is-block-winner',
-      stackingCheck: 'get-stacker-at-cycle',
-      getUserId: 'get-user-id',
-    },
-  },
-  {
-    city: 'nyc', version: 'v2', module: 'core',
-    contract: 'SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-core-v2',
-    functions: CORE_FUNCTIONS,
-    readonlyFunctions: {
-      miningCheck: 'is-block-winner',
-      stackingCheck: 'get-stacker-at-cycle',
-      getUserId: 'get-user-id',
-    },
-  },
+  // Helper to add readonly functions based on module
+  const addReadonlyFunctions = (module: Module): any => {
+    const funcs: any = {};
+    if (module === 'core') {
+      funcs.miningCheck = 'is-block-winner';
+      funcs.stackingCheck = 'get-stacker-at-cycle';
+      funcs.getUserId = 'get-user-id';
+    } else if (module === 'mining') {
+      funcs.miningCheck = 'is-block-winner';
+    } else if (module === 'stacking') {
+      funcs.stackingCheck = 'get-stacker';
+    }
+    // token has no readonly
+    return Object.keys(funcs).length > 0 ? funcs : undefined;
+  };
 
-  // Shared mining (ccd006) v1 & v2
-  {
-    city: 'mia', version: 'v1', module: 'mining',
-    contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining',
-    functions: CCD006_FUNCTIONS,
-    readonlyFunctions: {
-      miningCheck: 'is-block-winner',
-    },
-  },
-  {
-    city: 'mia', version: 'v2', module: 'mining',
-    contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining-v2',
-    functions: CCD006_FUNCTIONS,
-    readonlyFunctions: {
-      miningCheck: 'is-block-winner',
-    },
-  },
-  {
-    city: 'nyc', version: 'v1', module: 'mining',
-    contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining',
-    functions: CCD006_FUNCTIONS,
-    readonlyFunctions: {
-      miningCheck: 'is-block-winner',
-    },
-  },
-  {
-    city: 'nyc', version: 'v2', module: 'mining',
-    contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-citycoin-mining-v2',
-    functions: CCD006_FUNCTIONS,
-    readonlyFunctions: {
-      miningCheck: 'is-block-winner',
-    },
-  },
+  // Loop over cities and versions
+  (['mia', 'nyc'] as City[]).forEach((city) => {
+    VERSIONS.forEach((version) => {
+      const config = CITY_CONFIG[city][version];
 
-  // Shared stacking (ccd007)
-  {
-    city: 'mia', version: 'v1', module: 'stacking',
-    contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking',
-    functions: CCD007_FUNCTIONS,
-    readonlyFunctions: {
-      stackingCheck: 'get-stacker',
-    },
-  },
-  {
-    city: 'mia', version: 'v2', module: 'stacking',
-    contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking',
-    functions: CCD007_FUNCTIONS,
-    readonlyFunctions: {
-      stackingCheck: 'get-stacker',
-    },
-  },
-  {
-    city: 'nyc', version: 'v1', module: 'stacking',
-    contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking',
-    functions: CCD007_FUNCTIONS,
-    readonlyFunctions: {
-      stackingCheck: 'get-stacker',
-    },
-  },
-  {
-    city: 'nyc', version: 'v2', module: 'stacking',
-    contract: 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking',
-    functions: CCD007_FUNCTIONS,
-    readonlyFunctions: {
-      stackingCheck: 'get-stacker',
-    },
-  },
-  // MIA token
-  {
-    city: 'mia', version: 'v1', module: 'token',
-    contract: 'SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token',
-    functions: TOKEN_FUNCTIONS,
-  },
-  {
-    city: 'mia', version: 'v2', module: 'token',
-    contract: 'SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-token-v2',
-    functions: TOKEN_FUNCTIONS,
-  },
-  // NYC token
-  {
-    city: 'nyc', version: 'v1', module: 'token',
-    contract: 'SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token',
-    functions: TOKEN_FUNCTIONS,
-  },
-  {
-    city: 'nyc', version: 'v2', module: 'token',
-    contract: 'SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2',
-    functions: TOKEN_FUNCTIONS,
-  },
-];
+      // Core: only for legacyV1 and legacyV2
+      if (version === 'legacyV1' || version === 'legacyV2') {
+        const coreDeployer = config.mining.deployer; // reuse mining deployer for core
+        const coreContractName = city === 'mia' 
+          ? `miamicoin-core-${version === 'legacyV1' ? 'v1' : 'v2'}`
+          : `newyorkcitycoin-core-${version === 'legacyV1' ? 'v1' : 'v2'}`;
+        const coreContract = `${coreDeployer}.${coreContractName}`;
+        registry.push({
+          city,
+          version,
+          module: 'core' as const,
+          contract: coreContract,
+          functions: CORE_FUNCTIONS,
+          readonlyFunctions: addReadonlyFunctions('core'),
+        });
+      }
 
-// Shared user registry for ccd006/007
+      // Mining: for all versions (core for legacy, ccd006 for dao)
+      let miningContract: string;
+      if (version === 'legacyV1' || version === 'legacyV2') {
+        // For legacy, mining is in core, but we already added core above; skip or add separately if needed
+        // Note: For legacy, we use core entry for mining functions
+      } else {
+        // For dao, use ccd006
+        const miningDeployer = config.mining.deployer;
+        const miningContractName = config.mining.contractName;
+        miningContract = `${miningDeployer}.${miningContractName}`;
+        registry.push({
+          city,
+          version,
+          module: 'mining' as const,
+          contract: miningContract,
+          functions: CCD006_FUNCTIONS,
+          readonlyFunctions: addReadonlyFunctions('mining'),
+        });
+      }
+
+      // Stacking: for all versions (core for legacy, ccd007 for dao)
+      let stackingContract: string;
+      if (version === 'legacyV1' || version === 'legacyV2') {
+        // For legacy, stacking is in core, already added
+      } else {
+        // For dao, use ccd007
+        const stackingDeployer = config.stacking.deployer;
+        const stackingContractName = config.stacking.contractName;
+        stackingContract = `${stackingDeployer}.${stackingContractName}`;
+        registry.push({
+          city,
+          version,
+          module: 'stacking' as const,
+          contract: stackingContract,
+          functions: CCD007_FUNCTIONS,
+          readonlyFunctions: addReadonlyFunctions('stacking'),
+        });
+      }
+
+      // Token: for all versions
+      const tokenDeployer = config.token.deployer;
+      const tokenContractName = config.token.contractName;
+      const tokenContract = `${tokenDeployer}.${tokenContractName}`;
+      registry.push({
+        city,
+        version,
+        module: 'token' as const,
+        contract: tokenContract,
+        functions: TOKEN_FUNCTIONS,
+      });
+    });
+  });
+
+  return registry;
+}
+
+export const REGISTRY = buildRegistry();
+
 export const USER_REGISTRY_CONTRACT = 'SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd003-user-registry' as const;
 export const USER_REGISTRY_FUNCTIONS = ['get-user-id'] as const;
 
-// City ID mapping (MIA=0, NYC=1 per CityCoins spec)
-export const CITY_ID_MAP: Record<City, number> = {
-  mia: 0,
-  nyc: 1,
-};
+export const CITY_ID_MAP = CITY_IDS;
 
 // Build the same structure you used in NYC/MIA components:
 export function buildCityTxFilter(city: City) {

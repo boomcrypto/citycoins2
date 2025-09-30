@@ -51,10 +51,12 @@
 ## Execution Roadmap
 
 1. **Update Plan (current step)** – done.
-2. **Step A: Config Integration**
-   - Sync `city-config.ts` with canonical data.
-   - Refactor `utilities/contracts.ts` to consume the config.
-   - Confirm filters/tabs still render with the refactored registry.
+2. **Step A: Config Integration** – Completed.
+   - Synced `city-config.ts` with canonical data: Updated version keys to 'legacyV1'/'legacyV2'/'daoV1'/'daoV2', added CITY_IDS {mia:1, nyc:2}, added genesisBlock and cycleLength to each version for computations, exported helper functions (getVersionByBlock, etc.).
+   - Refactored `utilities/contracts.ts`: Made REGISTRY dynamic via buildRegistry() that loops over CITY_CONFIG to generate entries for core (legacy only), mining/stacking (dao uses ccd006/007), and token (all). Added readonlyFunctions dynamically based on module. Updated CITY_ID_MAP import and buildCityTxFilter to use new REGISTRY.
+   - Confirmed: No breaking changes to findEntry or categorize. Filters should work as before since structure is preserved.
+   - Progress: Config now centralized; hard-coded contracts in REGISTRY eliminated. Version helpers available for future use (e.g., in history hook for validation).
+   - Questions/Notes: For legacy mining/stacking, we rely on core entries (no separate mining/stacking for legacy in REGISTRY). Test with a legacy tx to confirm decodeTxArgs/findEntry works. Cycle computation now uses config.genesisBlock; verify accuracy for stacking lock periods against canonical start/end cycles.
 3. **Step B: User ID Cache Overhaul**
    - Update `userIdsAtom` schema.
   - Refactor `useCityHistory` to use the new schema and minimize fetches.
