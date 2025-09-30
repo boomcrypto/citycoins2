@@ -3,7 +3,7 @@
 // CITY INFO
 /////////////////////////
 
-const VERSIONS = ['legacyV1', 'legacyV2', 'daoV1', 'daoV2'];
+export const VERSIONS = ['legacyV1', 'legacyV2', 'daoV1', 'daoV2'];
 
 const MIA_INFO = {
   name: 'mia',
