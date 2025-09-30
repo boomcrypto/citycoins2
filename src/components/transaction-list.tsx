@@ -13,7 +13,7 @@ import {
   TooltipRoot,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { IoMdRefresh } from "react-icons/io";
+import { IoMdRefresh, IoMdDownload } from "react-icons/io";
 import { useAtom, useAtomValue } from "jotai";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import SignIn from "./auth/sign-in";
@@ -106,6 +106,19 @@ function TransactionList({
     }
   };
 
+  const handleDownload = () => {
+    const json = JSON.stringify(allTransactions, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'transactions.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleOpenDetails = (tx: Transaction) => {
     onOpenDetails(tx);
   };
@@ -157,14 +170,24 @@ function TransactionList({
               ? `Filtered transactions: ${filteredTransactions.length} / ${allTransactions.length}`
               : "No transactions loaded yet"}
           </Text>
-          <IconButton
-            aria-label="Refresh Transactions"
-            title="Refresh Transactions"
-            size="sm"
-            onClick={fetchTransactions}
-          >
-            <IoMdRefresh />
-          </IconButton>
+          <Stack direction="row" gap={2}>
+            <IconButton
+              aria-label="Refresh Transactions"
+              title="Refresh Transactions"
+              size="sm"
+              onClick={fetchTransactions}
+            >
+              <IoMdRefresh />
+            </IconButton>
+            <IconButton
+              aria-label="Download Transactions"
+              title="Download Transactions"
+              size="sm"
+              onClick={handleDownload}
+            >
+              <IoMdDownload />
+            </IconButton>
+          </Stack>
         </Stack>
       )}
     </Stack>
