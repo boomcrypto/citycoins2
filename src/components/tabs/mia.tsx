@@ -133,8 +133,15 @@ function Mia({ onOpenDetails }: MiaProps) {
   };
 
   const handleClaimMining = (entry: HistoryEntry) => {
+    if (entry.status !== 'unclaimed' || !stxAddress) {
+      console.warn('Invalid claim: status or address invalid');
+      return;
+    }
     const contractEntry = findEntry(entry.contractId, entry.functionName);
-    if (!contractEntry || !stxAddress) return;
+    if (!contractEntry) {
+      console.warn('Invalid claim: missing contract entry');
+      return;
+    }
 
     const [address, name] = entry.contractId.split(".");
     let functionName = "claim-mining-reward";
@@ -145,6 +152,9 @@ function Mia({ onOpenDetails }: MiaProps) {
     } else if (contractEntry.module === "mining") {
       const cityName = contractEntry.city === 'mia' ? stringAsciiCV('MIA') : stringAsciiCV('NYC');
       functionArgs = [cityName, uintCV(entry.id)];
+    } else {
+      console.warn('Invalid claim: unsupported module for mining');
+      return;
     }
 
     openContractCall({
@@ -159,8 +169,15 @@ function Mia({ onOpenDetails }: MiaProps) {
   };
 
   const handleClaimStacking = (entry: HistoryEntry) => {
+    if (entry.status !== 'unclaimed' || !stxAddress) {
+      console.warn('Invalid claim: status or address invalid');
+      return;
+    }
     const contractEntry = findEntry(entry.contractId, entry.functionName);
-    if (!contractEntry || !stxAddress) return;
+    if (!contractEntry) {
+      console.warn('Invalid claim: missing contract entry');
+      return;
+    }
 
     const [address, name] = entry.contractId.split(".");
     let functionName = "claim-stacking-reward";
@@ -171,6 +188,9 @@ function Mia({ onOpenDetails }: MiaProps) {
     } else if (contractEntry.module === "stacking") {
       const cityName = contractEntry.city === 'mia' ? stringAsciiCV('MIA') : stringAsciiCV('NYC');
       functionArgs = [cityName, uintCV(entry.id)];
+    } else {
+      console.warn('Invalid claim: unsupported module for stacking');
+      return;
     }
 
     openContractCall({
@@ -325,13 +345,16 @@ function Mia({ onOpenDetails }: MiaProps) {
                               )}
                             </Table.Cell>
                             <Table.Cell>
-                              {entry.status === "unclaimed" && (
+                              {entry.status === "unclaimed" && entry.entry && (
                                 <Button
                                   size="sm"
                                   onClick={() => handleClaimMining(entry)}
                                 >
                                   Claim
                                 </Button>
+                              )}
+                              {entry.status === "unknown" && (
+                                <Badge colorScheme="gray">Unknown</Badge>
                               )}
                             </Table.Cell>
                           </Table.Row>
@@ -433,13 +456,16 @@ function Mia({ onOpenDetails }: MiaProps) {
                               )}
                             </Table.Cell>
                             <Table.Cell>
-                              {entry.status === "unclaimed" && (
+                              {entry.status === "unclaimed" && entry.entry && (
                                 <Button
                                   size="sm"
                                   onClick={() => handleClaimStacking(entry)}
                                 >
                                   Claim
                                 </Button>
+                              )}
+                              {entry.status === "unknown" && (
+                                <Badge colorScheme="gray">Unknown</Badge>
                               )}
                             </Table.Cell>
                           </Table.Row>

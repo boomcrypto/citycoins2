@@ -37,15 +37,22 @@ function TransactionArguments({ tx }: { tx: Transaction }) {
   const minedBlocks = useAtomValue(minedBlocksAtom);
 
   let decoded;
+  let decodeError = false;
   try {
     decoded = decodeTxArgs(tx);
   } catch (error) {
+    console.warn(`Decode error for tx ${tx.tx_id}:`, error);
+    decodeError = true;
+  }
+
+  if (decodeError || !decoded) {
     // If decoding fails, show raw arguments
     return (
       <Box>
         <Heading size="md" mb={3}>
-          Function Arguments
+          Function Arguments (Decode Failed - Raw)
         </Heading>
+        <Text mb={2} color="orange.600">Decode failed—raw args below.</Text>
         <List.Root gap={3}>
           {tx.tx_type === "contract_call" &&
             tx.contract_call.function_args &&
@@ -71,14 +78,6 @@ function TransactionArguments({ tx }: { tx: Transaction }) {
               </List.Item>
             ))}
         </List.Root>
-      </Box>
-    );
-  }
-
-  if (!decoded) {
-    return (
-      <Box p={3} bg="gray.50" borderRadius="md">
-        <Text>No decodable arguments.</Text>
       </Box>
     );
   }
@@ -327,13 +326,16 @@ function TransactionEvents({ tx }: { tx: Transaction }) {
               break;
             case "smart_contract_log":
               let decodedPrint: any;
+              let printError = false;
               try {
                 const cv: ClarityValue = deserializeCV(
                   event.contract_log.value.hex
                 );
                 decodedPrint = decodeClarityValues(cv);
               } catch (e) {
+                console.warn(`Print decode error for event in tx ${tx.tx_id}:`, e);
                 decodedPrint = event.contract_log.value.repr;
+                printError = true;
               }
               content = (
                 <Stack gap={1}>
@@ -341,6 +343,7 @@ function TransactionEvents({ tx }: { tx: Transaction }) {
                   <Text>
                     Contract: {shortenPrincipal(event.contract_log.contract_id)}
                   </Text>
+                  {printError && <Text color="orange.600" fontSize="sm">Raw print—decode failed.</Text>}
                   <Box
                     bg="gray.100"
                     p={2}
@@ -355,7 +358,13 @@ function TransactionEvents({ tx }: { tx: Transaction }) {
               );
               break;
             default:
-              content = <Text>Unknown event type: {event.event_type}</Text>;
+              content = (
+                <Stack gap={1}>
+                  <Text fontWeight="bold">Unknown Event</Text>
+                  <Text>Type: {event.event_type}</Text>
+                  <Text>Raw: {JSON.stringify(event, null, 2)}</Text>
+                </Stack>
+              );
           }
           return (
             <List.Item key={index} p={3} bg="gray.50" borderRadius="md">

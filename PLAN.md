@@ -72,8 +72,15 @@
    - Confirmed: Computations match config (e.g., MIA v2 cycles 17-34 only; DAO mining post-107389). Readonly args correct (cityId=1/2 for DAO). Tests: 100% cycle/block match for samples; skips prevent unnecessary API calls (e.g., legacy > endCycle → false).
    - Progress: Hard-codes eliminated; validations ensure accurate history (no false unclaimed). Core N2F complete—tabs render reliably.
    - Questions/Notes: Derived atoms now city-aware; legacy core multi-func handled. TTL still pending for N2H. Multi-version tests passed (cache + validation separate keys/periods).
-5. **Step D: Decoder and Error Handling Polish (remaining N2F)**
-   - Address decoding resilience and claim verification fallbacks.
+
+5. **Step D: Decoder and Error Handling Polish (remaining N2F)** – Completed.
+   - Updated `utilities/transactions.ts`: Hardened `decodeTxArgs` with per-arg try-catch (partial decode on failure), added validators (cityName check, lockPeriod <=12), safe BigInt fallbacks.
+   - Refactored `useCityHistory.ts`: Skipped invalid decodes with warnings; wrapped checks in try-catch (fallback to 'unknown' status on error/missing userId).
+   - Updated `mia.tsx`/`nyc.tsx`: Added validation in claim handlers (check status/entry/module, warn/log on invalid); disabled buttons for 'unknown'.
+   - Enhanced `transaction-details-dialog.tsx`: Added "Decode failed—raw args" message; fallback for print events and unknown types with raw JSON.
+   - Confirmed: Handles malformed args (e.g., partial mine-many) without crash; tables show 'unknown' badge; claims disabled on invalid. Tests: Partial decodes log/warn; no extra API on failures.
+   - Progress: Decoder resilient (partials + guards); errors graceful (unknown status, raw fallbacks). N2F complete—app robust to edge txs.
+   - Questions/Notes: 'Unknown' status prevents false claims; raw UI covers decode gaps. Ready for N2H (rate limiting, TTL).
 6. **Step E+: N2H Enhancements**
    - Apply polish items in priority order once N2F items are verified.
 

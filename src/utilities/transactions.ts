@@ -102,14 +102,20 @@ export function decodeTxArgs(tx: Transaction): DecodedTxArgs {
 
   const rawArgs = tx.contract_call.function_args || [];
   const decodedArgs: any[] = [];
+  let decodeError = false;
   for (const arg of rawArgs) {
     try {
       const cv: ClarityValue = deserializeCV(arg.hex);
       decodedArgs.push(decodeClarityValues(cv));
     } catch (e) {
-      console.error(`Failed to deserialize arg for tx ${tx.tx_id}:`, arg, e);
-      return null;
+      console.warn(`Failed to deserialize arg for tx ${tx.tx_id}:`, arg, e);
+      decodedArgs.push(null);  // Partial: push null for failed arg
+      decodeError = true;
     }
+  }
+
+  if (decodeError) {
+    console.warn(`Partial decode for tx ${tx.tx_id}: some args failed`);
   }
 
   const base: BaseTxArgs = {
@@ -122,54 +128,79 @@ export function decodeTxArgs(tx: Transaction): DecodedTxArgs {
 
   switch (func) {
     case "mine-tokens":
-      if (entry.module !== 'core' || decodedArgs.length < 1 || decodedArgs.length > 2 || typeof decodedArgs[0] !== 'number') return null;
+      if (entry.module !== 'core' || decodedArgs.length < 1 || decodedArgs.length > 2 || decodedArgs[0] === null || typeof decodedArgs[0] !== 'number') return null;
+      // Ignore optional buff if present
       return { ...base, functionName: "mine-tokens", amountsUstx: [safeConvertToBigint(decodedArgs[0])] } as MiningTxArgs;
 
     case "mine-many":
-      if (entry.module !== 'core' || decodedArgs.length !== 1 || !Array.isArray(decodedArgs[0])) return null;
+      if (entry.module !== 'core' || decodedArgs.length !== 1 || !Array.isArray(decodedArgs[0]) || decodedArgs[0].some((a: any) => a === null || typeof a !== 'number')) return null;
       return { ...base, functionName: "mine-many", amountsUstx: decodedArgs[0].map(safeConvertToBigint) } as MiningTxArgs;
 
     case "mine":
-      if (entry.module !== 'mining' || decodedArgs.length !== 2 || typeof decodedArgs[0] !== 'string' || !Array.isArray(decodedArgs[1])) return null;
-      return { ...base, functionName: "mine", cityName: decodedArgs[0], amountsUstx: decodedArgs[1].map(safeConvertToBigint) } as MiningTxArgs;
+      if (entry.module !== 'mining' || decodedArgs.length !== 2 || decodedArgs[0] === null || typeof decodedArgs[0] !== 'string' || !Array.isArray(decodedArgs[1]) || decodedArgs[1].some((a: any) => a === null || typeof a !== 'number')) return null;
+      const cityName = decodedArgs[0];
+      if (cityName !== 'MIA' && cityName !== 'NYC') {
+        console.warn(`Invalid cityName '${cityName}' for mine tx ${tx.tx_id}`);
+        return null;
+      }
+      return { ...base, functionName: "mine", cityName, amountsUstx: decodedArgs[1].map(safeConvertToBigint) } as MiningTxArgs;
 
     case "stack-tokens":
-      if (entry.module !== 'core' || decodedArgs.length !== 2 || typeof decodedArgs[0] !== 'number' || typeof decodedArgs[1] !== 'number') return null;
-      return { ...base, functionName: "stack-tokens", amountToken: safeConvertToBigint(decodedArgs[0]), lockPeriod: safeConvertToBigint(decodedArgs[1]) } as StackingTxArgs;
+      if (entry.module !== 'core' || decodedArgs.length !== 2 || decodedArgs[0] === null || typeof decodedArgs[0] !== 'number' || decodedArgs[1] === null || typeof decodedArgs[1] !== 'number') return null;
+      const lockPeriodTokens = safeConvertToBigint(decodedArgs[1]);
+      if (lockPeriodTokens > 12n) {  // Reasonable max lock
+        console.warn(`Suspicious lock period ${lockPeriodTokens} for stack-tokens tx ${tx.tx_id}`);
+        return null;
+      }
+      return { ...base, functionName: "stack-tokens", amountToken: safeConvertToBigint(decodedArgs[0]), lockPeriod: lockPeriodTokens } as StackingTxArgs;
 
     case "stack":
-      if (entry.module !== 'stacking' || decodedArgs.length !== 3 || typeof decodedArgs[0] !== 'string' || typeof decodedArgs[1] !== 'number' || typeof decodedArgs[2] !== 'number') return null;
-      return { ...base, functionName: "stack", cityName: decodedArgs[0], amountToken: safeConvertToBigint(decodedArgs[1]), lockPeriod: safeConvertToBigint(decodedArgs[2]) } as StackingTxArgs;
+      if (entry.module !== 'stacking' || decodedArgs.length !== 3 || decodedArgs[0] === null || typeof decodedArgs[0] !== 'string' || decodedArgs[1] === null || typeof decodedArgs[1] !== 'number' || decodedArgs[2] === null || typeof decodedArgs[2] !== 'number') return null;
+      const cityNameStack = decodedArgs[0];
+      if (cityNameStack !== 'MIA' && cityNameStack !== 'NYC') {
+        console.warn(`Invalid cityName '${cityNameStack}' for stack tx ${tx.tx_id}`);
+        return null;
+      }
+      const lockPeriodStack = safeConvertToBigint(decodedArgs[2]);
+      if (lockPeriodStack > 12n) {
+        console.warn(`Suspicious lock period ${lockPeriodStack} for stack tx ${tx.tx_id}`);
+        return null;
+      }
+      return { ...base, functionName: "stack", cityName: cityNameStack, amountToken: safeConvertToBigint(decodedArgs[1]), lockPeriod: lockPeriodStack } as StackingTxArgs;
 
     case "claim-mining-reward":
       if (entry.module === 'mining') {
-        if (decodedArgs.length !== 2 || typeof decodedArgs[0] !== 'string' || typeof decodedArgs[1] !== 'number') return null;
-        return { ...base, functionName: "claim-mining-reward", cityName: decodedArgs[0], minerBlockHeight: safeConvertToBigint(decodedArgs[1]) } as MiningClaimTxArgs;
+        if (decodedArgs.length !== 2 || decodedArgs[0] === null || typeof decodedArgs[0] !== 'string' || decodedArgs[1] === null || typeof decodedArgs[1] !== 'number') return null;
+        const cityNameClaim = decodedArgs[0];
+        if (cityNameClaim !== 'MIA' && cityNameClaim !== 'NYC') return null;
+        return { ...base, functionName: "claim-mining-reward", cityName: cityNameClaim, minerBlockHeight: safeConvertToBigint(decodedArgs[1]) } as MiningClaimTxArgs;
       } else if (entry.module === 'core') {
-        if (decodedArgs.length !== 1 || typeof decodedArgs[0] !== 'number') return null;
+        if (decodedArgs.length !== 1 || decodedArgs[0] === null || typeof decodedArgs[0] !== 'number') return null;
         return { ...base, functionName: "claim-mining-reward", minerBlockHeight: safeConvertToBigint(decodedArgs[0]) } as MiningClaimTxArgs;
       }
       return null;
 
     case "claim-stacking-reward":
       if (entry.module === 'stacking') {
-        if (decodedArgs.length !== 2 || typeof decodedArgs[0] !== 'string' || typeof decodedArgs[1] !== 'number') return null;
-        return { ...base, functionName: "claim-stacking-reward", cityName: decodedArgs[0], rewardCycle: safeConvertToBigint(decodedArgs[1]) } as StackingClaimTxArgs;
+        if (decodedArgs.length !== 2 || decodedArgs[0] === null || typeof decodedArgs[0] !== 'string' || decodedArgs[1] === null || typeof decodedArgs[1] !== 'number') return null;
+        const cityNameClaimStack = decodedArgs[0];
+        if (cityNameClaimStack !== 'MIA' && cityNameClaimStack !== 'NYC') return null;
+        return { ...base, functionName: "claim-stacking-reward", cityName: cityNameClaimStack, rewardCycle: safeConvertToBigint(decodedArgs[1]) } as StackingClaimTxArgs;
       } else if (entry.module === 'core') {
-        if (decodedArgs.length !== 1 || typeof decodedArgs[0] !== 'number') return null;
+        if (decodedArgs.length !== 1 || decodedArgs[0] === null || typeof decodedArgs[0] !== 'number') return null;
         return { ...base, functionName: "claim-stacking-reward", rewardCycle: safeConvertToBigint(decodedArgs[0]) } as StackingClaimTxArgs;
       }
       return null;
 
     case "transfer":
-      if (entry.module !== 'token' || decodedArgs.length < 2 || decodedArgs.length > 3 || typeof decodedArgs[0] !== 'number' || typeof decodedArgs[1] !== 'string') return null;
+      if (entry.module !== 'token' || decodedArgs.length < 2 || decodedArgs[0] === null || typeof decodedArgs[0] !== 'number' || decodedArgs[1] === null || typeof decodedArgs[1] !== 'string') return null;
       const transfer: TransferTxArgs = {
         ...base,
         functionName: "transfer",
         amount: safeConvertToBigint(decodedArgs[0]),
         recipient: decodedArgs[1],
       };
-      if (decodedArgs.length === 3) {
+      if (decodedArgs.length === 3 && decodedArgs[2] !== null) {
         transfer.memo = decodedArgs[2];
       }
       return transfer;

@@ -20,7 +20,7 @@ export interface HistoryEntry {
   id: number;
   txId: string;
   claimTxId?: string;
-  status: "claimed" | "unclaimed";
+  status: "claimed" | "unclaimed" | "unknown";
   contractId: string;
   functionName: string;
   entry?: { city: City; version: Version; module: string };
@@ -71,7 +71,11 @@ export function useCityHistory(
         filteredTransactions.forEach((tx) => {
           const decoded = decodeTxArgs(tx);
           const entry = REGISTRY.find(e => e.contract === tx.contract_call.contract_id && e.functions.includes(tx.contract_call.function_name));
-          if (!entry || tx.tx_status !== "success" || !decoded) return;
+          if (!entry || tx.tx_status !== "success") return;
+          if (!decoded) {
+            console.warn(`Skipped claim tx ${tx.tx_id}: decode failed`);
+            return;
+          }
 
           if (isValidMiningClaimTxArgs(decoded)) {
             claimedMining.push({
@@ -105,7 +109,11 @@ export function useCityHistory(
         filteredTransactions.forEach((tx) => {
           const decoded = decodeTxArgs(tx);
           const entry = REGISTRY.find(e => e.contract === tx.contract_call.contract_id && e.functions.includes(tx.contract_call.function_name));
-          if (!entry || tx.tx_status !== "success" || !decoded) return;
+          if (!entry || tx.tx_status !== "success") return;
+          if (!decoded) {
+            console.warn(`Skipped potential tx ${tx.tx_id}: decode failed`);
+            return;
+          }
 
           if (isValidMiningTxArgs(decoded) && decoded.city && decoded.version) {
             const blocks = computeTargetedBlocks(tx, decoded);
@@ -260,6 +268,10 @@ export function useCityHistory(
             // Ensure entry has version for validation
             const entryWithVersion = { ...item.entry, version: item.entry.version };
             const userId = runtimeUserIds.get(item.contractId);
+            if (!userId) {
+              console.warn(`Skipped mining check for block ${item.block}: missing userId`);
+              return null;
+            }
             const isWinner = await checkMiningWinner(entryWithVersion, item.block, stxAddress, userId);
             if (isWinner) {
               return {
@@ -274,6 +286,15 @@ export function useCityHistory(
             }
           } catch (e) {
             console.error(`Error checking mining block ${item.block}:`, e);
+            return {
+              id: item.block,
+              txId: item.txId,
+              claimTxId: undefined,
+              status: 'unknown' as const,
+              contractId: item.contractId,
+              functionName: item.functionName,
+              entry: item.entry,
+            };
           }
           return null;
         });
@@ -311,7 +332,10 @@ export function useCityHistory(
             // Ensure entry has version for validation
             const entryWithVersion = { ...item.entry, version: item.entry.version };
             const userId = runtimeUserIds.get(item.contractId);
-            if (!userId) return null;
+            if (!userId) {
+              console.warn(`Skipped stacking check for cycle ${item.cycle}: missing userId`);
+              return null;
+            }
             const isStacked = await checkStackingCycle(entryWithVersion, item.cycle, stxAddress, userId);
             if (isStacked) {
               return {
@@ -326,6 +350,15 @@ export function useCityHistory(
             }
           } catch (e) {
             console.error(`Error checking stacking cycle ${item.cycle}:`, e);
+            return {
+              id: item.cycle,
+              txId: item.txId,
+              claimTxId: undefined,
+              status: 'unknown' as const,
+              contractId: item.contractId,
+              functionName: item.functionName,
+              entry: item.entry,
+            };
           }
           return null;
         });
