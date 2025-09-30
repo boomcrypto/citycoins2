@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from "react";
+import { useAtomValue, useSetAtom } from "jotai";
 import { ContractCallTransaction } from "@stacks/stacks-blockchain-api-types";
+import { userIdsAtom, getUserIdKey } from "../store/stacks";
 import {
   decodeTxArgs,
   isValidMiningTxArgs,
@@ -13,8 +15,8 @@ import {
   checkStackingCycle,
 } from "../utilities/transactions";
 import { City, REGISTRY, Version } from "../utilities/contracts";
-import { useAtomValue, useSetAtom } from "jotai";
-import { userIdsAtom, getUserIdKey } from "../store/stacks";
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export interface HistoryEntry {
   id: number;

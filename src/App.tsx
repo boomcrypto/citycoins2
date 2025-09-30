@@ -1,11 +1,11 @@
+import { useState } from "react";
 import { Flex, Separator } from "@chakra-ui/react";
+import { Transaction } from "@stacks/stacks-blockchain-api-types";
+import { Provider } from "./components/ui/provider";
 import Content from "./components/layout/page-content";
 import Footer from "./components/layout/page-footer";
 import Header from "./components/layout/page-header";
-import { Provider } from "./components/ui/provider";
-import { useState } from "react";
 import TransactionDetailsDialog from "./components/transaction-details-dialog";
-import { Transaction } from "@stacks/stacks-blockchain-api-types";
 
 export const App = () => {
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);

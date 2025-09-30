@@ -9,33 +9,30 @@ import {
   Stack,
   Table,
   Text,
-  Tooltip,
   TooltipRoot,
 } from "@chakra-ui/react";
-import { useMemo } from "react";
-import { useAtomValue, useSetAtom } from "jotai";
-import { openContractCall } from "@stacks/connect";
+import { useMemo, useEffect } from "react";
+import { useAtomValue } from "jotai";
 import {
   ContractCallTransaction,
   Transaction,
 } from "@stacks/stacks-blockchain-api-types";
-import SignIn from "../auth/sign-in";
-import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
-import { shortenPrincipal, shortenTxId } from "../../utilities/clarity";
-import { buildCityTxFilter } from "../../utilities/contracts";
-import TransactionList from "../transaction-list";
-import { useCityHistory, HistoryEntry } from "../../hooks/useCityHistory";
-import { findEntry, REGISTRY } from "../../utilities/contracts";
+import { openContractCall } from "@stacks/connect";
 import { uintCV, stringAsciiCV } from "@stacks/transactions";
+import SignIn from "../auth/sign-in";
+import TransactionList from "../transaction-list";
+import { getCityConfig } from "../../config/city-config";
+import { useCityHistory, HistoryEntry } from "../../hooks/use-city-history";
 import {
   miaBalancesAtom,
   miaEligibilityAtom,
   miaFormattedBalancesAtom,
   useCheckCityEligibility,
   useResetCityEligibility,
-  CITY_INFO,
 } from "../../store/city-balances";
-import { getCityConfig } from "../../config/city-config";
+import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
+import { shortenPrincipal, shortenTxId } from "../../utilities/clarity";
+import { buildCityTxFilter, findEntry } from "../../utilities/contracts";
 
 interface MiaProps {
   onOpenDetails: (tx: Transaction) => void;
@@ -47,8 +44,8 @@ function Mia({ onOpenDetails }: MiaProps) {
   const balances = useAtomValue(miaBalancesAtom);
   const eligibility = useAtomValue(miaEligibilityAtom);
   const formattedBalances = useAtomValue(miaFormattedBalancesAtom);
-  const checkEligibility = useCheckCityEligibility('mia');
-  const resetEligibility = useResetCityEligibility('mia');
+  const checkEligibility = useCheckCityEligibility("mia");
+  const resetEligibility = useResetCityEligibility("mia");
 
   const MIA_TX_FILTER = buildCityTxFilter("mia");
 
@@ -86,7 +83,7 @@ function Mia({ onOpenDetails }: MiaProps) {
     );
   }
 
-  const config = getCityConfig('mia');
+  const config = getCityConfig("mia");
   const redemptionConfig = config.redemption;
   const MIA_REDEMPTION_CONTRACT = `${redemptionConfig.deployer}.${redemptionConfig.contractName}`;
 
@@ -226,7 +223,7 @@ function Mia({ onOpenDetails }: MiaProps) {
                 <Button
                   variant="outline"
                   onClick={checkEligibilityHandler}
-                  isLoading={eligibility.isLoading}
+                  loading={eligibility.isLoading}
                   disabled={true}
                 >
                   Check Eligibility
@@ -235,7 +232,11 @@ function Mia({ onOpenDetails }: MiaProps) {
               <Button
                 variant="outline"
                 onClick={executeRedemption}
-                disabled={!eligibility.hasChecked || !eligibility.isEligible || eligibility.isLoading}
+                disabled={
+                  !eligibility.hasChecked ||
+                  !eligibility.isEligible ||
+                  eligibility.isLoading
+                }
               >
                 Execute Redemption
               </Button>

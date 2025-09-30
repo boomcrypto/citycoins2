@@ -16,6 +16,8 @@ import { useAtomValue } from "jotai";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { ClarityValue, deserializeCV } from "@stacks/transactions";
 import { formatDate, formatMicroAmount } from "../store/common";
+import { minedBlocksAtom } from "../store/stacks";
+import { decodeClarityValues, shortenPrincipal } from "../utilities/clarity";
 import {
   decodeTxArgs,
   isValidMiningTxArgs,
@@ -24,8 +26,6 @@ import {
   isValidStackingClaimTxArgs,
   isValidTransferTxArgs,
 } from "../utilities/transactions";
-import { minedBlocksAtom } from "../store/stacks";
-import { decodeClarityValues, shortenPrincipal } from "../utilities/clarity";
 
 interface TransactionDetailsDialogProps {
   tx: Transaction | null;
@@ -52,7 +52,9 @@ function TransactionArguments({ tx }: { tx: Transaction }) {
         <Heading size="md" mb={3}>
           Function Arguments (Decode Failed - Raw)
         </Heading>
-        <Text mb={2} color="orange.600">Decode failed—raw args below.</Text>
+        <Text mb={2} color="orange.600">
+          Decode failed—raw args below.
+        </Text>
         <List.Root gap={3}>
           {tx.tx_type === "contract_call" &&
             tx.contract_call.function_args &&
@@ -333,7 +335,10 @@ function TransactionEvents({ tx }: { tx: Transaction }) {
                 );
                 decodedPrint = decodeClarityValues(cv);
               } catch (e) {
-                console.warn(`Print decode error for event in tx ${tx.tx_id}:`, e);
+                console.warn(
+                  `Print decode error for event in tx ${tx.tx_id}:`,
+                  e
+                );
                 decodedPrint = event.contract_log.value.repr;
                 printError = true;
               }
@@ -343,7 +348,11 @@ function TransactionEvents({ tx }: { tx: Transaction }) {
                   <Text>
                     Contract: {shortenPrincipal(event.contract_log.contract_id)}
                   </Text>
-                  {printError && <Text color="orange.600" fontSize="sm">Raw print—decode failed.</Text>}
+                  {printError && (
+                    <Text color="orange.600" fontSize="sm">
+                      Raw print—decode failed.
+                    </Text>
+                  )}
                   <Box
                     bg="gray.100"
                     p={2}

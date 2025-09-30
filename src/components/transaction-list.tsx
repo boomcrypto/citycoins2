@@ -10,14 +10,19 @@ import {
   Badge,
   Table,
   NativeSelect,
-  Tooltip,
+  TooltipRoot,
 } from "@chakra-ui/react";
-import { useState, useCallback } from "react";
-import { useAtom, useAtomValue } from "jotai";
+import { useEffect, useState } from "react";
 import { IoMdRefresh } from "react-icons/io";
+import { useAtom, useAtomValue } from "jotai";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
-import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
+import SignIn from "./auth/sign-in";
 import { formatDate } from "../store/common";
+import {
+  stxAddressAtom,
+  transactionFetchStatusAtom,
+  transactionsAtom,
+} from "../store/stacks";
 import { shortenTxId } from "../utilities/clarity";
 import { getTxCategory } from "../utilities/transactions";
 
@@ -67,6 +72,7 @@ function TransactionList({
   const { isLoading, error, progress } = useAtomValue(
     transactionFetchStatusAtom
   );
+  const stxAddress = useAtomValue(stxAddressAtom);
 
   const [filterType, setFilterType] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
@@ -167,31 +173,51 @@ function TransactionList({
   // Helper component for summaries
   const Summaries = () => (
     <Stack direction="row" gap={4} flexWrap="wrap">
-      <Tooltip label="View mining history in city tabs">
-        <Badge colorScheme={getCategoryColor("Mining")} variant="outline" cursor="pointer">
+      <TooltipRoot content="View mining history in city tabs">
+        <Badge
+          colorScheme={getCategoryColor("Mining")}
+          variant="outline"
+          cursor="pointer"
+        >
           Mining: {summaries.mining}
         </Badge>
-      </Tooltip>
-      <Tooltip label="View mining claims in city tabs">
-        <Badge colorScheme={getCategoryColor("Mining Claim")} variant="outline" cursor="pointer">
+      </TooltipRoot>
+      <TooltipRoot content="View mining claims in city tabs">
+        <Badge
+          colorScheme={getCategoryColor("Mining Claim")}
+          variant="outline"
+          cursor="pointer"
+        >
           Mining Claims: {summaries.miningClaims}
         </Badge>
-      </Tooltip>
-      <Tooltip label="View stacking history in city tabs">
-        <Badge colorScheme={getCategoryColor("Stacking")} variant="outline" cursor="pointer">
+      </TooltipRoot>
+      <TooltipRoot content="View stacking history in city tabs">
+        <Badge
+          colorScheme={getCategoryColor("Stacking")}
+          variant="outline"
+          cursor="pointer"
+        >
           Stacking: {summaries.stacking}
         </Badge>
-      </Tooltip>
-      <Tooltip label="View stacking claims in city tabs">
-        <Badge colorScheme={getCategoryColor("Stacking Claim")} variant="outline" cursor="pointer">
+      </TooltipRoot>
+      <TooltipRoot content="View stacking claims in city tabs">
+        <Badge
+          colorScheme={getCategoryColor("Stacking Claim")}
+          variant="outline"
+          cursor="pointer"
+        >
           Stacking Claims: {summaries.stackingClaims}
         </Badge>
-      </Tooltip>
-      <Tooltip label="View transfers in details">
-        <Badge colorScheme={getCategoryColor("Transfer")} variant="outline" cursor="pointer">
+      </TooltipRoot>
+      <TooltipRoot content="View transfers in details">
+        <Badge
+          colorScheme={getCategoryColor("Transfer")}
+          variant="outline"
+          cursor="pointer"
+        >
           Transfers: {summaries.transfers}
         </Badge>
-      </Tooltip>
+      </TooltipRoot>
     </Stack>
   );
 
@@ -234,7 +260,7 @@ function TransactionList({
   );
 
   // Helper component for transaction table
-  const TransactionTable = () => (
+  const TransactionTable = ({ stxAddress }: { stxAddress: string | null }) => (
     <Box overflowX="auto">
       <Table.Root variant="outline">
         <Table.Header>
@@ -251,10 +277,15 @@ function TransactionList({
             <Table.Row>
               <Table.Cell colSpan={5} textAlign="center">
                 {stxAddress ? (
-                  <Text>No transactions found for this filter. Try adjusting search or type.</Text>
+                  <Text>
+                    No transactions found for this filter. Try adjusting search
+                    or type.
+                  </Text>
                 ) : (
                   <Stack align="center">
-                    <Text>No transactions loaded—connect wallet to get started.</Text>
+                    <Text>
+                      No transactions loaded—connect wallet to get started.
+                    </Text>
                     <SignIn />
                   </Stack>
                 )}
@@ -313,7 +344,7 @@ function TransactionList({
       <StatusIndicator />
       <Summaries />
       <Filters />
-      <TransactionTable />
+      <TransactionTable stxAddress={stxAddress} />
     </Stack>
   );
 }

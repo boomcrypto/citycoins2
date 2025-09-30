@@ -12,29 +12,27 @@ import {
   TooltipRoot,
 } from "@chakra-ui/react";
 import { useMemo, useEffect } from "react";
-import { useAtomValue, useSetAtom } from "jotai";
-import { openContractCall } from "@stacks/connect";
+import { useAtomValue } from "jotai";
 import {
   ContractCallTransaction,
   Transaction,
 } from "@stacks/stacks-blockchain-api-types";
+import { openContractCall } from "@stacks/connect";
+import { uintCV, stringAsciiCV } from "@stacks/transactions";
 import SignIn from "../auth/sign-in";
 import TransactionList from "../transaction-list";
-import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
-import { shortenPrincipal, shortenTxId } from "../../utilities/clarity";
-import { buildCityTxFilter } from "../../utilities/contracts";
-import { useCityHistory, HistoryEntry } from "../../hooks/useCityHistory";
-import { findEntry, REGISTRY } from "../../utilities/contracts";
-import { uintCV, stringAsciiCV } from "@stacks/transactions";
+import { getCityConfig } from "../../config/city-config";
+import { useCityHistory, HistoryEntry } from "../../hooks/use-city-history";
 import {
   nycBalancesAtom,
   nycEligibilityAtom,
   nycFormattedBalancesAtom,
   useCheckCityEligibility,
   useResetCityEligibility,
-  CITY_INFO,
 } from "../../store/city-balances";
-import { getCityConfig } from "../../config/city-config";
+import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
+import { shortenPrincipal, shortenTxId } from "../../utilities/clarity";
+import { buildCityTxFilter, findEntry } from "../../utilities/contracts";
 
 interface NycProps {
   onOpenDetails: (tx: Transaction) => void;
@@ -46,8 +44,8 @@ function Nyc({ onOpenDetails }: NycProps) {
   const balances = useAtomValue(nycBalancesAtom);
   const eligibility = useAtomValue(nycEligibilityAtom);
   const formattedBalances = useAtomValue(nycFormattedBalancesAtom);
-  const checkEligibility = useCheckCityEligibility('nyc');
-  const resetEligibility = useResetCityEligibility('nyc');
+  const checkEligibility = useCheckCityEligibility("nyc");
+  const resetEligibility = useResetCityEligibility("nyc");
 
   // Build NYC_TX_FILTER dynamically from config to include all relevant contracts/functions
   const NYC_TX_FILTER = buildCityTxFilter("nyc");
@@ -87,7 +85,7 @@ function Nyc({ onOpenDetails }: NycProps) {
     );
   }
 
-  const config = getCityConfig('nyc');
+  const config = getCityConfig("nyc");
   const redemptionConfig = config.redemption;
   const NYC_REDEMPTION_CONTRACT = `${redemptionConfig.deployer}.${redemptionConfig.contractName}`;
 
@@ -229,14 +227,18 @@ function Nyc({ onOpenDetails }: NycProps) {
               <Button
                 variant="outline"
                 onClick={checkEligibilityHandler}
-                isLoading={eligibility.isLoading}
+                loading={eligibility.isLoading}
               >
                 Check Eligibility
               </Button>
               <Button
                 variant="outline"
                 onClick={executeRedemption}
-                disabled={!eligibility.hasChecked || !eligibility.isEligible || eligibility.isLoading}
+                disabled={
+                  !eligibility.hasChecked ||
+                  !eligibility.isEligible ||
+                  eligibility.isLoading
+                }
               >
                 Execute Redemption
               </Button>
