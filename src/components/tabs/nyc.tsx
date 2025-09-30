@@ -11,7 +11,7 @@ import {
   Text,
   TooltipRoot,
 } from "@chakra-ui/react";
-import { useMemo, useState } from "react";
+import { useMemo, useEffect } from "react";
 import { useAtomValue } from "jotai";
 import { openContractCall } from "@stacks/connect";
 import {
@@ -36,11 +36,11 @@ interface NycProps {
 function Nyc({ onOpenDetails }: NycProps) {
   const stxAddress = useAtomValue(stxAddressAtom);
 
-  const [hasChecked, setHasChecked] = useState(false);
-  const [isEligible, setIsEligible] = useState(false);
-  const [balanceV1, setBalanceV1] = useState(0);
-  const [balanceV2, setBalanceV2] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const balances = useAtomValue(nycBalancesAtom);
+  const eligibility = useAtomValue(nycEligibilityAtom);
+  const formattedBalances = useAtomValue(nycFormattedBalancesAtom);
+  const checkEligibility = useCheckCityEligibility('nyc');
+  const resetEligibility = useResetCityEligibility('nyc');
 
   // Build NYC_TX_FILTER dynamically from config to include all relevant contracts/functions
   const NYC_TX_FILTER = buildCityTxFilter("nyc");
@@ -62,6 +62,11 @@ function Nyc({ onOpenDetails }: NycProps) {
   const { miningHistory, isMiningLoading, stackingHistory, isStackingLoading } =
     useCityHistory(filteredTransactions, stxAddress);
 
+  // Reset eligibility on address change (e.g., sign-out)
+  useEffect(() => {
+    if (!stxAddress) resetEligibility();
+  }, [stxAddress, resetEligibility]);
+
   if (!stxAddress) {
     return (
       <Stack gap={4}>
@@ -75,44 +80,12 @@ function Nyc({ onOpenDetails }: NycProps) {
     );
   }
 
-  const NYC_ASSET_ID = "newyorkcitycoin";
-  const NYC_V1_CONTRACT =
-    "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token";
-  const NYC_V2_CONTRACT =
-    "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2";
+  const config = getCityConfig('nyc');
+  const redemptionConfig = config.redemption;
+  const NYC_REDEMPTION_CONTRACT = `${redemptionConfig.deployer}.${redemptionConfig.contractName}`;
 
-  const NYC_REDEMPTION_CONTRACT =
-    "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd012-redemption-nyc";
-
-  const checkEligibility = async () => {
-    setIsLoading(true);
-    try {
-      const url = `${HIRO_API}/extended/v1/address/${stxAddress}/balances`;
-      const data = await fancyFetch<AddressBalanceResponse>(url);
-      //console.log("fetched balance data from Hiro:");
-      //console.log(JSON.stringify(data, null, 2));
-      const v1Balance = parseInt(
-        data.fungible_tokens?.[`${NYC_V1_CONTRACT}::${NYC_ASSET_ID}`]
-          ?.balance || "0",
-        10
-      );
-      const v2Balance = parseInt(
-        data.fungible_tokens?.[`${NYC_V2_CONTRACT}::${NYC_ASSET_ID}`]
-          ?.balance || "0",
-        10
-      );
-
-      setBalanceV1(v1Balance);
-      setBalanceV2(v2Balance);
-      const eligible = v1Balance > 0 || v2Balance > 0;
-      setIsEligible(eligible);
-      setHasChecked(true);
-      console.log("Eligibility checked:", { v1Balance, v2Balance, eligible });
-    } catch (error) {
-      console.error("Error checking eligibility:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const checkEligibilityHandler = async () => {
+    await checkEligibility();
   };
 
   const executeRedemption = () => {
@@ -121,8 +94,8 @@ function Nyc({ onOpenDetails }: NycProps) {
     /* Need to double check post conditions required here
     - also add a contract will transfer? look up amount for balance?
     const postConditions: PostCondition[] = [];
-    const v1PostCondition = balanceV1 ? Pc.principal(stxAddress).willSendEq(balanceV1).ft(NYC_V1_CONTRACT, "newyorkcitycoin") : undefined;
-    const v2PostCondition = balanceV2 ? Pc.principal(stxAddress).willSendEq(balanceV2).ft(NYC_V2_CONTRACT, "newyorkcitycoin") : undefined;
+    const v1PostCondition = balances.v1 ? Pc.principal(stxAddress).willSendEq(balances.v1).ft(`${config.legacyV1.token.deployer}.${config.legacyV1.token.contractName}`, "newyorkcitycoin") : undefined;
+    const v2PostCondition = balances.v2 ? Pc.principal(stxAddress).willSendEq(balances.v2).ft(`${config.legacyV2.token.deployer}.${config.legacyV2.token.contractName}`, "newyorkcitycoin") : undefined;
     if (v1PostCondition) { postConditions.push(v1PostCondition) };
     if (v2PostCondition) { postConditions.push(v2PostCondition) };
     */
@@ -248,25 +221,25 @@ function Nyc({ onOpenDetails }: NycProps) {
             <Stack direction="row" gap={4}>
               <Button
                 variant="outline"
-                onClick={checkEligibility}
-                loading={isLoading}
+                onClick={checkEligibilityHandler}
+                isLoading={eligibility.isLoading}
               >
                 Check Eligibility
               </Button>
               <Button
                 variant="outline"
                 onClick={executeRedemption}
-                disabled={!hasChecked || !isEligible || isLoading}
+                disabled={!eligibility.hasChecked || !eligibility.isEligible || eligibility.isLoading}
               >
                 Execute Redemption
               </Button>
             </Stack>
-            {hasChecked && (
+            {eligibility.hasChecked && (
               <Stack mt={4}>
-                <Text>NYC v1 Balance: {balanceV1}</Text>
-                <Text>NYC v2 Balance: {balanceV2 / 1000000}</Text>
+                <Text>NYC v1 Balance: {balances.v1}</Text>
+                <Text>NYC v2 Balance: {formattedBalances.v2}</Text>
                 <Text>
-                  {isEligible
+                  {eligibility.isEligible
                     ? "You are eligible for redemption."
                     : "You are not eligible for redemption."}
                 </Text>

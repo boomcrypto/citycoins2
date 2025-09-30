@@ -12,16 +12,14 @@ import {
   Tooltip,
   TooltipRoot,
 } from "@chakra-ui/react";
-import { useMemo, useState } from "react";
-import { useAtomValue } from "jotai";
+import { useMemo } from "react";
+import { useAtomValue, useSetAtom } from "jotai";
 import { openContractCall } from "@stacks/connect";
 import {
-  AddressBalanceResponse,
   ContractCallTransaction,
   Transaction,
 } from "@stacks/stacks-blockchain-api-types";
 import SignIn from "../auth/sign-in";
-import { fancyFetch, HIRO_API } from "../../store/common";
 import { stxAddressAtom, transactionsAtom } from "../../store/stacks";
 import { shortenPrincipal, shortenTxId } from "../../utilities/clarity";
 import { buildCityTxFilter } from "../../utilities/contracts";
@@ -29,6 +27,15 @@ import TransactionList from "../transaction-list";
 import { useCityHistory, HistoryEntry } from "../../hooks/useCityHistory";
 import { findEntry, REGISTRY } from "../../utilities/contracts";
 import { uintCV, stringAsciiCV } from "@stacks/transactions";
+import {
+  miaBalancesAtom,
+  miaEligibilityAtom,
+  miaFormattedBalancesAtom,
+  useCheckCityEligibility,
+  useResetCityEligibility,
+  CITY_INFO,
+} from "../../store/city-balances";
+import { getCityConfig } from "../../config/city-config";
 
 interface MiaProps {
   onOpenDetails: (tx: Transaction) => void;
@@ -37,11 +44,11 @@ interface MiaProps {
 function Mia({ onOpenDetails }: MiaProps) {
   const stxAddress = useAtomValue(stxAddressAtom);
 
-  const [hasChecked, setHasChecked] = useState(false);
-  const [isEligible, setIsEligible] = useState(false);
-  const [balanceV1, setBalanceV1] = useState(0);
-  const [balanceV2, setBalanceV2] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const balances = useAtomValue(miaBalancesAtom);
+  const eligibility = useAtomValue(miaEligibilityAtom);
+  const formattedBalances = useAtomValue(miaFormattedBalancesAtom);
+  const checkEligibility = useCheckCityEligibility('mia');
+  const resetEligibility = useResetCityEligibility('mia');
 
   const MIA_TX_FILTER = buildCityTxFilter("mia");
 
@@ -61,6 +68,11 @@ function Mia({ onOpenDetails }: MiaProps) {
   const { miningHistory, isMiningLoading, stackingHistory, isStackingLoading } =
     useCityHistory(filteredTransactions, stxAddress);
 
+  // Reset eligibility on address change (e.g., sign-out)
+  useEffect(() => {
+    if (!stxAddress) resetEligibility();
+  }, [stxAddress, resetEligibility]);
+
   if (!stxAddress) {
     return (
       <Stack gap={4}>
@@ -74,45 +86,14 @@ function Mia({ onOpenDetails }: MiaProps) {
     );
   }
 
-  const MIA_ASSET_ID = "miamicoin";
-  const MIA_V1_CONTRACT =
-    "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token";
-  const MIA_V2_CONTRACT =
-    "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-token-v2";
+  const config = getCityConfig('mia');
+  const redemptionConfig = config.redemption;
+  const MIA_REDEMPTION_CONTRACT = `${redemptionConfig.deployer}.${redemptionConfig.contractName}`;
 
-  const MIA_REDEMPTION_CONTRACT =
-    "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd013-redemption-mia";
-
-  const checkEligibility = async () => {
+  const checkEligibilityHandler = async () => {
     console.log("Pending CCIP-026 vote and approval...");
-    return;
-
-    setIsLoading(true);
-    try {
-      const url = `${HIRO_API}/extended/v1/address/${stxAddress}/balances`;
-      const data = await fancyFetch<AddressBalanceResponse>(url);
-      const v1Balance = parseInt(
-        data.fungible_tokens?.[`${MIA_V1_CONTRACT}::${MIA_ASSET_ID}`]
-          ?.balance || "0",
-        10
-      );
-      const v2Balance = parseInt(
-        data.fungible_tokens?.[`${MIA_V2_CONTRACT}::${MIA_ASSET_ID}`]
-          ?.balance || "0",
-        10
-      );
-
-      setBalanceV1(v1Balance);
-      setBalanceV2(v2Balance);
-      const eligible = v1Balance > 0 || v2Balance > 0;
-      setIsEligible(eligible);
-      setHasChecked(true);
-      console.log("Eligibility checked:", { v1Balance, v2Balance, eligible });
-    } catch (error) {
-      console.error("Error checking eligibility:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    // return; // Uncomment when ready
+    await checkEligibility();
   };
 
   const executeRedemption = async () => {
@@ -244,8 +225,8 @@ function Mia({ onOpenDetails }: MiaProps) {
               <TooltipRoot content="Pending CCIP-026 approval">
                 <Button
                   variant="outline"
-                  onClick={checkEligibility}
-                  loading={isLoading}
+                  onClick={checkEligibilityHandler}
+                  isLoading={eligibility.isLoading}
                   disabled={true}
                 >
                   Check Eligibility
@@ -254,17 +235,17 @@ function Mia({ onOpenDetails }: MiaProps) {
               <Button
                 variant="outline"
                 onClick={executeRedemption}
-                disabled={!hasChecked || !isEligible || isLoading}
+                disabled={!eligibility.hasChecked || !eligibility.isEligible || eligibility.isLoading}
               >
                 Execute Redemption
               </Button>
             </Stack>
-            {hasChecked && (
+            {eligibility.hasChecked && (
               <Stack mt={4}>
-                <Text>MIA v1 Balance: {balanceV1}</Text>
-                <Text>MIA v2 Balance: {balanceV2 / 1000000}</Text>
+                <Text>MIA v1 Balance: {balances.v1}</Text>
+                <Text>MIA v2 Balance: {formattedBalances.v2}</Text>
                 <Text>
-                  {isEligible
+                  {eligibility.isEligible
                     ? "You are eligible for redemption."
                     : "You are not eligible for redemption."}
                 </Text>
