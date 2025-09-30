@@ -1,7 +1,3 @@
-import MiamiCoin from '../images/MIA_StandAlone.svg';
-import MiamiCoinBG from '../images/MIA_BG_Horizontal.svg';
-import NewYorkCityCoin from '../images/NYC_StandAlone.svg';
-import NewYorkCityCoinBG from '../images/NYC_BG_Horizontal.svg';
 
 /////////////////////////
 // CITY INFO
@@ -13,8 +9,6 @@ const MIA_INFO = {
   name: 'mia',
   displayName: 'Miami',
   symbol: 'MIA',
-  logo: MiamiCoin,
-  background: MiamiCoinBG,
   textColor: 'text-dark',
   versions: VERSIONS,
   currentVersion: 'daoV2',
@@ -24,8 +18,6 @@ const NYC_INFO = {
   name: 'nyc',
   displayName: 'New York City',
   symbol: 'NYC',
-  logo: NewYorkCityCoin,
-  background: NewYorkCityCoinBG,
   textColor: 'text-dark',
   versions: VERSIONS,
   currentVersion: 'daoV2',
