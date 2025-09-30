@@ -1,4 +1,5 @@
 import { atom, useAtomValue, useSetAtom } from "jotai";
+import { useCallback } from "react";
 import { atomWithStorage } from "jotai/utils";
 import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
 import { fancyFetch, HIRO_API } from "./common";
@@ -77,5 +78,5 @@ export function useCheckCityEligibility(city: 'mia' | 'nyc') {
 // Updater to reset eligibility (e.g., on sign-out)
 export function useResetCityEligibility(city: 'mia' | 'nyc') {
   const setEligibility = city === 'mia' ? useSetAtom(miaEligibilityAtom) : useSetAtom(nycEligibilityAtom);
-  return () => setEligibility({ isEligible: false, hasChecked: false, isLoading: false });
+  return useCallback(() => setEligibility({ isEligible: false, hasChecked: false, isLoading: false }), [setEligibility]);
 }
