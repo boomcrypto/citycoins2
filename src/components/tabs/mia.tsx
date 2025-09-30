@@ -47,7 +47,7 @@ function Mia({ onOpenDetails }: MiaProps) {
   const checkEligibility = useCheckCityEligibility("mia");
   const resetEligibility = useResetCityEligibility("mia");
 
-  const MIA_TX_FILTER = buildCityTxFilter("mia");
+  const MIA_TX_FILTER = useMemo(() => buildCityTxFilter("mia"), []);
 
   const transactions = useAtomValue(transactionsAtom);
   const filteredTransactions = useMemo(() => {

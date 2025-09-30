@@ -48,7 +48,7 @@ function Nyc({ onOpenDetails }: NycProps) {
   const resetEligibility = useResetCityEligibility("nyc");
 
   // Build NYC_TX_FILTER dynamically from config to include all relevant contracts/functions
-  const NYC_TX_FILTER = buildCityTxFilter("nyc");
+  const NYC_TX_FILTER = useMemo(() => buildCityTxFilter("nyc"), []);
 
   const transactions = useAtomValue(transactionsAtom);
   const filteredTransactions = useMemo(() => {
