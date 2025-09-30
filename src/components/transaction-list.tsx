@@ -10,8 +10,9 @@ import {
   Badge,
   Table,
   NativeSelect,
+  Tooltip,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { IoMdRefresh } from "react-icons/io";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
@@ -70,11 +71,18 @@ function TransactionList({
   const [filterType, setFilterType] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const filteredTransactions = transactions.filter((tx) => {
     if (
-      searchTerm &&
-      !tx.tx_id.toLowerCase().includes(searchTerm.toLowerCase())
+      debouncedSearchTerm &&
+      !tx.tx_id.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
     )
       return false;
     if (filterStatus !== "All" && tx.tx_status !== filterStatus) return false;
@@ -159,21 +167,31 @@ function TransactionList({
   // Helper component for summaries
   const Summaries = () => (
     <Stack direction="row" gap={4} flexWrap="wrap">
-      <Badge colorScheme={getCategoryColor("Mining")} variant="outline">
-        Mining: {summaries.mining}
-      </Badge>
-      <Badge colorScheme={getCategoryColor("Mining Claim")} variant="outline">
-        Mining Claims: {summaries.miningClaims}
-      </Badge>
-      <Badge colorScheme={getCategoryColor("Stacking")} variant="outline">
-        Stacking: {summaries.stacking}
-      </Badge>
-      <Badge colorScheme={getCategoryColor("Stacking Claim")} variant="outline">
-        Stacking Claims: {summaries.stackingClaims}
-      </Badge>
-      <Badge colorScheme={getCategoryColor("Transfer")} variant="outline">
-        Transfers: {summaries.transfers}
-      </Badge>
+      <Tooltip label="View mining history in city tabs">
+        <Badge colorScheme={getCategoryColor("Mining")} variant="outline" cursor="pointer">
+          Mining: {summaries.mining}
+        </Badge>
+      </Tooltip>
+      <Tooltip label="View mining claims in city tabs">
+        <Badge colorScheme={getCategoryColor("Mining Claim")} variant="outline" cursor="pointer">
+          Mining Claims: {summaries.miningClaims}
+        </Badge>
+      </Tooltip>
+      <Tooltip label="View stacking history in city tabs">
+        <Badge colorScheme={getCategoryColor("Stacking")} variant="outline" cursor="pointer">
+          Stacking: {summaries.stacking}
+        </Badge>
+      </Tooltip>
+      <Tooltip label="View stacking claims in city tabs">
+        <Badge colorScheme={getCategoryColor("Stacking Claim")} variant="outline" cursor="pointer">
+          Stacking Claims: {summaries.stackingClaims}
+        </Badge>
+      </Tooltip>
+      <Tooltip label="View transfers in details">
+        <Badge colorScheme={getCategoryColor("Transfer")} variant="outline" cursor="pointer">
+          Transfers: {summaries.transfers}
+        </Badge>
+      </Tooltip>
     </Stack>
   );
 
@@ -232,7 +250,14 @@ function TransactionList({
           {filteredTransactions.length === 0 ? (
             <Table.Row>
               <Table.Cell colSpan={5} textAlign="center">
-                No transactions found.
+                {stxAddress ? (
+                  <Text>No transactions found for this filter. Try adjusting search or type.</Text>
+                ) : (
+                  <Stack align="center">
+                    <Text>No transactions loaded—connect wallet to get started.</Text>
+                    <SignIn />
+                  </Stack>
+                )}
               </Table.Cell>
             </Table.Row>
           ) : (

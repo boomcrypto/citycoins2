@@ -362,6 +362,14 @@ function TransactionEvents({ tx }: { tx: Transaction }) {
                 <Stack gap={1}>
                   <Text fontWeight="bold">Unknown Event</Text>
                   <Text>Type: {event.event_type}</Text>
+                  <Link
+                    href={`https://explorer.hiro.so/tx/${tx.tx_id}#event${event.event_index}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                    color="blue.500"
+                  >
+                    View on Explorer
+                  </Link>
                   <Text>Raw: {JSON.stringify(event, null, 2)}</Text>
                 </Stack>
               );

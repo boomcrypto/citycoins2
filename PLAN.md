@@ -81,12 +81,26 @@
    - Confirmed: Handles malformed args (e.g., partial mine-many) without crash; tables show 'unknown' badge; claims disabled on invalid. Tests: Partial decodes log/warn; no extra API on failures.
    - Progress: Decoder resilient (partials + guards); errors graceful (unknown status, raw fallbacks). N2F complete—app robust to edge txs.
    - Questions/Notes: 'Unknown' status prevents false claims; raw UI covers decode gaps. Ready for N2H (rate limiting, TTL).
-6. **Step E+: N2H Enhancements**
-   - Apply polish items in priority order once N2F items are verified.
+
+6. **Step E: N2H Enhancements** – In Progress.
+   - **Rate Limiting and Backoff**: Enhanced `fancyFetch` with exponential backoff (2s, 4s, 8s on 429/5xx, max 3 retries). Added `rateLimitedFetch` wrapper (5 calls/sec). Updated `fetchCallReadOnlyFunction` to use it; batched checks in `useCityHistory` (chunks of 5 + 500ms sleep). Confirmed: Handles simulated 429s without blocking; reduces bursts.
+   - **Storage Hygiene**: Added `txsTimestampAtom`; `decompressedAcctTxsAtom` checks staleness (>1 day) and logs refetch trigger (no auto-refetch yet—manual via setter). Expanded `useClearUserData` to clear txs/timestamp/mempool explicitly. No TTL on userIds (permanent). Updated sign-out to use hook fully. Confirmed: Clears on disconnect; stale txs detected.
+   - **UI/UX Polish**: Added debounced search (300ms) in `transaction-list.tsx`; summaries with tooltips/links to tabs; empty states with SignIn. Per-section spinners (size="sm") and 'unknown' tooltips in tabs. Explorer links for unknown events in dialog. MIA redemption tooltip for pending status. Confirmed: Smooth search; tooltips visible; no shifts on load.
+   - Progress: App efficient (no API blocks, clean storage, polished UX). Initial N2H done—ready for extensibility (e.g., redemption).
+   - Questions/Notes: UserIds permanent but cleared on sign-out; txs refetch manual for now (add auto in future?). Test feedback: Simulate errors, check clears, UI interactions.
 
 After each step:
 - Run targeted tests (dev terminal).
 - Document findings, outstanding issues, and next actions in this plan.
+
+## Testing Strategy (Updated)
+
+- **API Throttling**: Use browser dev tools to mock 429/5xx on Hiro calls—verify backoff/retires succeed without crashes.
+- **Stale Cache Refetch**: Set mock timestamp >1 day in localStorage—confirm log/trigger; manual refresh fetches new.
+- **Sign-Out Clearing**: Connect wallet, load data, sign out—check localStorage (userIds/txs empty); reconnect reloads fresh.
+- **UI Interactions**: Search 100+ txs (debounce smooth?); hover tooltips/summaries; empty states show SignIn; accordion spinners during loads.
+- **Edge Cases**: Concurrent checks (20 unclaimed)—no bursts; unknown status disables claims; explorer links open correctly.
+- Local Run: `npm run dev` with test address (multi-version history); monitor console/network for issues.
 
 ## Testing Strategy (Initial Draft)
 

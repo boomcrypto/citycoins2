@@ -9,6 +9,7 @@ import {
   Stack,
   Table,
   Text,
+  Tooltip,
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useAtomValue } from "jotai";
@@ -272,7 +273,7 @@ function Nyc({ onOpenDetails }: NycProps) {
           <Accordion.ItemContent>
             {isMiningLoading ? (
               <Stack align="center">
-                <Spinner />
+                <Spinner size="sm" />
                 <Text>Loading mining history...</Text>
               </Stack>
             ) : (
@@ -359,7 +360,9 @@ function Nyc({ onOpenDetails }: NycProps) {
                                 </Button>
                               )}
                               {entry.status === "unknown" && (
-                                <Badge colorScheme="gray">Unknown</Badge>
+                                <Tooltip label="Check failed—view details or retry">
+                                  <Badge colorScheme="gray">Unknown</Badge>
+                                </Tooltip>
                               )}
                             </Table.Cell>
                           </Table.Row>
@@ -380,7 +383,7 @@ function Nyc({ onOpenDetails }: NycProps) {
           <Accordion.ItemContent>
             {isStackingLoading ? (
               <Stack align="center">
-                <Spinner />
+                <Spinner size="sm" />
                 <Text>Loading stacking history...</Text>
               </Stack>
             ) : (
@@ -470,7 +473,9 @@ function Nyc({ onOpenDetails }: NycProps) {
                                 </Button>
                               )}
                               {entry.status === "unknown" && (
-                                <Badge colorScheme="gray">Unknown</Badge>
+                                <Tooltip label="Check failed—view details or retry">
+                                  <Badge colorScheme="gray">Unknown</Badge>
+                                </Tooltip>
                               )}
                             </Table.Cell>
                           </Table.Row>

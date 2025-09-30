@@ -9,6 +9,7 @@ import {
   Stack,
   Table,
   Text,
+  Tooltip,
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useAtomValue } from "jotai";
@@ -230,14 +231,16 @@ function Mia({ onOpenDetails }: MiaProps) {
               </Text>
             </Text>
             <Stack direction="row" gap={4}>
-              <Button
-                variant="outline"
-                onClick={checkEligibility}
-                loading={isLoading}
-                disabled={true}
-              >
-                Check Eligibility
-              </Button>
+              <Tooltip label="Pending CCIP-026 approval">
+                <Button
+                  variant="outline"
+                  onClick={checkEligibility}
+                  loading={isLoading}
+                  disabled={true}
+                >
+                  Check Eligibility
+                </Button>
+              </Tooltip>
               <Button
                 variant="outline"
                 onClick={executeRedemption}
@@ -267,7 +270,7 @@ function Mia({ onOpenDetails }: MiaProps) {
           <Accordion.ItemContent>
             {isMiningLoading ? (
               <Stack align="center">
-                <Spinner />
+                <Spinner size="sm" />
                 <Text>Loading mining history...</Text>
               </Stack>
             ) : (
@@ -354,7 +357,9 @@ function Mia({ onOpenDetails }: MiaProps) {
                                 </Button>
                               )}
                               {entry.status === "unknown" && (
-                                <Badge colorScheme="gray">Unknown</Badge>
+                                <Tooltip label="Check failed—view details or retry">
+                                  <Badge colorScheme="gray">Unknown</Badge>
+                                </Tooltip>
                               )}
                             </Table.Cell>
                           </Table.Row>
@@ -375,7 +380,7 @@ function Mia({ onOpenDetails }: MiaProps) {
           <Accordion.ItemContent>
             {isStackingLoading ? (
               <Stack align="center">
-                <Spinner />
+                <Spinner size="sm" />
                 <Text>Loading stacking history...</Text>
               </Stack>
             ) : (
@@ -465,7 +470,9 @@ function Mia({ onOpenDetails }: MiaProps) {
                                 </Button>
                               )}
                               {entry.status === "unknown" && (
-                                <Badge colorScheme="gray">Unknown</Badge>
+                                <Tooltip label="Check failed—view details or retry">
+                                  <Badge colorScheme="gray">Unknown</Badge>
+                                </Tooltip>
                               )}
                             </Table.Cell>
                           </Table.Row>

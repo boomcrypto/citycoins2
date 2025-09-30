@@ -182,6 +182,7 @@ export function useCityHistory(
           // For core keys, fetch per contract (but batch if possible; here sequential for simplicity)
           for (const key of missingKeys) {
             try {
+              await sleep(500); // Rate limit: 500ms between fetches
               let userId: bigint;
               if (key === 'ccd003-shared') {
                 userId = await getUserId(stxAddress);
@@ -190,7 +191,7 @@ export function useCityHistory(
                 const [cityStr, moduleStr, versionStr] = key.split('-');
                 const city = cityStr as City;
                 const version = versionStr as Version;
-                // Find a core contract for this city/version to fetch userId
+                // Find a core entry for this city/version to fetch userId
                 const coreEntry = REGISTRY.find(e => e.city === city && e.module === 'core' && e.version === version);
                 if (!coreEntry) throw new Error(`No core entry for ${key}`);
                 userId = await getUserId(stxAddress, coreEntry.contract);
@@ -263,41 +264,50 @@ export function useCityHistory(
           });
         });
 
-        const miningChecks = toCheckMining.map(async (item) => {
-          try {
-            // Ensure entry has version for validation
-            const entryWithVersion = { ...item.entry, version: item.entry.version };
-            const userId = runtimeUserIds.get(item.contractId);
-            if (!userId) {
-              console.warn(`Skipped mining check for block ${item.block}: missing userId`);
-              return null;
-            }
-            const isWinner = await checkMiningWinner(entryWithVersion, item.block, stxAddress, userId);
-            if (isWinner) {
+        // Batch mining checks with rate limiting
+        const miningChecks = [];
+        for (let i = 0; i < toCheckMining.length; i += 5) {
+          const chunk = toCheckMining.slice(i, i + 5);
+          const chunkChecks = chunk.map(async (item) => {
+            try {
+              // Ensure entry has version for validation
+              const entryWithVersion = { ...item.entry, version: item.entry.version };
+              const userId = runtimeUserIds.get(item.contractId);
+              if (!userId) {
+                console.warn(`Skipped mining check for block ${item.block}: missing userId`);
+                return null;
+              }
+              const isWinner = await checkMiningWinner(entryWithVersion, item.block, stxAddress, userId);
+              if (isWinner) {
+                return {
+                  id: item.block,
+                  txId: item.txId,
+                  claimTxId: undefined,
+                  status: 'unclaimed' as const,
+                  contractId: item.contractId,
+                  functionName: item.functionName,
+                  entry: item.entry,
+                };
+              }
+            } catch (e) {
+              console.error(`Error checking mining block ${item.block}:`, e);
               return {
                 id: item.block,
                 txId: item.txId,
                 claimTxId: undefined,
-                status: 'unclaimed' as const,
+                status: 'unknown' as const,
                 contractId: item.contractId,
                 functionName: item.functionName,
                 entry: item.entry,
               };
             }
-          } catch (e) {
-            console.error(`Error checking mining block ${item.block}:`, e);
-            return {
-              id: item.block,
-              txId: item.txId,
-              claimTxId: undefined,
-              status: 'unknown' as const,
-              contractId: item.contractId,
-              functionName: item.functionName,
-              entry: item.entry,
-            };
+            return null;
+          });
+          miningChecks.push(...chunkChecks);
+          if (i + 5 < toCheckMining.length) {
+            await sleep(500); // Rate limit between chunks
           }
-          return null;
-        });
+        }
 
         const miningResults = await Promise.allSettled(miningChecks);
         const unclaimedMining = miningResults
@@ -327,41 +337,50 @@ export function useCityHistory(
           });
         });
 
-        const stackingChecks = toCheckStacking.map(async (item) => {
-          try {
-            // Ensure entry has version for validation
-            const entryWithVersion = { ...item.entry, version: item.entry.version };
-            const userId = runtimeUserIds.get(item.contractId);
-            if (!userId) {
-              console.warn(`Skipped stacking check for cycle ${item.cycle}: missing userId`);
-              return null;
-            }
-            const isStacked = await checkStackingCycle(entryWithVersion, item.cycle, stxAddress, userId);
-            if (isStacked) {
+        // Batch stacking checks with rate limiting
+        const stackingChecks = [];
+        for (let i = 0; i < toCheckStacking.length; i += 5) {
+          const chunk = toCheckStacking.slice(i, i + 5);
+          const chunkChecks = chunk.map(async (item) => {
+            try {
+              // Ensure entry has version for validation
+              const entryWithVersion = { ...item.entry, version: item.entry.version };
+              const userId = runtimeUserIds.get(item.contractId);
+              if (!userId) {
+                console.warn(`Skipped stacking check for cycle ${item.cycle}: missing userId`);
+                return null;
+              }
+              const isStacked = await checkStackingCycle(entryWithVersion, item.cycle, stxAddress, userId);
+              if (isStacked) {
+                return {
+                  id: item.cycle,
+                  txId: item.txId,
+                  claimTxId: undefined,
+                  status: 'unclaimed' as const,
+                  contractId: item.contractId,
+                  functionName: item.functionName,
+                  entry: item.entry,
+                };
+              }
+            } catch (e) {
+              console.error(`Error checking stacking cycle ${item.cycle}:`, e);
               return {
                 id: item.cycle,
                 txId: item.txId,
                 claimTxId: undefined,
-                status: 'unclaimed' as const,
+                status: 'unknown' as const,
                 contractId: item.contractId,
                 functionName: item.functionName,
                 entry: item.entry,
               };
             }
-          } catch (e) {
-            console.error(`Error checking stacking cycle ${item.cycle}:`, e);
-            return {
-              id: item.cycle,
-              txId: item.txId,
-              claimTxId: undefined,
-              status: 'unknown' as const,
-              contractId: item.contractId,
-              functionName: item.functionName,
-              entry: item.entry,
-            };
+            return null;
+          });
+          stackingChecks.push(...chunkChecks);
+          if (i + 5 < toCheckStacking.length) {
+            await sleep(500); // Rate limit between chunks
           }
-          return null;
-        });
+        }
 
         const stackingResults = await Promise.allSettled(stackingChecks);
         const unclaimedStacking = stackingResults

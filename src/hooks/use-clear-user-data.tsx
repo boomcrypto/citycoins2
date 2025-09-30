@@ -23,6 +23,12 @@ export const useClearUserData = () => {
 
       // reset all localstorage atoms
       allLocalStorageAtoms.forEach(resetAtom);
+
+      // Explicitly clear transactions and timestamp
+      set(acctTxsAtom, '');
+      set(txsTimestampAtom, 0);
+      set(userIdsAtom, {});
+      set(acctMempoolTxsAtom, []);
     }, [])
   );
 

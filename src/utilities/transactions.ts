@@ -271,15 +271,11 @@ export async function fetchCallReadOnlyFunction(options: {
     sender: options.senderAddress,
     arguments: options.functionArgs.map(arg => cvToHex(arg)),
   };
-  const response = await fetch(url, {
+  const data = await rateLimitedFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-  const data = await response.json();
+  }, true);
   if (!data.okay) {
     throw new Error(data.cause);
   }

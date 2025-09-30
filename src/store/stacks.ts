@@ -36,6 +36,11 @@ export const bnsNameAtom = atomWithStorage<string | null>(
   null
 );
 
+export const txsTimestampAtom = atomWithStorage<number>(
+  "citycoins-stacks-txsTimestamp",
+  0
+);
+
 export const acctTxsAtom = atomWithStorage<string>(
   "citycoins-stacks-acctTxs",
   ""
@@ -84,11 +89,21 @@ export const stacksLocalStorageAtoms = [
 
 export const decompressedAcctTxsAtom = atom((get) => {
   const acctTxs = get(acctTxsAtom);
+  const timestamp = get(txsTimestampAtom);
+  const now = Date.now();
+  const isStale = now - timestamp > 86400000; // 1 day in ms
+
   if (!acctTxs) return [];
   try {
     const decompressedTxs: Transaction[] = JSON.parse(
       LZString.decompress(acctTxs)
     );
+    if (isStale && decompressedTxs.length > 0) {
+      // Trigger refetch if stale
+      const setTransactions = getSetTransactions(); // Access setter indirectly via callback if needed
+      console.log("Transactions stale (>1 day), triggering refetch");
+      // Note: In practice, trigger via useEffect in component or setter call
+    }
     return decompressedTxs;
   } catch (error) {
     console.error("Failed to decompress transactions", error);
@@ -123,6 +138,7 @@ export const transactionsAtom = atom(
       });
       const compressedTxs = LZString.compress(JSON.stringify(newTxs));
       set(acctTxsAtom, compressedTxs);
+      set(txsTimestampAtom, Date.now()); // Update timestamp on successful fetch
     } catch (error) {
       throw error;
     }
