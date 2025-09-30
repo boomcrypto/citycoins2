@@ -54,8 +54,19 @@ export const acctBalancesAtom = atomWithStorage(
 // New: User ID cache per city (for core) and shared (for ccd003)
 export const userIdsAtom = atomWithStorage<Record<string, string | null>>(
   "citycoins-stacks-userIds",
-  {} // e.g., { 'mia-core-v1': '123', 'ccd003': '456' }
+  {} // e.g., { 'mia-core-legacyV1': '123', 'ccd003-shared': '456' }
 );
+
+// Helper to generate user ID cache key
+export function getUserIdKey(city: 'mia' | 'nyc', module: 'core' | 'mining' | 'stacking' | 'token', version?: 'legacyV1' | 'legacyV2' | 'daoV1' | 'daoV2'): string {
+  if (module === 'core') {
+    return `${city}-core-${version}`;
+  } else if (module === 'mining' || module === 'stacking') {
+    return 'ccd003-shared';
+  }
+  // token has no user ID
+  throw new Error(`Unsupported module for user ID: ${module}`);
+}
 
 export const stacksLocalStorageAtoms = [
   blockHeightsAtom,

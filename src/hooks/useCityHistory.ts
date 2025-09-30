@@ -14,7 +14,7 @@ import {
 } from "../utilities/transactions";
 import { City, REGISTRY, Version } from "../utilities/contracts";
 import { useAtomValue, useSetAtom } from "jotai";
-import { userIdsAtom } from "../store/stacks";
+import { userIdsAtom, getUserIdKey } from "../store/stacks";
 
 export interface HistoryEntry {
   id: number;
@@ -138,31 +138,76 @@ export function useCityHistory(
           }
         });
 
-        // Step 3: Fetch userIds for unique contracts (core needs own, ccd006/007 use shared ccd003)
+        // Step 3: Fetch userIds for unique contracts using structured keys (core per version, shared for ccd006/007)
         const uniqueContracts = new Set([
           ...Array.from(potentialMining.keys()),
           ...Array.from(potentialStacking.keys()),
           ...claimedMining.map(c => c.contractId),
           ...claimedStacking.map(c => c.contractId),
         ]);
+        const uniqueKeys = new Set<string>();
         const runtimeUserIds = new Map<string, bigint>();
+
+        // Collect unique keys from entries
         for (const contractId of uniqueContracts) {
           const entry = REGISTRY.find(e => e.contract === contractId);
-          if (!entry) continue;
-          const key = entry.module === 'core' ? `${entry.city}-${entry.module}-${entry.version}` : 'ccd003';
+          if (!entry || entry.module === 'token') continue; // Skip tokens
+          try {
+            const key = getUserIdKey(entry.city, entry.module, entry.version);
+            uniqueKeys.add(key);
+          } catch (e) {
+            console.warn(`Skipping invalid key for ${contractId}:`, e);
+          }
+        }
+
+        // Fetch missing user IDs in batch (only if not cached)
+        const missingKeys: string[] = [];
+        uniqueKeys.forEach(key => {
           const cachedUserIdStr = userIds[key];
-          let userId: bigint | undefined;
-          if (cachedUserIdStr) {
-            userId = BigInt(cachedUserIdStr);
-            runtimeUserIds.set(contractId, userId);
-          } else {
+          if (!cachedUserIdStr) {
+            missingKeys.push(key);
+          }
+        });
+
+        if (missingKeys.length > 0) {
+          // For shared 'ccd003-shared', fetch once
+          // For core keys, fetch per contract (but batch if possible; here sequential for simplicity)
+          for (const key of missingKeys) {
             try {
-              userId = entry.module === 'core' ? await getUserId(stxAddress, contractId) : await getUserId(stxAddress);
-              setUserIds(prev => ({ ...prev, [key]: userId!.toString() }));
-              runtimeUserIds.set(contractId, userId!);
+              let userId: bigint;
+              if (key === 'ccd003-shared') {
+                userId = await getUserId(stxAddress);
+              } else {
+                // Parse city/module/version from key for core fetch
+                const [cityStr, moduleStr, versionStr] = key.split('-');
+                const city = cityStr as City;
+                const version = versionStr as Version;
+                // Find a core contract for this city/version to fetch userId
+                const coreEntry = REGISTRY.find(e => e.city === city && e.module === 'core' && e.version === version);
+                if (!coreEntry) throw new Error(`No core entry for ${key}`);
+                userId = await getUserId(stxAddress, coreEntry.contract);
+              }
+              setUserIds(prev => ({ ...prev, [key]: userId.toString() }));
+              // Note: runtimeUserIds populated per contract below
             } catch (e) {
-              console.error(`Failed to fetch userId for ${contractId}:`, e);
+              console.error(`Failed to fetch userId for key ${key}:`, e);
             }
+          }
+        }
+
+        // Populate runtimeUserIds from cache (now updated)
+        for (const contractId of uniqueContracts) {
+          const entry = REGISTRY.find(e => e.contract === contractId);
+          if (!entry || entry.module === 'token') continue;
+          try {
+            const key = getUserIdKey(entry.city, entry.module, entry.version);
+            const cachedUserIdStr = userIds[key];
+            if (cachedUserIdStr) {
+              const userId = BigInt(cachedUserIdStr);
+              runtimeUserIds.set(contractId, userId);
+            }
+          } catch (e) {
+            console.warn(`Skipping userId for ${contractId}:`, e);
           }
         }
 

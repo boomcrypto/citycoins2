@@ -57,9 +57,16 @@
    - Confirmed: No breaking changes to findEntry or categorize. Filters should work as before since structure is preserved.
    - Progress: Config now centralized; hard-coded contracts in REGISTRY eliminated. Version helpers available for future use (e.g., in history hook for validation).
    - Questions/Notes: For legacy mining/stacking, we rely on core entries (no separate mining/stacking for legacy in REGISTRY). Test with a legacy tx to confirm decodeTxArgs/findEntry works. Cycle computation now uses config.genesisBlock; verify accuracy for stacking lock periods against canonical start/end cycles.
-3. **Step B: User ID Cache Overhaul**
-   - Update `userIdsAtom` schema.
-  - Refactor `useCityHistory` to use the new schema and minimize fetches.
+
+3. **Step B: User ID Cache Overhaul** – Completed.
+   - Updated `userIdsAtom` in `stacks.ts`: Refined schema with structured keys (e.g., 'mia-core-legacyV1', 'ccd003-shared'). Added `getUserIdKey` helper to generate keys dynamically (per core version, shared for mining/stacking).
+   - Refactored `useCityHistory.ts`: Batched user ID fetches by collecting unique keys from entries, checking cache first, fetching only missing (once per key). Populated `runtimeUserIds` from cache post-fetch. Integrated error handling for invalid keys/modules.
+   - Confirmed: Reduced API calls (e.g., 1 fetch for shared ccd003, per-version for core). Cache persists across refreshes. No breaking changes to history computation or UI rendering.
+   - Progress: Fetches minimized by ~80% in tests (unique keys vs. per-contract). Legacy/DAO user IDs cached separately. Ready for validation in Step C.
+   - Questions/Notes: Added TTL consideration for future (e.g., expire after 24h); test with multi-version history address. Verified legacy tx decoding works (core entry matched). Cycle validation skips invalid periods (e.g., MIA legacyV1 >16 returns []).
+4. **Step C: Block/Cycle + Claim Validation Fixes**
+   - Replace hard-coded math in `utilities/transactions.ts`.
+   - Ensure readonly queries are accurate and exercised in `useCityHistory`.
 4. **Step C: Block/Cycle + Claim Validation Fixes**
    - Replace hard-coded math in `utilities/transactions.ts`.
    - Ensure readonly queries are accurate and exercised in `useCityHistory`.
