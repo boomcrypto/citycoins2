@@ -1,19 +1,15 @@
-import { atom } from "jotai";
-import { atomWithStorage } from "jotai/utils";
 import {
   ClarityType,
-  ClarityValue,
   cvToJSON,
   fetchCallReadOnlyFunction,
-  OptionalCV,
   SomeCV,
   standardPrincipalCV,
   TupleCV,
-  TupleData,
   UIntCV,
-  uintCV,
   validateStacksAddress,
 } from "@stacks/transactions";
+import { atom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import { stxAddressAtom } from "./stacks";
 
 /////////////////////////
