@@ -12,10 +12,17 @@ import Ccip021 from "../votes/ccip-021";
 import Ccip022 from "../votes/ccip-022";
 import Ccip024 from "../votes/ccip-024";
 import Ccip025 from "../votes/ccip-025";
+import Ccip026 from "../votes/ccip-026";
 import CCIP016 from "../votes/ccip-016";
 
 function Voting() {
   const voteItems = [
+    {
+      id: "ccip026",
+      title: "Vote 13: MiamiCoin Burn to Exit (CCIP-026)",
+      status: "active" as const,
+      Component: Ccip026,
+    },
     {
       id: "ccip016",
       title: "Vote 12: Missing Payouts (CCIP-016)",
@@ -94,7 +101,7 @@ function Voting() {
     <Stack gap={4}>
       <Heading size="4xl">CityCoins Proposals</Heading>
       <Text>View CityCoins proposal and vote details below.</Text>
-      <Accordion.Root collapsible defaultValue={["ccip016"]}>
+      <Accordion.Root collapsible defaultValue={["ccip026"]}>
         {voteItems.map((item) => (
           <Accordion.Item key={item.id} value={item.id}>
             <Accordion.ItemTrigger>
