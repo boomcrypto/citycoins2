@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   Link,
   Separator,
   Stack,
@@ -9,11 +10,18 @@ import {
 import VoteProgressBarV2 from "./vote-progress-bar-v2";
 import { Ccip026VoteTotals } from "../../store/ccip-026";
 import { useCcip026VoteData } from "../../hooks/use-ccip-026-vote-data";
+import { useCcip026VoteActions } from "../../hooks/use-ccip-026-vote-actions";
+import { useAtom } from "jotai";
+import { hasVotedAtom } from "../../store/ccip-026";
 
 // TODO: Replace with dynamic data from useCcip026VoteData once vote is active
 // For now, placeholder with 0s; update to hardcoded results post-vote
 function Ccip026() {
   const voteTotals = useCcip026VoteData("voteTotals");
+  const isVoteActive = useCcip026VoteData("isVoteActive");
+  const voterInfo = useCcip026VoteData("voterInfo");
+  const [hasVoted] = useAtom(hasVotedAtom);
+  const { voteYes, voteNo } = useCcip026VoteActions();
 
   let voteTotalsObject: Ccip026VoteTotals = {
     mia: {
@@ -43,6 +51,10 @@ function Ccip026() {
   const yesVotesMia = voteTotalsObject.mia.totalVotesYes;
   const noVotesMia = voteTotalsObject.mia.totalVotesNo;
   const totalVoteCount = yesVotesMia + noVotesMia;
+
+  // Determine user's vote status
+  const userVote = voterInfo.hasData && voterInfo.data ? voterInfo.data.vote : undefined;
+  const canVote = isVoteActive.hasData && isVoteActive.data && !hasVoted;
 
   return (
     <Stack gap={4}>
@@ -78,6 +90,30 @@ function Ccip026() {
         </Stack>
       </Box>
       <VoteProgressBarV2 props={voteTotalsObject} />
+      <Separator />
+      {/* New Voting Interface Section */}
+      <Stack gap={2} p={4} borderWidth="1px" borderRadius="md" bg="gray.50" _dark={{ bg: "gray.800" }}>
+        <Text fontWeight="bold">Cast Your Vote</Text>
+        {isVoteActive.isLoading || voterInfo.isLoading ? (
+          <Text>Loading vote status...</Text>
+        ) : hasVoted ? (
+          <Text>You have already voted {userVote ? "Yes" : "No"}.</Text>
+        ) : !canVote ? (
+          <Text>Vote is not active or you are not eligible.</Text>
+        ) : (
+          <Stack direction={["column", "row"]} justifyContent="center" gap={4}>
+            <Button colorScheme="green" onClick={voteYes} isDisabled={!canVote}>
+              Vote Yes
+            </Button>
+            <Button colorScheme="red" onClick={voteNo} isDisabled={!canVote}>
+              Vote No
+            </Button>
+          </Stack>
+        )}
+        {(isVoteActive.hasError || voterInfo.hasError) && (
+          <Text color="red.500">Error loading vote data. Please try again.</Text>
+        )}
+      </Stack>
       <Separator />
       <Stack direction={["column", "row"]} justifyContent="space-between">
         <Text fontWeight="bold">Related CCIPs:</Text>
