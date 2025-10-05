@@ -20,7 +20,7 @@ function Voting() {
     {
       id: "ccip026",
       title: "Vote 13: MiamiCoin Burn to Exit (CCIP-026)",
-      status: "active" as const,
+      status: "pending" as const,
       Component: Ccip026,
     },
     {
