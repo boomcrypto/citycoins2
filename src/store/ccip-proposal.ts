@@ -68,7 +68,16 @@ export const CCIP_026_CONFIG: CcipProposalConfig = {
 // FACTORY FUNCTIONS FOR ATOMS
 /////////////////////////
 
+// Create a memoization cache to prevent atom recreation
+const atomsCache = new Map<string, any>();
+
 export function createCcipProposalAtoms(config: CcipProposalConfig) {
+  const cacheKey = `${config.contractAddress}.${config.contractName}`;
+
+  if (atomsCache.has(cacheKey)) {
+    return atomsCache.get(cacheKey);
+  }
+
   const contractFqName = `${config.contractAddress}.${config.contractName}`;
 
   const isExecutableAtom = atomWithStorage(
@@ -168,7 +177,7 @@ export function createCcipProposalAtoms(config: CcipProposalConfig) {
     }
   });
 
-  return {
+  const atoms = {
     // Storage atoms
     isExecutableAtom,
     isVoteActiveAtom,
@@ -187,6 +196,9 @@ export function createCcipProposalAtoms(config: CcipProposalConfig) {
     config,
     contractFqName,
   };
+
+  atomsCache.set(cacheKey, atoms);
+  return atoms;
 }
 
 /////////////////////////
