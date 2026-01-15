@@ -11,6 +11,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
+import { useState } from "react";
 import { stxAddressAtom } from "../../store/stacks";
 import {
   claimsSummaryAtom,
@@ -21,8 +22,14 @@ import {
   MiningEntry,
   StackingEntry,
 } from "../../store/claims";
-import { CITY_INFO, getCityConfig } from "../../config/city-config";
+import { CITY_INFO } from "../../config/city-config";
+import {
+  buildMiningClaimTx,
+  buildStackingClaimTx,
+  executeClaimTransaction,
+} from "../../utilities/claim-transactions";
 import SignIn from "../auth/sign-in";
+import { Toaster, toaster } from "../ui/toaster";
 
 function shortenTxId(txId: string): string {
   if (!txId || txId.length < 16) return txId;
@@ -40,6 +47,8 @@ interface MiningClaimTableProps {
 }
 
 function MiningClaimTable({ entries, city }: MiningClaimTableProps) {
+  const [claimingBlock, setClaimingBlock] = useState<number | null>(null);
+
   if (entries.length === 0) {
     return (
       <Text color="fg.muted" py={4}>
@@ -47,6 +56,28 @@ function MiningClaimTable({ entries, city }: MiningClaimTableProps) {
       </Text>
     );
   }
+
+  const handleClaim = async (entry: MiningEntry) => {
+    setClaimingBlock(entry.block);
+    try {
+      const params = buildMiningClaimTx(entry.city, entry.version, entry.block);
+      await executeClaimTransaction(params);
+      toaster.create({
+        title: "Claim submitted",
+        description: `Mining claim for block ${entry.block} submitted to wallet`,
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Claim failed:", error);
+      toaster.create({
+        title: "Claim failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        type: "error",
+      });
+    } finally {
+      setClaimingBlock(null);
+    }
+  };
 
   return (
     <Table.Root size="sm" variant="outline">
@@ -89,7 +120,13 @@ function MiningClaimTable({ entries, city }: MiningClaimTableProps) {
               </Link>
             </Table.Cell>
             <Table.Cell>
-              <Button size="xs" colorPalette="green" disabled>
+              <Button
+                size="xs"
+                colorPalette="green"
+                onClick={() => handleClaim(entry)}
+                loading={claimingBlock === entry.block}
+                disabled={claimingBlock !== null}
+              >
                 Claim
               </Button>
             </Table.Cell>
@@ -106,6 +143,9 @@ interface StackingClaimTableProps {
 }
 
 function StackingClaimTable({ entries, city }: StackingClaimTableProps) {
+  const [claimingCycle, setClaimingCycle] = useState<number | null>(null);
+  const cityInfo = CITY_INFO[city];
+
   if (entries.length === 0) {
     return (
       <Text color="fg.muted" py={4}>
@@ -114,7 +154,27 @@ function StackingClaimTable({ entries, city }: StackingClaimTableProps) {
     );
   }
 
-  const cityInfo = CITY_INFO[city];
+  const handleClaim = async (entry: StackingEntry) => {
+    setClaimingCycle(entry.cycle);
+    try {
+      const params = buildStackingClaimTx(entry.city, entry.version, entry.cycle);
+      await executeClaimTransaction(params);
+      toaster.create({
+        title: "Claim submitted",
+        description: `Stacking claim for cycle ${entry.cycle} submitted to wallet`,
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Claim failed:", error);
+      toaster.create({
+        title: "Claim failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        type: "error",
+      });
+    } finally {
+      setClaimingCycle(null);
+    }
+  };
 
   return (
     <Table.Root size="sm" variant="outline">
@@ -148,7 +208,13 @@ function StackingClaimTable({ entries, city }: StackingClaimTableProps) {
               </Link>
             </Table.Cell>
             <Table.Cell>
-              <Button size="xs" colorPalette="green" disabled>
+              <Button
+                size="xs"
+                colorPalette="green"
+                onClick={() => handleClaim(entry)}
+                loading={claimingCycle === entry.cycle}
+                disabled={claimingCycle !== null}
+              >
                 Claim
               </Button>
             </Table.Cell>
@@ -296,14 +362,9 @@ export default function ClaimsDashboard() {
           borderRadius="lg"
           p={4}
         >
-          <HStack justify="space-between">
-            <Text fontWeight="semibold" color="green.fg">
-              You have {totalClaimable} claimable rewards!
-            </Text>
-            <Button colorPalette="green" disabled>
-              Claim All (Coming Soon)
-            </Button>
-          </HStack>
+          <Text fontWeight="semibold" color="green.fg">
+            You have {totalClaimable} claimable reward{totalClaimable !== 1 ? "s" : ""}!
+          </Text>
         </Box>
       ) : (
         <Box
@@ -337,8 +398,8 @@ export default function ClaimsDashboard() {
       <Box borderTopWidth="1px" pt={4}>
         <Text fontSize="sm" color="fg.muted">
           <strong>Note:</strong> Mining rewards become claimable 100 blocks after mining. Stacking
-          rewards become claimable after the cycle ends. Claim buttons will be enabled in a future
-          update.
+          rewards become claimable after the cycle ends. Click "Claim" to submit the transaction
+          to your wallet for signing.
         </Text>
       </Box>
     </Stack>
