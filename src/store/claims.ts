@@ -8,7 +8,7 @@
  */
 
 import { atom } from "jotai";
-import { Transaction, ContractCallTransaction } from "@stacks/stacks-blockchain-api-types";
+import { ContractCallTransaction } from "@stacks/stacks-blockchain-api-types";
 import { transactionsAtom, blockHeightsAtom } from "./stacks";
 import {
   decodeTxArgs,
@@ -20,9 +20,7 @@ import {
 import {
   CityName,
   Version,
-  CITY_CONFIG,
   findContractInfo,
-  getVersionByBlock,
   getBlockCycle,
   isMiningClaimEligible,
   isStackingClaimEligible,
@@ -69,7 +67,7 @@ function getCityVersionFromContract(
   functionName: string
 ): { city: CityName; version: Version } | undefined {
   const info = findContractInfo(contractId);
-  if (info && (info.module === "mining" || info.module === "stacking")) {
+  if (info && (info.module === "mining" || info.module === "stacking" || info.module === "stacking-claim")) {
     return { city: info.city, version: info.version };
   }
   return undefined;

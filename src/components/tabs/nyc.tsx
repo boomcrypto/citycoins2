@@ -6,113 +6,84 @@ import {
   Stack,
   Text,
   Badge,
+  Table,
+  Box,
+  Progress,
 } from "@chakra-ui/react";
-import { useAtomValue } from "jotai";
-import { stxAddressAtom, transactionsAtom, minedBlocksAtom, claimedBlocksAtom, stackedCyclesAtom, claimedCyclesAtom } from "../../store/stacks";
+import { useAtom, useAtomValue } from "jotai";
+import { stxAddressAtom, blockHeightsAtom, blockHeightsQueryAtom, transactionFetchStatusAtom } from "../../store/stacks";
+import { loadable } from "jotai/utils";
 import SignIn from "../auth/sign-in";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
 import { request } from "@stacks/connect";
-import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
-import TransactionList from "../transaction-list";
-import { Transaction } from "@stacks/stacks-blockchain-api-types";
-import { CONTRACTS } from "../../config/city-config";
-import { Box } from "@chakra-ui/react";
+import { AddressBalanceResponse, Transaction } from "@stacks/stacks-blockchain-api-types";
+import {
+  nycMiningEntriesAtom,
+  nycStackingEntriesAtom,
+  nycUnclaimedMiningAtom,
+  nycUnclaimedStackingAtom,
+  MiningEntry,
+  StackingEntry,
+} from "../../store/claims";
+import {
+  buildMiningClaimTx,
+  buildStackingClaimTx,
+  executeClaimTransaction,
+} from "../../utilities/claim-transactions";
+
+const loadableBlockHeights = loadable(blockHeightsQueryAtom);
 
 interface NycProps {
   onOpenDetails: (tx: Transaction) => void;
 }
 
-function shortenPrincipal(addr: string): string {
-  if (!addr) return "";
-  if (addr.includes(".")) {
-    const [address, contract] = addr.split(".");
-    return `${address.slice(0, 5)}...${address.slice(-5)}.${contract}`;
-  }
-  return `${addr.slice(0, 5)}...${addr.slice(-5)}`;
-}
+function StatusBadge({ status }: { status: string }) {
+  const colorScheme = {
+    pending: "yellow",
+    claimable: "green",
+    claimed: "gray",
+    locked: "blue",
+    unknown: "red",
+  }[status] || "gray";
 
-function shortenTxId(txId: string): string {
-  return txId ? `${txId.slice(0, 6)}...${txId.slice(-4)}` : "";
+  return <Badge colorPalette={colorScheme}>{status}</Badge>;
 }
 
 function Nyc({ onOpenDetails }: NycProps) {
   const stxAddress = useAtomValue(stxAddressAtom);
-  const minedBlocks = useAtomValue(minedBlocksAtom);
-  const claimedBlocks = useAtomValue(claimedBlocksAtom);
-  const stackedCycles = useAtomValue(stackedCyclesAtom);
-  const claimedCycles = useAtomValue(claimedCyclesAtom);
+  const [blockHeights, setBlockHeights] = useAtom(blockHeightsAtom);
+  const blockHeightsLoadable = useAtomValue(loadableBlockHeights);
+  const fetchStatus = useAtomValue(transactionFetchStatusAtom);
 
+  // Claims atoms for NYC
+  const miningEntries = useAtomValue(nycMiningEntriesAtom);
+  const stackingEntries = useAtomValue(nycStackingEntriesAtom);
+  const unclaimedMining = useAtomValue(nycUnclaimedMiningAtom);
+  const unclaimedStacking = useAtomValue(nycUnclaimedStackingAtom);
+
+
+  // Redemption state
   const [hasChecked, setHasChecked] = useState(false);
   const [isEligible, setIsEligible] = useState(false);
   const [balanceV1, setBalanceV1] = useState(0);
   const [balanceV2, setBalanceV2] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
 
-  // Build NYC_TX_FILTER dynamically from config to include all relevant contracts/functions
-  const NYC_TX_FILTER: { contract: string; functions: string[] }[] = [
-    // Core contracts
-    {
-      contract: CONTRACTS.nyc.v1.core,
-      functions: [
-        ...CONTRACTS.nyc.functions.mining,
-        ...CONTRACTS.nyc.functions.miningClaims,
-        ...CONTRACTS.nyc.functions.stacking,
-        ...CONTRACTS.nyc.functions.stackingClaims,
-      ],
-    },
-    {
-      contract: CONTRACTS.nyc.v1.token,
-      functions: CONTRACTS.nyc.functions.transfer,
-    },
-    {
-      contract: CONTRACTS.nyc.v2.core,
-      functions: [
-        ...CONTRACTS.nyc.functions.mining,
-        ...CONTRACTS.nyc.functions.miningClaims,
-        ...CONTRACTS.nyc.functions.stacking,
-        ...CONTRACTS.nyc.functions.stackingClaims,
-      ],
-    },
-    {
-      contract: CONTRACTS.nyc.v2.token,
-      functions: CONTRACTS.nyc.functions.transfer,
-    },
-    // Mining contracts (v1 and v2)
-    ...(CONTRACTS.nyc.miningV1 ? [{
-      contract: CONTRACTS.nyc.miningV1,
-      functions: CONTRACTS.nyc.functions.mining,
-    }] : []),
-    ...(CONTRACTS.nyc.miningV2 ? [{
-      contract: CONTRACTS.nyc.miningV2,
-      functions: CONTRACTS.nyc.functions.mining,
-    }] : []),
-    // Stacking contracts (if needed)
-    ...(CONTRACTS.nyc.stackingV2 ? [{
-      contract: CONTRACTS.nyc.stackingV2,
-      functions: CONTRACTS.nyc.functions.stacking,
-    }] : []),
-  ];
-
-  const filteredTransactions = useAtomValue(transactionsAtom).filter((tx) => {
-    if (tx.tx_type !== "contract_call") return false;
-    const contractId = tx.contract_call.contract_id;
-    const func = tx.contract_call.function_name;
-    const matches = NYC_TX_FILTER.some(
-      (filter) =>
-        filter.contract === contractId && filter.functions.includes(func)
-    );
-    //console.log(`Checking tx ${tx.tx_id} for NYC filter: contract=${contractId}, function=${func}, matches=${matches}`); // Debug log
-    return matches;
-  });
+  // Update blockHeights when async query completes
+  useEffect(() => {
+    if (blockHeightsLoadable.state === "hasData" && blockHeightsLoadable.data) {
+      setBlockHeights(blockHeightsLoadable.data);
+    }
+  }, [blockHeightsLoadable, setBlockHeights]);
 
   if (!stxAddress) {
     return (
       <Stack gap={4}>
-        <Heading size="4xl">NYC Tools</Heading>
+        <Heading size="4xl">NYC</Heading>
         <Text>
-          Wallet connection required to access tools and utilities for
-          NewYorkCityCoin (NYC).
+          Connect your wallet to access tools and utilities for NewYorkCityCoin (NYC).
         </Text>
         <SignIn />
       </Stack>
@@ -120,13 +91,9 @@ function Nyc({ onOpenDetails }: NycProps) {
   }
 
   const NYC_ASSET_ID = "newyorkcitycoin";
-  const NYC_V1_CONTRACT =
-    "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token";
-  const NYC_V2_CONTRACT =
-    "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2";
-
-  const NYC_REDEMPTION_CONTRACT =
-    "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd012-redemption-nyc";
+  const NYC_V1_CONTRACT = "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token";
+  const NYC_V2_CONTRACT = "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2";
+  const NYC_REDEMPTION_CONTRACT = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd012-redemption-nyc";
 
   const checkEligibility = async () => {
     if (!stxAddress) return;
@@ -135,25 +102,19 @@ function Nyc({ onOpenDetails }: NycProps) {
     try {
       const url = `${HIRO_API}/extended/v1/address/${stxAddress}/balances`;
       const data = await fancyFetch<AddressBalanceResponse>(url);
-      //console.log("fetched balance data from Hiro:");
-      //console.log(JSON.stringify(data, null, 2));
       const v1Balance = parseInt(
-        data.fungible_tokens?.[`${NYC_V1_CONTRACT}::${NYC_ASSET_ID}`]
-          ?.balance || "0",
+        data.fungible_tokens?.[`${NYC_V1_CONTRACT}::${NYC_ASSET_ID}`]?.balance || "0",
         10
       );
       const v2Balance = parseInt(
-        data.fungible_tokens?.[`${NYC_V2_CONTRACT}::${NYC_ASSET_ID}`]
-          ?.balance || "0",
+        data.fungible_tokens?.[`${NYC_V2_CONTRACT}::${NYC_ASSET_ID}`]?.balance || "0",
         10
       );
 
       setBalanceV1(v1Balance);
       setBalanceV2(v2Balance);
-      const eligible = v1Balance > 0 || v2Balance > 0;
-      setIsEligible(eligible);
+      setIsEligible(v1Balance > 0 || v2Balance > 0);
       setHasChecked(true);
-      console.log("Eligibility checked:", { v1Balance, v2Balance, eligible });
     } catch (error) {
       console.error("Error checking eligibility:", error);
     } finally {
@@ -162,16 +123,7 @@ function Nyc({ onOpenDetails }: NycProps) {
   };
 
   const executeRedemption = async () => {
-    console.log("Executing redemption...");
     const [address, name] = NYC_REDEMPTION_CONTRACT.split(".");
-    /* Need to double check post conditions required here
-    - also add a contract will transfer? look up amount for balance?
-    const postConditions: PostCondition[] = [];
-    const v1PostCondition = balanceV1 ? Pc.principal(stxAddress).willSendEq(balanceV1).ft(NYC_V1_CONTRACT, "newyorkcitycoin") : undefined;
-    const v2PostCondition = balanceV2 ? Pc.principal(stxAddress).willSendEq(balanceV2).ft(NYC_V2_CONTRACT, "newyorkcitycoin") : undefined;
-    if (v1PostCondition) { postConditions.push(v1PostCondition) };
-    if (v2PostCondition) { postConditions.push(v2PostCondition) };
-    */
     try {
       await request("stx_callContract", {
         contract: `${address}.${name}`,
@@ -184,27 +136,155 @@ function Nyc({ onOpenDetails }: NycProps) {
     }
   };
 
-  const allClaimedBlocks = Array.from(new Set(Array.from(claimedBlocks.values()).flat()));
-  const allClaimedCycles = Array.from(new Set(Array.from(claimedCycles.values()).flat()));
+  const handleMiningClaim = async (entry: MiningEntry) => {
+    const id = `mining-${entry.block}`;
+    setClaimingId(id);
+    try {
+      const params = buildMiningClaimTx(entry.city, entry.version, entry.block);
+      await executeClaimTransaction(params);
+    } catch (error) {
+      console.error("Mining claim failed:", error);
+    } finally {
+      setClaimingId(null);
+    }
+  };
 
-  // Maps for block/cycle to tx
-  const blockToTx = new Map<number, string>();
-  filteredTransactions.forEach(tx => {
-    const blocks = minedBlocks.get(tx.tx_id) || [];
-    blocks.forEach(block => blockToTx.set(block, tx.tx_id));
-  });
+  const handleStackingClaim = async (entry: StackingEntry) => {
+    const id = `stacking-${entry.cycle}`;
+    setClaimingId(id);
+    try {
+      const params = buildStackingClaimTx(entry.city, entry.version, entry.cycle);
+      await executeClaimTransaction(params);
+    } catch (error) {
+      console.error("Stacking claim failed:", error);
+    } finally {
+      setClaimingId(null);
+    }
+  };
 
-  const cycleToTx = new Map<number, string>();
-  filteredTransactions.forEach(tx => {
-    const cycles = stackedCycles.get(tx.tx_id) || [];
-    cycles.forEach(cycle => cycleToTx.set(cycle, tx.tx_id));
-  });
+  const currentBlock = blockHeights?.stx ?? 0;
 
   return (
     <Stack gap={4}>
-      <Heading size="4xl">NYC Tools</Heading>
-      <Text>Access tools and utilities for NewYorkCityCoin (NYC) below.</Text>
-      <Accordion.Root collapsible defaultValue={["redeem-nyc"]}>
+      <Heading size="4xl">NYC</Heading>
+      <Text>
+        Current block: {currentBlock || "Loading..."} |
+        Mining: {unclaimedMining.length} claimable |
+        Stacking: {unclaimedStacking.length} claimable
+      </Text>
+
+      {/* Transaction loading progress */}
+      {fetchStatus.isLoading && (
+        <Box>
+          <Text fontSize="sm" mb={1}>Loading transactions... {fetchStatus.progress}%</Text>
+          <Progress.Root value={fetchStatus.progress} max={100} size="sm">
+            <Progress.Track>
+              <Progress.Range />
+            </Progress.Track>
+          </Progress.Root>
+        </Box>
+      )}
+
+      <Accordion.Root collapsible defaultValue={["unclaimed-funds"]}>
+        {/* Unclaimed Funds - Most actionable, shown first */}
+        <Accordion.Item value="unclaimed-funds">
+          <Accordion.ItemTrigger>
+            <Heading size="xl">
+              Unclaimed Funds
+              {(unclaimedMining.length > 0 || unclaimedStacking.length > 0) && (
+                <Badge colorPalette="green" ml={2}>
+                  {unclaimedMining.length + unclaimedStacking.length}
+                </Badge>
+              )}
+            </Heading>
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent p={4}>
+            {unclaimedMining.length === 0 && unclaimedStacking.length === 0 ? (
+              <Text color="fg.muted">No unclaimed funds available.</Text>
+            ) : (
+              <Stack gap={6}>
+                {/* Unclaimed Mining */}
+                {unclaimedMining.length > 0 && (
+                  <Box>
+                    <Heading size="md" mb={2}>Mining Rewards ({unclaimedMining.length})</Heading>
+                    <Text fontSize="sm" color="fg.muted" mb={2}>
+                      Claim NYC tokens for blocks you mined. Each block must be claimed separately.
+                    </Text>
+                    <Table.Root size="sm">
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.ColumnHeader>Block</Table.ColumnHeader>
+                          <Table.ColumnHeader>Version</Table.ColumnHeader>
+                          <Table.ColumnHeader>Commit (STX)</Table.ColumnHeader>
+                          <Table.ColumnHeader>Action</Table.ColumnHeader>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {unclaimedMining.map((entry) => (
+                          <Table.Row key={`${entry.txId}-${entry.block}`}>
+                            <Table.Cell>{entry.block}</Table.Cell>
+                            <Table.Cell>{entry.version}</Table.Cell>
+                            <Table.Cell>{(Number(entry.amountUstx) / 1_000_000).toFixed(2)}</Table.Cell>
+                            <Table.Cell>
+                              <Button
+                                size="xs"
+                                onClick={() => handleMiningClaim(entry)}
+                                disabled={claimingId === `mining-${entry.block}`}
+                              >
+                                {claimingId === `mining-${entry.block}` ? "Claiming..." : "Claim"}
+                              </Button>
+                            </Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table.Root>
+                  </Box>
+                )}
+
+                {/* Unclaimed Stacking */}
+                {unclaimedStacking.length > 0 && (
+                  <Box>
+                    <Heading size="md" mb={2}>Stacking Rewards ({unclaimedStacking.length})</Heading>
+                    <Text fontSize="sm" color="fg.muted" mb={2}>
+                      Claim STX rewards for cycles you stacked. Final cycle also returns your NYC.
+                    </Text>
+                    <Table.Root size="sm">
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.ColumnHeader>Cycle</Table.ColumnHeader>
+                          <Table.ColumnHeader>Version</Table.ColumnHeader>
+                          <Table.ColumnHeader>Stacked</Table.ColumnHeader>
+                          <Table.ColumnHeader>Action</Table.ColumnHeader>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {unclaimedStacking.map((entry) => (
+                          <Table.Row key={`${entry.txId}-${entry.cycle}`}>
+                            <Table.Cell>{entry.cycle}</Table.Cell>
+                            <Table.Cell>{entry.version}</Table.Cell>
+                            <Table.Cell>{(Number(entry.amountTokens) / 1_000_000).toFixed(2)}</Table.Cell>
+                            <Table.Cell>
+                              <Button
+                                size="xs"
+                                onClick={() => handleStackingClaim(entry)}
+                                disabled={claimingId === `stacking-${entry.cycle}`}
+                              >
+                                {claimingId === `stacking-${entry.cycle}` ? "Claiming..." : "Claim"}
+                              </Button>
+                            </Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table.Root>
+                  </Box>
+                )}
+              </Stack>
+            )}
+          </Accordion.ItemContent>
+        </Accordion.Item>
+
+        {/* Redemption */}
         <Accordion.Item value="redeem-nyc">
           <Accordion.ItemTrigger>
             <Heading size="xl">Redeem NYC</Heading>
@@ -215,7 +295,7 @@ function Nyc({ onOpenDetails }: NycProps) {
               Burn NYC to receive STX per{" "}
               <Link
                 href="https://github.com/citycoins/governance/blob/main/ccips/ccip-022/ccip-022-citycoins-treasury-redemption-nyc.md"
-                isExternal
+                target="_blank"
               >
                 CCIP-022
               </Link>
@@ -225,14 +305,14 @@ function Nyc({ onOpenDetails }: NycProps) {
               <Button
                 variant="outline"
                 onClick={checkEligibility}
-                isLoading={isLoading}
+                disabled={isLoading}
               >
-                Check Eligibility
+                {isLoading ? "Checking..." : "Check Eligibility"}
               </Button>
               <Button
                 variant="outline"
                 onClick={executeRedemption}
-                isDisabled={!hasChecked || !isEligible || isLoading}
+                disabled={!hasChecked || !isEligible || isLoading}
               >
                 Execute Redemption
               </Button>
@@ -240,7 +320,7 @@ function Nyc({ onOpenDetails }: NycProps) {
             {hasChecked && (
               <Stack mt={4}>
                 <Text>NYC v1 Balance: {balanceV1}</Text>
-                <Text>NYC v2 Balance: {balanceV2 / 1000000}</Text>
+                <Text>NYC v2 Balance: {(balanceV2 / 1_000_000).toFixed(2)}</Text>
                 <Text>
                   {isEligible
                     ? "You are eligible for redemption."
@@ -250,55 +330,96 @@ function Nyc({ onOpenDetails }: NycProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
+
+        {/* Mining History */}
         <Accordion.Item value="mining-history">
           <Accordion.ItemTrigger>
-            <Heading size="xl">NYC Mining History</Heading>
+            <Heading size="xl">Mining History ({miningEntries.length})</Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a, b) => a - b).length === 0 ? (
-              <Text>No matching transactions found.</Text>
+            {miningEntries.length === 0 ? (
+              <Text color="fg.muted">No mining history found.</Text>
             ) : (
-              <Stack gap={4}>
-                {Array.from(new Set(filteredTransactions.flatMap(tx => minedBlocks.get(tx.tx_id) || []))).sort((a, b) => a - b).map(block => {
-                  const txId = blockToTx.get(block);
-                  const tx = filteredTransactions.find(t => t.tx_id === txId);
-                  const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
-                  const func = tx ? tx.contract_call.function_name : 'Unknown';
-                  return <Text key={block}>Block {block} - {contract} {func} {allClaimedBlocks.includes(block) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
-                })}
-              </Stack>
+              <Table.Root size="sm">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeader>Block</Table.ColumnHeader>
+                    <Table.ColumnHeader>Version</Table.ColumnHeader>
+                    <Table.ColumnHeader>Commit (STX)</Table.ColumnHeader>
+                    <Table.ColumnHeader>Status</Table.ColumnHeader>
+                    <Table.ColumnHeader>Action</Table.ColumnHeader>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {miningEntries.map((entry) => (
+                    <Table.Row key={`${entry.txId}-${entry.block}`}>
+                      <Table.Cell>{entry.block}</Table.Cell>
+                      <Table.Cell>{entry.version}</Table.Cell>
+                      <Table.Cell>{(Number(entry.amountUstx) / 1_000_000).toFixed(2)}</Table.Cell>
+                      <Table.Cell><StatusBadge status={entry.status} /></Table.Cell>
+                      <Table.Cell>
+                        {entry.status === "claimable" && (
+                          <Button
+                            size="xs"
+                            onClick={() => handleMiningClaim(entry)}
+                            disabled={claimingId === `mining-${entry.block}`}
+                          >
+                            {claimingId === `mining-${entry.block}` ? "..." : "Claim"}
+                          </Button>
+                        )}
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table.Root>
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
+
+        {/* Stacking History */}
         <Accordion.Item value="stacking-history">
           <Accordion.ItemTrigger>
-            <Heading size="xl">NYC Stacking History</Heading>
+            <Heading size="xl">Stacking History ({stackingEntries.length})</Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a, b) => a - b).length === 0 ? (
-              <Text>No matching transactions found.</Text>
+            {stackingEntries.length === 0 ? (
+              <Text color="fg.muted">No stacking history found.</Text>
             ) : (
-              <Stack gap={4}>
-                {Array.from(new Set(filteredTransactions.flatMap(tx => stackedCycles.get(tx.tx_id) || []))).sort((a, b) => a - b).map(cycle => {
-                  const txId = cycleToTx.get(cycle);
-                  const tx = filteredTransactions.find(t => t.tx_id === txId);
-                  const contract = tx ? shortenPrincipal(tx.contract_call.contract_id) : 'Unknown';
-                  const func = tx ? tx.contract_call.function_name : 'Unknown';
-                  return <Text key={cycle}>Cycle {cycle} - {contract} {func} {allClaimedCycles.includes(cycle) ? <Badge colorScheme="green">Claimed</Badge> : <Badge colorScheme="red">Unclaimed</Badge>}</Text>;
-                })}
-              </Stack>
+              <Table.Root size="sm">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeader>Cycle</Table.ColumnHeader>
+                    <Table.ColumnHeader>Version</Table.ColumnHeader>
+                    <Table.ColumnHeader>Stacked</Table.ColumnHeader>
+                    <Table.ColumnHeader>Status</Table.ColumnHeader>
+                    <Table.ColumnHeader>Action</Table.ColumnHeader>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {stackingEntries.map((entry) => (
+                    <Table.Row key={`${entry.txId}-${entry.cycle}`}>
+                      <Table.Cell>{entry.cycle}</Table.Cell>
+                      <Table.Cell>{entry.version}</Table.Cell>
+                      <Table.Cell>{(Number(entry.amountTokens) / 1_000_000).toFixed(2)}</Table.Cell>
+                      <Table.Cell><StatusBadge status={entry.status} /></Table.Cell>
+                      <Table.Cell>
+                        {entry.status === "claimable" && (
+                          <Button
+                            size="xs"
+                            onClick={() => handleStackingClaim(entry)}
+                            disabled={claimingId === `stacking-${entry.cycle}`}
+                          >
+                            {claimingId === `stacking-${entry.cycle}` ? "..." : "Claim"}
+                          </Button>
+                        )}
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table.Root>
             )}
-          </Accordion.ItemContent>
-        </Accordion.Item>
-        <Accordion.Item value="transactions">
-          <Accordion.ItemTrigger>
-            <Heading size="xl">NYC Transactions</Heading>
-            <Accordion.ItemIndicator />
-          </Accordion.ItemTrigger>
-          <Accordion.ItemContent p={4}>
-            <TransactionList transactions={filteredTransactions} onOpenDetails={onOpenDetails} />
           </Accordion.ItemContent>
         </Accordion.Item>
       </Accordion.Root>

@@ -1,6 +1,7 @@
 import { atomWithStorage } from "jotai/utils";
 import {
   AddressTransactionsWithTransfersListResponse,
+  AddressTransactionsListResponse,
   Transaction,
 } from "@stacks/stacks-blockchain-api-types";
 import { HIRO_API, fancyFetch, sleep } from "./common";
@@ -106,7 +107,14 @@ export const transactionsAtom = atom(
       const compressedTxs = LZString.compress(JSON.stringify(newTxs));
       set(acctTxsAtom, compressedTxs);
     } catch (error) {
-      throw error;
+      // Save whatever transactions we have so far
+      console.error("Error fetching transactions, saving partial results:", error);
+      set(transactionFetchStatusAtom, {
+        isLoading: false,
+        error: error instanceof Error ? error.message : String(error),
+        progress: 0,
+      });
+      // Don't throw - we want to keep partial results
     }
   }
 );
@@ -208,7 +216,7 @@ async function getBlockHeights(): Promise<BlockHeights | undefined> {
   try {
     const v2InfoResponse = await fetch(`${HIRO_API}/v2/info`);
     const v2Info = await v2InfoResponse.json();
-    if (!v2Info.burn_block_height || !v2Info.stacks_tip_height) {
+    if (v2Info.burn_block_height && v2Info.stacks_tip_height) {
       const blockHeights: BlockHeights = {
         btc: v2Info.burn_block_height,
         stx: v2Info.stacks_tip_height,
@@ -227,81 +235,150 @@ async function getAllTxs(
   existingTxs: Transaction[],
   atomSetter: Setter
 ) {
+  // Use v1 endpoint which supports offset pagination (v2 uses cursor-based)
+  const endpoint = `${HIRO_API}/extended/v1/address/${address}/transactions`;
+  const limit = 50;
+  let offset = 0;
+  let totalTransactions = 0;
+  let consecutiveErrors = 0;
+  const maxConsecutiveErrors = 3;
+
+  // Use a Map for O(1) deduplication (tx_id -> transaction)
+  const txMap = new Map<string, Transaction>();
+
+  // Add existing transactions to map
+  for (const tx of existingTxs) {
+    if (tx?.tx_id) txMap.set(tx.tx_id, tx);
+  }
+  const existingCount = txMap.size;
+
+  // Helper to get array from map and save
+  const getTransactions = () => Array.from(txMap.values());
+  const saveProgress = () => {
+    const txs = getTransactions();
+    const compressedTxs = LZString.compress(JSON.stringify(txs));
+    atomSetter(acctTxsAtom, compressedTxs);
+    console.log(`Saved ${txs.length} transactions to storage`);
+  };
+
   try {
-    // set fetch parameters and vars
-    const endpoint = `${HIRO_API}/extended/v2/addresses/${address}/transactions`;
-    const limit = 50;
-    let offset = 0;
-    let totalTransactions = 0;
-    // get initial response for transaction total
+    // Get initial response for transaction total
     const initialResponse =
-      await fancyFetch<AddressTransactionsWithTransfersListResponse>(
+      await fancyFetch<AddressTransactionsListResponse>(
         `${endpoint}?limit=${limit}`
       );
     totalTransactions = initialResponse.total;
-    console.log(totalTransactions, "total transactions");
-    // return if all transactions are already loaded
-    if (existingTxs.length === totalTransactions) {
+    console.log(totalTransactions, "total transactions from API");
+
+    // Return if all transactions are already loaded
+    if (existingCount === totalTransactions) {
       console.log("all transactions already loaded");
       return existingTxs;
     }
-    // create array of new transactions
-    // console.log("initialResponse", initialResponse);
-    const newTransactions = initialResponse.results.map(
-      (txRecord) => txRecord.tx
-    );
-    console.log(newTransactions.length, "new transactions");
-    // console.log(newTransactions);
-    // create array of unique transactions
-    const uniqueTransactions = [
-      ...existingTxs,
-      ...newTransactions.filter(
-        (tx) => !existingTxs.some((knownTx) => knownTx?.tx_id === tx.tx_id)
-      ),
-    ];
-    console.log(uniqueTransactions.length, "unique transactions");
-    // return if all transactions are now loaded
-    if (uniqueTransactions.length === totalTransactions) {
-      console.log("all transactions now loaded");
-      return uniqueTransactions;
+
+    // Process initial fetch - v1 returns transactions directly in results
+    const newTransactions = initialResponse.results as Transaction[];
+    console.log(newTransactions.length, "transactions from initial fetch");
+
+    let addedCount = 0;
+    for (const tx of newTransactions) {
+      if (tx?.tx_id && !txMap.has(tx.tx_id)) {
+        txMap.set(tx.tx_id, tx);
+        addedCount++;
+      }
     }
-    // loop until all transactions are loaded
-    while (uniqueTransactions.length < totalTransactions) {
-      await sleep(500); // rate limiting
+    console.log(addedCount, "new unique,", txMap.size, "total after initial fetch");
+
+    // Update progress
+    atomSetter(transactionFetchStatusAtom, (prev) => ({
+      ...prev,
+      progress: Math.round(limit / totalTransactions * 100),
+    }));
+
+    // Save after initial fetch
+    saveProgress();
+
+    // Return if we've fetched everything or API returned less than limit
+    if (newTransactions.length < limit || limit >= totalTransactions) {
+      console.log("all transactions fetched");
+      return getTransactions();
+    }
+
+    // Loop to fetch remaining transactions
+    while (offset + limit < totalTransactions) {
+      await sleep(1500); // Rate limiting
       offset += limit;
-      console.log("new loop, offset:", offset);
-      const response =
-        await fancyFetch<AddressTransactionsWithTransfersListResponse>(
-          `${endpoint}?limit=${limit}&offset=${offset}`
+      console.log(`Fetching offset ${offset} of ${totalTransactions}`);
+
+      try {
+        const response =
+          await fancyFetch<AddressTransactionsListResponse>(
+            `${endpoint}?limit=${limit}&offset=${offset}`
+          );
+
+        consecutiveErrors = 0; // Reset on success
+
+        // v1 returns transactions directly in results
+        const additionalTransactions = response.results as Transaction[];
+        console.log(additionalTransactions.length, "transactions fetched");
+        if (additionalTransactions.length > 0) {
+          console.log("First tx_id at offset", offset + ":", additionalTransactions[0]?.tx_id?.slice(0, 16));
+        }
+
+        // Add unique transactions to map
+        let batchAdded = 0;
+        for (const tx of additionalTransactions) {
+          if (tx?.tx_id && !txMap.has(tx.tx_id)) {
+            txMap.set(tx.tx_id, tx);
+            batchAdded++;
+          }
+        }
+        console.log(batchAdded, "new unique,", txMap.size, "total");
+
+        // Update progress based on offset
+        const progress = Math.min(
+          Math.round((offset + limit) / totalTransactions * 100),
+          100
         );
-      // get transactions from response
-      const additionalTransactions = response.results.map(
-        (txRecord) => txRecord.tx
-      );
-      console.log(additionalTransactions.length, "additional transactions");
-      // filter out transactions already known
-      const uniqueAdditionalTransactions = additionalTransactions.filter(
-        (tx) =>
-          !uniqueTransactions.some((knownTx) => knownTx?.tx_id === tx.tx_id)
-      );
-      console.log(
-        uniqueAdditionalTransactions.length,
-        "unique additional transactions"
-      );
-      // add new transactions to uniqueTransactions
-      uniqueTransactions.push(...uniqueAdditionalTransactions);
-      console.log(uniqueTransactions.length, "total unique transactions");
-      // update progress for front-end
-      const progress = Math.round(
-        (uniqueTransactions.length / totalTransactions) * 100
-      );
-      atomSetter(transactionFetchStatusAtom, (prev) => ({
-        ...prev,
-        progress,
-      }));
+        atomSetter(transactionFetchStatusAtom, (prev) => ({
+          ...prev,
+          progress,
+        }));
+
+        // Save every 500 transactions
+        if (offset % 500 === 0) {
+          saveProgress();
+        }
+
+        // Stop if API returned fewer than requested (end of data)
+        if (additionalTransactions.length < limit) {
+          console.log("Reached end of transactions (partial page)");
+          break;
+        }
+      } catch (fetchError) {
+        consecutiveErrors++;
+        console.error(`Fetch error (${consecutiveErrors}/${maxConsecutiveErrors}):`, fetchError);
+
+        // Save progress on error
+        saveProgress();
+
+        if (consecutiveErrors >= maxConsecutiveErrors) {
+          console.error("Too many errors, returning partial results");
+          return getTransactions();
+        }
+
+        // Exponential backoff: 5s, 10s, 20s
+        const backoffTime = 5000 * Math.pow(2, consecutiveErrors - 1);
+        console.log(`Backing off for ${backoffTime / 1000}s...`);
+        await sleep(backoffTime);
+        offset -= limit; // Retry same offset
+      }
     }
-    // return all transactions
-    return uniqueTransactions;
+
+    // Final save
+    saveProgress();
+    return getTransactions();
+
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to fetch transactions: ${error.message}`);

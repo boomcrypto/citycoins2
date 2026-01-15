@@ -5,7 +5,6 @@ import { activeTabAtom } from "../../store/common";
 import Voting from "../tabs/voting";
 import Mia from "../tabs/mia";
 import Nyc from "../tabs/nyc";
-import ClaimsDashboard from "../tabs/claims-dashboard";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 
 interface ContentProps {
@@ -19,12 +18,10 @@ function Content({ onOpenDetails }: ContentProps) {
     <Box width="100%" maxW="1200px">
       <Tabs.Root value={activeTab} onValueChange={(e) => setActiveTab(e.value)} variant="outline" fitted>
         <Tabs.List>
-          <Tabs.Trigger value="claims">Claims</Tabs.Trigger>
           <Tabs.Trigger value="voting">Voting</Tabs.Trigger>
           <Tabs.Trigger value="mia">MIA</Tabs.Trigger>
           <Tabs.Trigger value="nyc">NYC</Tabs.Trigger>
         </Tabs.List>
-        <Tabs.Content value="claims"><ClaimsDashboard /></Tabs.Content>
         <Tabs.Content value="voting"><Voting /></Tabs.Content>
         <Tabs.Content value="mia"><Mia onOpenDetails={onOpenDetails} /></Tabs.Content>
         <Tabs.Content value="nyc"><Nyc onOpenDetails={onOpenDetails} /></Tabs.Content>

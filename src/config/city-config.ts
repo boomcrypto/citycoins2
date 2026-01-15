@@ -631,7 +631,7 @@ export function isStackingClaimEligible(
  */
 export function findContractInfo(
   contractId: string
-): { city: CityName; version: Version; module: 'mining' | 'stacking' | 'token' } | undefined {
+): { city: CityName; version: Version; module: 'mining' | 'stacking' | 'stacking-claim' | 'token' } | undefined {
   for (const city of ['mia', 'nyc'] as CityName[]) {
     for (const version of VERSIONS) {
       const config = CITY_CONFIG[city][version];
@@ -641,6 +641,12 @@ export function findContractInfo(
       }
       if (config.stacking.contractId === contractId) {
         return { city, version, module: 'stacking' };
+      }
+      // DAO versions have separate claim contracts for stacking
+      if (config.stacking.claimContractId && config.stacking.claimContractId !== config.stacking.contractId) {
+        if (config.stacking.claimContractId === contractId) {
+          return { city, version, module: 'stacking-claim' };
+        }
       }
       if (config.token.contractId === contractId) {
         return { city, version, module: 'token' };
@@ -690,6 +696,14 @@ export function getAllStackingFunctions(): string[] {
  */
 export function getAllStackingClaimFunctions(): string[] {
   return ['claim-stacking-reward'];
+}
+
+/**
+ * Get all stacking claim contract IDs for a city (across all versions)
+ * These may be different from the stacking contracts for DAO versions
+ */
+export function getAllStackingClaimContracts(city: CityName): string[] {
+  return VERSIONS.map((v) => CITY_CONFIG[city][v].stacking.claimContractId);
 }
 
 // =============================================================================

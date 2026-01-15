@@ -27,7 +27,7 @@ export type LoadableDataset<T> = {
 
 export const activeTabAtom = atomWithStorage<string>(
   "citycoins-ui-activeTab",
-  "claims" // default: Claims Dashboard
+  "mia" // default: MIA tab
 );
 
 export const commonLocalStorageAtoms = [activeTabAtom];
