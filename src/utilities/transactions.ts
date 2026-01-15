@@ -11,9 +11,10 @@ export interface MiningTxArgs {
 }
 
 export interface StackingTxArgs {
-  functionName: "stack-tokens";
+  functionName: "stack-tokens" | "stack";
   amountToken: bigint;
   lockPeriod: bigint; // Number of cycles to lock for
+  cityName?: string; // For DAO "stack" function
 }
 
 export interface MiningClaimTxArgs {
@@ -40,7 +41,7 @@ export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
 export function isValidStackingTxArgs(decoded: any): decoded is StackingTxArgs {
   return (
     typeof decoded === "object" &&
-    decoded.functionName === "stack-tokens" &&
+    (decoded.functionName === "stack-tokens" || decoded.functionName === "stack") &&
     typeof decoded.amountToken === "bigint" &&
     decoded.amountToken > 0n &&
     typeof decoded.lockPeriod === "bigint" &&
@@ -121,9 +122,18 @@ export function decodeTxArgs(tx: Transaction): any | null {
       structured.lockPeriod = safeConvertToBigint(decodedArgs[1]);
       break;
     case "stack":
+      // DAO stack function: (cityName, amounts-per-cycle-list)
+      // Each element in the list is the amount to stack for that cycle
       structured.cityName = decodedArgs[0];
-      structured.lockPeriods = decodedArgs[1].map((val: any) =>
+      const stackAmounts = decodedArgs[1].map((val: any) =>
         safeConvertToBigint(val)
+      );
+      // lockPeriod is the number of cycles (length of amounts array)
+      structured.lockPeriod = BigInt(stackAmounts.length);
+      // amountToken is the total stacked (sum of all cycles, though typically same amount per cycle)
+      structured.amountToken = stackAmounts.reduce(
+        (sum: bigint, amt: bigint) => sum + amt,
+        0n
       );
       break;
     case "claim-mining-reward":

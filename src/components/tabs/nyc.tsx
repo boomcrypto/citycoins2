@@ -16,7 +16,7 @@ import { request } from "@stacks/connect";
 import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
 import TransactionList from "../transaction-list";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
-import { CONTRACTS } from "../../config/contracts"; // Import config for dynamic filter
+import { CONTRACTS } from "../../config/city-config";
 import { Box } from "@chakra-ui/react";
 
 interface NycProps {
