@@ -34,13 +34,33 @@ import {
 // TYPES
 // =============================================================================
 
+/**
+ * Mining entry status based on transaction history.
+ *
+ * Note: "unverified" means the block is matured but needs on-chain verification
+ * to determine if the user won. User must trigger verification manually.
+ */
 export type MiningStatus =
   | "pending"      // Not yet matured (< 100 blocks)
-  | "checking"     // Matured, verifying if won...
+  | "unverified"   // Matured, needs verification (user must trigger)
   | "claimable"    // Verified: won, not yet claimed
-  | "claimed"      // Won and claimed
-  | "not-won"      // Verified: didn't win lottery
+  | "claimed"      // Won and claimed (from transaction history)
+  | "not-won"      // Verified: didn't win lottery (or failed claim attempt)
   | "error";       // Verification failed
+
+/**
+ * Stacking entry status based on transaction history.
+ *
+ * Note: "unverified" means the cycle is complete but needs on-chain verification
+ * to determine if there's a reward. User must trigger verification manually.
+ */
+export type StackingStatus =
+  | "locked"       // Cycle not yet complete
+  | "unverified"   // Cycle complete, needs verification
+  | "claimable"    // Verified: has reward to claim
+  | "claimed"      // Already claimed (from transaction history)
+  | "no-reward"    // Verified: no reward available
+  | "unavailable"; // Failed claim attempt
 
 export interface MiningEntry {
   txId: string;
@@ -62,11 +82,7 @@ export interface StackingEntry {
   contractId: string;
   functionName: string;
   amountTokens: bigint;
-  // locked = cycle not yet complete
-  // claimable = cycle complete, no claim attempt yet
-  // claimed = successful claim
-  // unavailable = failed claim
-  status: "locked" | "claimable" | "claimed" | "unavailable";
+  status: StackingStatus;
   claimTxId?: string;
 }
 
@@ -153,8 +169,8 @@ export const miningEntriesAtom = atom((get) => {
         contractId,
         functionName,
         amountUstx,
-        // Matured blocks start as "checking" - need to verify if won
-        status: isMiningClaimEligible(block, currentBlock) ? "checking" : "pending",
+        // Matured blocks start as "unverified" - user must trigger verification
+        status: isMiningClaimEligible(block, currentBlock) ? "unverified" : "pending",
       });
     }
   }
@@ -209,24 +225,82 @@ export const miningEntriesAtom = atom((get) => {
 });
 
 // =============================================================================
-// MINING VERIFICATION STATE
-// Stores results of on-chain verification checks
+// MINING VERIFICATION INTEGRATION
+// Uses the verification cache from store/verification.ts
 // =============================================================================
 
-export interface MiningVerificationResult {
-  status: "claimable" | "not-won" | "error";
-  checkedAt: number; // timestamp
+import { verificationCacheAtom, VerificationStatus } from "./verification";
+
+/**
+ * Helper to create cache key matching verification.ts format
+ */
+function createVerificationKey(
+  city: CityName,
+  version: Version,
+  type: "mining" | "stacking",
+  id: number
+): string {
+  return `${city}-${version}-${type}-${id}`;
 }
 
-// Writable atom to store verification results: "city-block" -> result
-export const miningVerificationResultsAtom = atom<Map<string, MiningVerificationResult>>(
-  new Map()
-);
+/**
+ * Map verification status to mining status
+ */
+function mapVerificationToMiningStatus(
+  verificationStatus: VerificationStatus
+): MiningStatus {
+  switch (verificationStatus) {
+    case "claimable":
+      return "claimable";
+    case "not-won":
+    case "claimed":
+      return verificationStatus;
+    case "error":
+      return "error";
+    case "verifying":
+      return "unverified"; // Still show as unverified while checking
+    case "unverified":
+    case "no-reward":
+    default:
+      return "unverified";
+  }
+}
 
-// Atom that combines base mining entries with verification results
+/**
+ * Map verification status to stacking status
+ */
+function mapVerificationToStackingStatus(
+  verificationStatus: VerificationStatus
+): StackingStatus {
+  switch (verificationStatus) {
+    case "claimable":
+      return "claimable";
+    case "claimed":
+      return "claimed";
+    case "no-reward":
+      return "no-reward";
+    case "error":
+      return "unavailable";
+    case "verifying":
+      return "unverified"; // Still show as unverified while checking
+    case "unverified":
+    case "not-won":
+    default:
+      return "unverified";
+  }
+}
+
+/**
+ * Combines base mining entries with verification results from cache.
+ *
+ * Priority:
+ * 1. Transaction history (claimed/not-won from claim tx)
+ * 2. Verification cache (from manual verification)
+ * 3. Base status (pending/unverified)
+ */
 export const verifiedMiningEntriesAtom = atom((get) => {
   const baseEntries = get(miningEntriesAtom);
-  const verificationResults = get(miningVerificationResultsAtom);
+  const verificationCache = get(verificationCacheAtom);
 
   return baseEntries.map((entry) => {
     // If already claimed/not-won from transaction history, use that
@@ -239,28 +313,30 @@ export const verifiedMiningEntriesAtom = atom((get) => {
       return entry;
     }
 
-    // For "checking" entries, look up verification result
-    const key = `${entry.city}-${entry.block}`;
-    const result = verificationResults.get(key);
+    // For "unverified" entries, look up verification cache
+    const key = createVerificationKey(entry.city, entry.version, "mining", entry.block);
+    const cachedResult = verificationCache[key];
 
-    if (result) {
-      return { ...entry, status: result.status };
+    if (cachedResult) {
+      return { ...entry, status: mapVerificationToMiningStatus(cachedResult.status) };
     }
 
-    // No verification result yet, keep as "checking"
+    // No verification result yet, keep as "unverified"
     return entry;
   });
 });
 
-// Entries that need verification (status = "checking")
+/**
+ * Entries that need verification (status = "unverified" and not in cache)
+ */
 export const miningEntriesNeedingVerificationAtom = atom((get) => {
   const entries = get(miningEntriesAtom);
-  const verificationResults = get(miningVerificationResultsAtom);
+  const verificationCache = get(verificationCacheAtom);
 
   return entries.filter((entry) => {
-    if (entry.status !== "checking") return false;
-    const key = `${entry.city}-${entry.block}`;
-    return !verificationResults.has(key);
+    if (entry.status !== "unverified") return false;
+    const key = createVerificationKey(entry.city, entry.version, "mining", entry.block);
+    return !verificationCache[key];
   });
 });
 
@@ -312,8 +388,9 @@ export const stackingEntriesAtom = atom((get) => {
         contractId,
         functionName,
         amountTokens,
+        // Completed cycles start as "unverified" - user must trigger verification
         status: isStackingClaimEligible(city, version, cycle, currentBlock)
-          ? "claimable"
+          ? "unverified"
           : "locked",
       });
     }
@@ -368,6 +445,61 @@ export const stackingEntriesAtom = atom((get) => {
 });
 
 // =============================================================================
+// STACKING VERIFICATION INTEGRATION
+// Uses the verification cache from store/verification.ts
+// =============================================================================
+
+/**
+ * Combines base stacking entries with verification results from cache.
+ *
+ * Priority:
+ * 1. Transaction history (claimed/unavailable from claim tx)
+ * 2. Verification cache (from manual verification)
+ * 3. Base status (locked/unverified)
+ */
+export const verifiedStackingEntriesAtom = atom((get) => {
+  const baseEntries = get(stackingEntriesAtom);
+  const verificationCache = get(verificationCacheAtom);
+
+  return baseEntries.map((entry) => {
+    // If already claimed/unavailable from transaction history, use that
+    if (entry.status === "claimed" || entry.status === "unavailable") {
+      return entry;
+    }
+
+    // If still locked (cycle not complete), keep as locked
+    if (entry.status === "locked") {
+      return entry;
+    }
+
+    // For "unverified" entries, look up verification cache
+    const key = createVerificationKey(entry.city, entry.version, "stacking", entry.cycle);
+    const cachedResult = verificationCache[key];
+
+    if (cachedResult) {
+      return { ...entry, status: mapVerificationToStackingStatus(cachedResult.status) };
+    }
+
+    // No verification result yet, keep as "unverified"
+    return entry;
+  });
+});
+
+/**
+ * Stacking entries that need verification (status = "unverified" and not in cache)
+ */
+export const stackingEntriesNeedingVerificationAtom = atom((get) => {
+  const entries = get(stackingEntriesAtom);
+  const verificationCache = get(verificationCacheAtom);
+
+  return entries.filter((entry) => {
+    if (entry.status !== "unverified") return false;
+    const key = createVerificationKey(entry.city, entry.version, "stacking", entry.cycle);
+    return !verificationCache[key];
+  });
+});
+
+// =============================================================================
 // CITY-FILTERED ATOMS
 // =============================================================================
 
@@ -382,12 +514,12 @@ export const nycMiningEntriesAtom = atom((get) => {
 });
 
 export const miaStackingEntriesAtom = atom((get) => {
-  const entries = get(stackingEntriesAtom);
+  const entries = get(verifiedStackingEntriesAtom);
   return entries.filter((e) => e.city === "mia");
 });
 
 export const nycStackingEntriesAtom = atom((get) => {
-  const entries = get(stackingEntriesAtom);
+  const entries = get(verifiedStackingEntriesAtom);
   return entries.filter((e) => e.city === "nyc");
 });
 
@@ -429,52 +561,55 @@ export const nycUnclaimedStackingAtom = atom((get) => {
 // SUMMARY ATOMS
 // =============================================================================
 
+export interface CitySummary {
+  // Mining
+  miningTotal: number;
+  miningClaimed: number;
+  miningClaimable: number;
+  miningPending: number;
+  miningUnverified: number;
+  miningNotWon: number;
+  miningError: number;
+  // Stacking
+  stackingTotal: number;
+  stackingClaimed: number;
+  stackingClaimable: number;
+  stackingLocked: number;
+  stackingUnverified: number;
+  stackingNoReward: number;
+  stackingUnavailable: number;
+}
+
 export interface ClaimsSummary {
-  mia: {
-    miningTotal: number;
-    miningClaimed: number;
-    miningClaimable: number;
-    miningPending: number;
-    miningChecking: number;
-    miningNotWon: number;
-    stackingTotal: number;
-    stackingClaimed: number;
-    stackingClaimable: number;
-    stackingLocked: number;
-  };
-  nyc: {
-    miningTotal: number;
-    miningClaimed: number;
-    miningClaimable: number;
-    miningPending: number;
-    miningChecking: number;
-    miningNotWon: number;
-    stackingTotal: number;
-    stackingClaimed: number;
-    stackingClaimable: number;
-    stackingLocked: number;
-  };
+  mia: CitySummary;
+  nyc: CitySummary;
 }
 
 export const claimsSummaryAtom = atom<ClaimsSummary>((get) => {
   const miningEntries = get(verifiedMiningEntriesAtom);
-  const stackingEntries = get(stackingEntriesAtom);
+  const stackingEntries = get(verifiedStackingEntriesAtom);
 
-  const summarize = (city: CityName) => {
+  const summarize = (city: CityName): CitySummary => {
     const mining = miningEntries.filter((e) => e.city === city);
     const stacking = stackingEntries.filter((e) => e.city === city);
 
     return {
+      // Mining
       miningTotal: mining.length,
       miningClaimed: mining.filter((e) => e.status === "claimed").length,
       miningClaimable: mining.filter((e) => e.status === "claimable").length,
       miningPending: mining.filter((e) => e.status === "pending").length,
-      miningChecking: mining.filter((e) => e.status === "checking").length,
+      miningUnverified: mining.filter((e) => e.status === "unverified").length,
       miningNotWon: mining.filter((e) => e.status === "not-won").length,
+      miningError: mining.filter((e) => e.status === "error").length,
+      // Stacking
       stackingTotal: stacking.length,
       stackingClaimed: stacking.filter((e) => e.status === "claimed").length,
       stackingClaimable: stacking.filter((e) => e.status === "claimable").length,
       stackingLocked: stacking.filter((e) => e.status === "locked").length,
+      stackingUnverified: stacking.filter((e) => e.status === "unverified").length,
+      stackingNoReward: stacking.filter((e) => e.status === "no-reward").length,
+      stackingUnavailable: stacking.filter((e) => e.status === "unavailable").length,
     };
   };
 

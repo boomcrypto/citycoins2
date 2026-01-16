@@ -8,6 +8,7 @@ import { HIRO_API, fancyFetch, sleep } from "./common";
 import { Setter, atom } from "jotai";
 import LZString from "lz-string";
 import { decodeTxArgs, isValidMiningTxArgs, isValidMiningClaimTxArgs, isValidStackingTxArgs, isValidStackingClaimTxArgs } from "../utilities/transactions";
+import { fetchAllUserIds, UserIds } from "../utilities/claim-verification";
 
 /////////////////////////
 // TYPES
@@ -52,6 +53,19 @@ export const acctBalancesAtom = atomWithStorage(
   null
 );
 
+/**
+ * User IDs across all contract versions.
+ *
+ * - Legacy: Per-city, per-version IDs from each core contract
+ * - DAO: Shared ID from ccd003-user-registry
+ *
+ * Cached indefinitely (clear data button resets all atoms).
+ */
+export const userIdsAtom = atomWithStorage<UserIds | null>(
+  "citycoins-user-ids",
+  null
+);
+
 export const stacksLocalStorageAtoms = [
   blockHeightsAtom,
   stxAddressAtom,
@@ -59,7 +73,83 @@ export const stacksLocalStorageAtoms = [
   acctTxsAtom,
   acctMempoolTxsAtom,
   acctBalancesAtom,
+  userIdsAtom,
 ];
+
+/////////////////////////
+// USER ID FETCH STATUS
+/////////////////////////
+
+export type UserIdFetchStatus = {
+  isLoading: boolean;
+  error: string | null;
+  lastFetched: number | null;
+};
+
+export const userIdFetchStatusAtom = atom<UserIdFetchStatus>({
+  isLoading: false,
+  error: null,
+  lastFetched: null,
+});
+
+/**
+ * Action atom to fetch all user IDs for the current address.
+ *
+ * This fetches user IDs from:
+ * - Legacy API: Per-city, per-version (MIA v1/v2, NYC v1/v2)
+ * - Protocol API: Shared DAO ID from ccd003
+ *
+ * All requests go through the rate-limited fetch utility.
+ * Results are cached indefinitely in localStorage.
+ */
+export const fetchUserIdsAtom = atom(
+  null,
+  async (get, set) => {
+    const address = get(stxAddressAtom);
+    if (!address) {
+      console.log("[fetchUserIds] No address, skipping");
+      return;
+    }
+
+    // Check if we already have user IDs cached
+    const existingIds = get(userIdsAtom);
+    if (existingIds) {
+      console.log("[fetchUserIds] User IDs already cached");
+      return;
+    }
+
+    console.log("[fetchUserIds] Fetching user IDs for:", address);
+    set(userIdFetchStatusAtom, {
+      isLoading: true,
+      error: null,
+      lastFetched: null,
+    });
+
+    try {
+      const result = await fetchAllUserIds(address);
+
+      if (!result.success) {
+        throw new Error(result.error.message);
+      }
+
+      set(userIdsAtom, result.data);
+      set(userIdFetchStatusAtom, {
+        isLoading: false,
+        error: null,
+        lastFetched: Date.now(),
+      });
+
+      console.log("[fetchUserIds] User IDs fetched:", result.data);
+    } catch (error) {
+      console.error("[fetchUserIds] Error:", error);
+      set(userIdFetchStatusAtom, {
+        isLoading: false,
+        error: error instanceof Error ? error.message : String(error),
+        lastFetched: null,
+      });
+    }
+  }
+);
 
 /////////////////////////
 // DERIVED ATOMS

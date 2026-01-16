@@ -9,9 +9,18 @@ import {
   Table,
   Box,
   Progress,
+  HStack,
 } from "@chakra-ui/react";
-import { useAtom, useAtomValue } from "jotai";
-import { stxAddressAtom, blockHeightsAtom, blockHeightsQueryAtom, transactionFetchStatusAtom } from "../../store/stacks";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import {
+  stxAddressAtom,
+  blockHeightsAtom,
+  blockHeightsQueryAtom,
+  transactionFetchStatusAtom,
+  fetchUserIdsAtom,
+  userIdsAtom,
+  userIdFetchStatusAtom,
+} from "../../store/stacks";
 import { loadable } from "jotai/utils";
 import SignIn from "../auth/sign-in";
 import { useState, useEffect } from "react";
@@ -24,12 +33,21 @@ import {
   miaUnclaimedMiningAtom,
   miaUnclaimedStackingAtom,
   miningEntriesNeedingVerificationAtom,
-  miningVerificationResultsAtom,
+  stackingEntriesNeedingVerificationAtom,
   MiningEntry,
   StackingEntry,
-  MiningVerificationResult,
 } from "../../store/claims";
-import { checkMiningClaimStatus } from "../../utilities/mining-checks";
+import {
+  verificationProgressAtom,
+  verifyAllMiningAtom,
+  verifyAllStackingAtom,
+  verifySingleMiningAtom,
+  verifySingleStackingAtom,
+  retryFailedMiningAtom,
+  retryFailedStackingAtom,
+  miningVerificationSummaryAtom,
+  stackingVerificationSummaryAtom,
+} from "../../store/verification";
 import {
   buildMiningClaimTx,
   buildStackingClaimTx,
@@ -45,21 +63,25 @@ interface MiaProps {
 function StatusBadge({ status }: { status: string }) {
   const colorScheme = {
     pending: "yellow",
-    checking: "orange",
+    unverified: "orange",
     claimable: "green",
     claimed: "gray",
     locked: "blue",
     "not-won": "red",
+    "no-reward": "orange",
+    unavailable: "red",
     error: "red",
   }[status] || "gray";
 
   const displayText = {
     pending: "pending",
-    checking: "checking...",
+    unverified: "unverified",
     claimable: "claimable",
     claimed: "claimed",
     locked: "locked",
     "not-won": "not won",
+    "no-reward": "no reward",
+    unavailable: "unavailable",
     error: "error",
   }[status] || status;
 
@@ -72,17 +94,37 @@ function Mia({ onOpenDetails }: MiaProps) {
   const blockHeightsLoadable = useAtomValue(loadableBlockHeights);
   const fetchStatus = useAtomValue(transactionFetchStatusAtom);
 
+  // User IDs for stacking verification
+  const userIds = useAtomValue(userIdsAtom);
+  const userIdFetchStatus = useAtomValue(userIdFetchStatusAtom);
+  const fetchUserIds = useSetAtom(fetchUserIdsAtom);
+
   // Claims atoms for MIA
   const miningEntries = useAtomValue(miaMiningEntriesAtom);
   const stackingEntries = useAtomValue(miaStackingEntriesAtom);
   const unclaimedMining = useAtomValue(miaUnclaimedMiningAtom);
   const unclaimedStacking = useAtomValue(miaUnclaimedStackingAtom);
 
-  // Mining verification
-  const entriesNeedingVerification = useAtomValue(miningEntriesNeedingVerificationAtom);
-  const [verificationResults, setVerificationResults] = useAtom(miningVerificationResultsAtom);
-  const [verificationProgress, setVerificationProgress] = useState({ current: 0, total: 0 });
-  const [isVerifying, setIsVerifying] = useState(false);
+  // Entries needing verification
+  const miningNeedingVerification = useAtomValue(miningEntriesNeedingVerificationAtom);
+  const stackingNeedingVerification = useAtomValue(stackingEntriesNeedingVerificationAtom);
+
+  // Verification actions
+  const verifyAllMining = useSetAtom(verifyAllMiningAtom);
+  const verifyAllStacking = useSetAtom(verifyAllStackingAtom);
+  const verifySingleMining = useSetAtom(verifySingleMiningAtom);
+  const verifySingleStacking = useSetAtom(verifySingleStackingAtom);
+  const retryFailedMining = useSetAtom(retryFailedMiningAtom);
+  const retryFailedStacking = useSetAtom(retryFailedStackingAtom);
+
+  // Verification progress and summaries
+  const verificationProgress = useAtomValue(verificationProgressAtom);
+  const getMiningVerificationSummary = useAtomValue(miningVerificationSummaryAtom);
+  const getStackingVerificationSummary = useAtomValue(stackingVerificationSummaryAtom);
+
+  // Compute summaries
+  const miningSummary = getMiningVerificationSummary(miningEntries);
+  const stackingSummary = getStackingVerificationSummary(stackingEntries);
 
   // Redemption state
   const [hasChecked, setHasChecked] = useState(false);
@@ -99,63 +141,12 @@ function Mia({ onOpenDetails }: MiaProps) {
     }
   }, [blockHeightsLoadable, setBlockHeights]);
 
-  // Mining claim verification - checks if user won each block
+  // Fetch user IDs when address is available
   useEffect(() => {
-    if (!stxAddress || isVerifying || entriesNeedingVerification.length === 0) return;
-
-    // Filter to only MIA entries
-    const miaEntries = entriesNeedingVerification.filter((e) => e.city === "mia");
-    if (miaEntries.length === 0) return;
-
-    const verifyBlocks = async () => {
-      setIsVerifying(true);
-      setVerificationProgress({ current: 0, total: miaEntries.length });
-
-      for (let i = 0; i < miaEntries.length; i++) {
-        const entry = miaEntries[i];
-        const key = `${entry.city}-${entry.block}`;
-
-        try {
-          const result = await checkMiningClaimStatus(
-            entry.city,
-            entry.version,
-            stxAddress,
-            entry.block
-          );
-
-          const verificationResult: MiningVerificationResult = {
-            status: result.canClaim ? "claimable" : "not-won",
-            checkedAt: Date.now(),
-          };
-
-          // Update results map
-          setVerificationResults((prev) => {
-            const next = new Map(prev);
-            next.set(key, verificationResult);
-            return next;
-          });
-        } catch (error) {
-          console.error(`Error verifying block ${entry.block}:`, error);
-          setVerificationResults((prev) => {
-            const next = new Map(prev);
-            next.set(key, { status: "error", checkedAt: Date.now() });
-            return next;
-          });
-        }
-
-        setVerificationProgress({ current: i + 1, total: miaEntries.length });
-
-        // Rate limiting: 500ms between calls
-        if (i < miaEntries.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-      }
-
-      setIsVerifying(false);
-    };
-
-    verifyBlocks();
-  }, [stxAddress, entriesNeedingVerification, isVerifying, setVerificationResults]);
+    if (stxAddress && !userIds) {
+      fetchUserIds();
+    }
+  }, [stxAddress, userIds, fetchUserIds]);
 
   if (!stxAddress) {
     return (
@@ -241,19 +232,44 @@ function Mia({ onOpenDetails }: MiaProps) {
     }
   };
 
-  const currentBlock = blockHeights?.stx ?? 0;
+  const handleVerifyAllMining = () => {
+    const miaEntries = miningNeedingVerification.filter((e) => e.city === "mia");
+    if (miaEntries.length > 0) {
+      verifyAllMining({ city: "mia", entries: miaEntries });
+    }
+  };
 
-  // Count entries by status for display
-  const checkingCount = miningEntries.filter((e) => e.status === "checking").length;
+  const handleVerifyAllStacking = () => {
+    const miaEntries = stackingNeedingVerification.filter((e) => e.city === "mia");
+    if (miaEntries.length > 0) {
+      verifyAllStacking({ city: "mia", entries: miaEntries });
+    }
+  };
+
+  const handleRetryFailedMining = () => {
+    retryFailedMining({ city: "mia", entries: miningEntries });
+  };
+
+  const handleRetryFailedStacking = () => {
+    retryFailedStacking({ city: "mia", entries: stackingEntries });
+  };
+
+  const currentBlock = blockHeights?.stx ?? 0;
+  const isVerifying = verificationProgress.isRunning && verificationProgress.city === "mia";
+
+  // Count MIA-specific entries needing verification
+  const miaUnverifiedMining = miningNeedingVerification.filter((e) => e.city === "mia").length;
+  const miaUnverifiedStacking = stackingNeedingVerification.filter((e) => e.city === "mia").length;
 
   return (
     <Stack gap={4}>
       <Heading size="4xl">MIA</Heading>
       <Text>
         Current block: {currentBlock || "Loading..."} |
-        Mining: {unclaimedMining.length} claimable
-        {checkingCount > 0 && ` (${checkingCount} checking)`} |
-        Stacking: {unclaimedStacking.length} claimable
+        Mining: {miningSummary.claimable} claimable
+        {miningSummary.unverified > 0 && ` (${miningSummary.unverified} unverified)`} |
+        Stacking: {stackingSummary.claimable} claimable
+        {stackingSummary.unverified > 0 && ` (${stackingSummary.unverified} unverified)`}
       </Text>
 
       {/* Transaction loading progress */}
@@ -268,11 +284,17 @@ function Mia({ onOpenDetails }: MiaProps) {
         </Box>
       )}
 
-      {/* Mining verification progress */}
+      {/* User ID loading status */}
+      {userIdFetchStatus.isLoading && (
+        <Text fontSize="sm" color="fg.muted">Loading user IDs...</Text>
+      )}
+
+      {/* Verification progress */}
       {isVerifying && verificationProgress.total > 0 && (
         <Box>
           <Text fontSize="sm" mb={1}>
-            Verifying mining claims... {verificationProgress.current}/{verificationProgress.total}
+            Verifying {verificationProgress.type} claims... {verificationProgress.current}/{verificationProgress.total}
+            {verificationProgress.currentItem && ` - ${verificationProgress.currentItem}`}
           </Text>
           <Progress.Root value={verificationProgress.current} max={verificationProgress.total} size="sm">
             <Progress.Track>
@@ -298,7 +320,15 @@ function Mia({ onOpenDetails }: MiaProps) {
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
             {unclaimedMining.length === 0 && unclaimedStacking.length === 0 ? (
-              <Text color="fg.muted">No unclaimed funds available.</Text>
+              <Stack gap={4}>
+                <Text color="fg.muted">No verified claimable funds yet.</Text>
+                {(miaUnverifiedMining > 0 || miaUnverifiedStacking > 0) && (
+                  <Text fontSize="sm">
+                    You have {miaUnverifiedMining} mining blocks and {miaUnverifiedStacking} stacking cycles
+                    that need verification. Check the history sections below to verify them.
+                  </Text>
+                )}
+              </Stack>
             ) : (
               <Stack gap={6}>
                 {/* Unclaimed Mining */}
@@ -438,38 +468,89 @@ function Mia({ onOpenDetails }: MiaProps) {
             {miningEntries.length === 0 ? (
               <Text color="fg.muted">No mining history found.</Text>
             ) : (
-              <Table.Root size="sm">
-                <Table.Header>
-                  <Table.Row>
-                    <Table.ColumnHeader>Block</Table.ColumnHeader>
-                    <Table.ColumnHeader>Version</Table.ColumnHeader>
-                    <Table.ColumnHeader>Commit (STX)</Table.ColumnHeader>
-                    <Table.ColumnHeader>Status</Table.ColumnHeader>
-                    <Table.ColumnHeader>Action</Table.ColumnHeader>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {miningEntries.map((entry) => (
-                    <Table.Row key={`${entry.txId}-${entry.block}`}>
-                      <Table.Cell>{entry.block}</Table.Cell>
-                      <Table.Cell>{entry.version}</Table.Cell>
-                      <Table.Cell>{(Number(entry.amountUstx) / 1_000_000).toFixed(2)}</Table.Cell>
-                      <Table.Cell><StatusBadge status={entry.status} /></Table.Cell>
-                      <Table.Cell>
-                        {entry.status === "claimable" && (
-                          <Button
-                            size="xs"
-                            onClick={() => handleMiningClaim(entry)}
-                            disabled={claimingId === `mining-${entry.block}`}
-                          >
-                            {claimingId === `mining-${entry.block}` ? "..." : "Claim"}
-                          </Button>
-                        )}
-                      </Table.Cell>
+              <Stack gap={4}>
+                {/* Verification Controls */}
+                <HStack gap={4}>
+                  <Text fontSize="sm">
+                    {miningSummary.claimable} claimable, {miningSummary.unverified} unverified,
+                    {miningSummary.error > 0 && ` ${miningSummary.error} failed,`}
+                    {" "}{miningSummary.notWon} not won, {miningSummary.claimed} claimed
+                  </Text>
+                  {miaUnverifiedMining > 0 && (
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      onClick={handleVerifyAllMining}
+                      disabled={isVerifying}
+                    >
+                      Verify All ({miaUnverifiedMining})
+                    </Button>
+                  )}
+                  {miningSummary.error > 0 && (
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      onClick={handleRetryFailedMining}
+                      disabled={isVerifying}
+                    >
+                      Retry Failed ({miningSummary.error})
+                    </Button>
+                  )}
+                </HStack>
+
+                <Table.Root size="sm">
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.ColumnHeader>Block</Table.ColumnHeader>
+                      <Table.ColumnHeader>Version</Table.ColumnHeader>
+                      <Table.ColumnHeader>Commit (STX)</Table.ColumnHeader>
+                      <Table.ColumnHeader>Status</Table.ColumnHeader>
+                      <Table.ColumnHeader>Action</Table.ColumnHeader>
                     </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table.Root>
+                  </Table.Header>
+                  <Table.Body>
+                    {miningEntries.map((entry) => (
+                      <Table.Row key={`${entry.txId}-${entry.block}`}>
+                        <Table.Cell>{entry.block}</Table.Cell>
+                        <Table.Cell>{entry.version}</Table.Cell>
+                        <Table.Cell>{(Number(entry.amountUstx) / 1_000_000).toFixed(2)}</Table.Cell>
+                        <Table.Cell><StatusBadge status={entry.status} /></Table.Cell>
+                        <Table.Cell>
+                          {entry.status === "claimable" && (
+                            <Button
+                              size="xs"
+                              onClick={() => handleMiningClaim(entry)}
+                              disabled={claimingId === `mining-${entry.block}`}
+                            >
+                              {claimingId === `mining-${entry.block}` ? "..." : "Claim"}
+                            </Button>
+                          )}
+                          {entry.status === "unverified" && (
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => verifySingleMining(entry)}
+                              disabled={isVerifying}
+                            >
+                              Verify
+                            </Button>
+                          )}
+                          {entry.status === "error" && (
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => verifySingleMining(entry)}
+                              disabled={isVerifying}
+                            >
+                              Retry
+                            </Button>
+                          )}
+                        </Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table.Root>
+              </Stack>
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
@@ -484,38 +565,82 @@ function Mia({ onOpenDetails }: MiaProps) {
             {stackingEntries.length === 0 ? (
               <Text color="fg.muted">No stacking history found.</Text>
             ) : (
-              <Table.Root size="sm">
-                <Table.Header>
-                  <Table.Row>
-                    <Table.ColumnHeader>Cycle</Table.ColumnHeader>
-                    <Table.ColumnHeader>Version</Table.ColumnHeader>
-                    <Table.ColumnHeader>Stacked</Table.ColumnHeader>
-                    <Table.ColumnHeader>Status</Table.ColumnHeader>
-                    <Table.ColumnHeader>Action</Table.ColumnHeader>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {stackingEntries.map((entry) => (
-                    <Table.Row key={`${entry.txId}-${entry.cycle}`}>
-                      <Table.Cell>{entry.cycle}</Table.Cell>
-                      <Table.Cell>{entry.version}</Table.Cell>
-                      <Table.Cell>{(Number(entry.amountTokens) / 1_000_000).toFixed(2)}</Table.Cell>
-                      <Table.Cell><StatusBadge status={entry.status} /></Table.Cell>
-                      <Table.Cell>
-                        {entry.status === "claimable" && (
-                          <Button
-                            size="xs"
-                            onClick={() => handleStackingClaim(entry)}
-                            disabled={claimingId === `stacking-${entry.cycle}`}
-                          >
-                            {claimingId === `stacking-${entry.cycle}` ? "..." : "Claim"}
-                          </Button>
-                        )}
-                      </Table.Cell>
+              <Stack gap={4}>
+                {/* Verification Controls */}
+                <HStack gap={4}>
+                  <Text fontSize="sm">
+                    {stackingSummary.claimable} claimable, {stackingSummary.unverified} unverified,
+                    {stackingSummary.error > 0 && ` ${stackingSummary.error} failed,`}
+                    {" "}{stackingSummary.noReward} no reward, {stackingSummary.claimed} claimed
+                  </Text>
+                  {miaUnverifiedStacking > 0 && (
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      onClick={handleVerifyAllStacking}
+                      disabled={isVerifying || !userIds}
+                    >
+                      Verify All ({miaUnverifiedStacking})
+                    </Button>
+                  )}
+                  {stackingSummary.error > 0 && (
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      onClick={handleRetryFailedStacking}
+                      disabled={isVerifying || !userIds}
+                    >
+                      Retry Failed ({stackingSummary.error})
+                    </Button>
+                  )}
+                </HStack>
+
+                <Table.Root size="sm">
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.ColumnHeader>Cycle</Table.ColumnHeader>
+                      <Table.ColumnHeader>Version</Table.ColumnHeader>
+                      <Table.ColumnHeader>Stacked</Table.ColumnHeader>
+                      <Table.ColumnHeader>Status</Table.ColumnHeader>
+                      <Table.ColumnHeader>Action</Table.ColumnHeader>
                     </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table.Root>
+                  </Table.Header>
+                  <Table.Body>
+                    {stackingEntries.map((entry) => (
+                      <Table.Row key={`${entry.txId}-${entry.cycle}`}>
+                        <Table.Cell>{entry.cycle}</Table.Cell>
+                        <Table.Cell>{entry.version}</Table.Cell>
+                        <Table.Cell>{(Number(entry.amountTokens) / 1_000_000).toFixed(2)}</Table.Cell>
+                        <Table.Cell><StatusBadge status={entry.status} /></Table.Cell>
+                        <Table.Cell>
+                          {entry.status === "claimable" && (
+                            <Button
+                              size="xs"
+                              onClick={() => handleStackingClaim(entry)}
+                              disabled={claimingId === `stacking-${entry.cycle}`}
+                            >
+                              {claimingId === `stacking-${entry.cycle}` ? "..." : "Claim"}
+                            </Button>
+                          )}
+                          {entry.status === "unverified" && (
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => verifySingleStacking(entry)}
+                              disabled={isVerifying || !userIds}
+                            >
+                              Verify
+                            </Button>
+                          )}
+                          {entry.status === "unavailable" && entry.claimTxId && (
+                            <Text fontSize="xs" color="fg.muted">Failed</Text>
+                          )}
+                        </Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table.Root>
+              </Stack>
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
