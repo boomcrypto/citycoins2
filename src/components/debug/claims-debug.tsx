@@ -401,6 +401,43 @@ function ClaimsDebug({ city }: ClaimsDebugProps) {
             </Box>
           )}
 
+          {/* Entry Comparison - Check for duplicates */}
+          <Box>
+            <Heading size="md" mb={2}>Entry Comparison (First 5 blocks per city)</Heading>
+            <Text fontSize="sm" color="fg.muted" mb={2}>
+              If MIA and NYC show the SAME block numbers, entries are being duplicated.
+              If they show DIFFERENT blocks, the counts are just coincidentally equal.
+            </Text>
+            <Stack direction="row" gap={4}>
+              <Box flex={1}>
+                <Text fontWeight="bold" mb={1}>MIA Entries (first 5 blocks)</Text>
+                <Stack gap={1}>
+                  {miningEntries
+                    .filter((e) => e.city === "mia")
+                    .slice(0, 5)
+                    .map((e, i) => (
+                      <Code key={i} fontSize="xs">
+                        Block {e.block} ({e.version})
+                      </Code>
+                    ))}
+                </Stack>
+              </Box>
+              <Box flex={1}>
+                <Text fontWeight="bold" mb={1}>NYC Entries (first 5 blocks)</Text>
+                <Stack gap={1}>
+                  {miningEntries
+                    .filter((e) => e.city === "nyc")
+                    .slice(0, 5)
+                    .map((e, i) => (
+                      <Code key={i} fontSize="xs">
+                        Block {e.block} ({e.version})
+                      </Code>
+                    ))}
+                </Stack>
+              </Box>
+            </Stack>
+          </Box>
+
           {/* Sample Legacy Transactions for this city */}
           <Box>
             <Heading size="md" mb={2}>{city.toUpperCase()} Mining TX Samples (first 10)</Heading>
