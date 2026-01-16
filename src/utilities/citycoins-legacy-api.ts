@@ -127,7 +127,7 @@ export async function isBlockWinner(
 /**
  * Get the stacking reward for a user in a specific cycle.
  *
- * Endpoint: GET /{version}/{city}/stacking-claims/get-stacking-reward/{userId}/{cycle}
+ * Endpoint: GET /{version}/{city}/stacking-claims/get-stacking-reward/{cycle}/{userId}
  *
  * Note: Requires userId, not address. Use getUserId() first.
  *
@@ -144,7 +144,7 @@ export async function getStackingReward(
   cycle: number
 ): Promise<RateLimitedFetchResult<LegacyStackingRewardResult>> {
   const v = VERSION_MAP[version];
-  const url = `${BASE_URL}/${v}/${city}/stacking-claims/get-stacking-reward/${userId}/${cycle}`;
+  const url = `${BASE_URL}/${v}/${city}/stacking-claims/get-stacking-reward/${cycle}/${userId}`;
 
   const result = await rateLimitedFetch<SingleValueResponse<number>>(url);
 
