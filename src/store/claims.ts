@@ -59,18 +59,41 @@ export interface StackingEntry {
 }
 
 // =============================================================================
-// HELPER: Extract city/version from contract
+// HELPER: Extract city/version from contract and decoded args
 // =============================================================================
 
-function getCityVersionFromContract(
+/**
+ * Determine city and version from contract ID and decoded transaction args.
+ *
+ * For legacy contracts (legacyV1, legacyV2): contract uniquely identifies the city
+ * For DAO contracts (daoV1, daoV2): contract is shared, city comes from function args
+ */
+function getCityVersionFromContractAndArgs(
   contractId: string,
-  functionName: string
+  decoded: { cityName?: string } | null
 ): { city: CityName; version: Version } | undefined {
   const info = findContractInfo(contractId);
-  if (info && (info.module === "mining" || info.module === "stacking" || info.module === "stacking-claim")) {
-    return { city: info.city, version: info.version };
+  if (!info) return undefined;
+  if (info.module !== "mining" && info.module !== "stacking" && info.module !== "stacking-claim") {
+    return undefined;
   }
-  return undefined;
+
+  // For DAO versions, the contract is shared between cities
+  // We need to use the cityName from the decoded function args
+  if (info.version === "daoV1" || info.version === "daoV2") {
+    if (decoded?.cityName) {
+      const cityName = decoded.cityName.toLowerCase();
+      if (cityName === "mia" || cityName === "nyc") {
+        return { city: cityName as CityName, version: info.version };
+      }
+    }
+    // If no cityName in args, we can't determine the city for DAO contracts
+    // This shouldn't happen for valid DAO transactions
+    return undefined;
+  }
+
+  // For legacy versions, contract uniquely identifies the city
+  return { city: info.city, version: info.version };
 }
 
 // =============================================================================
@@ -96,11 +119,12 @@ export const miningEntriesAtom = atom((get) => {
 
     if (!miningFunctions.includes(functionName)) continue;
 
-    const cityVersion = getCityVersionFromContract(contractId, functionName);
-    if (!cityVersion) continue;
-
+    // Decode first to get cityName for DAO contracts
     const decoded = decodeTxArgs(tx);
     if (!decoded || !isValidMiningTxArgs(decoded)) continue;
+
+    const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
+    if (!cityVersion) continue;
 
     const { city, version } = cityVersion;
     const numBlocks = decoded.amountsUstx.length;
@@ -134,11 +158,12 @@ export const miningEntriesAtom = atom((get) => {
 
     if (!claimFunctions.includes(functionName)) continue;
 
-    const cityVersion = getCityVersionFromContract(contractId, functionName);
-    if (!cityVersion) continue;
-
+    // Decode first to get cityName for DAO contracts
     const decoded = decodeTxArgs(tx);
     if (!decoded || !isValidMiningClaimTxArgs(decoded)) continue;
+
+    const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
+    if (!cityVersion) continue;
 
     const block = Number(decoded.minerBlockHeight);
     const key = `${cityVersion.city}-${block}`;
@@ -181,11 +206,12 @@ export const stackingEntriesAtom = atom((get) => {
 
     if (!stackingFunctions.includes(functionName)) continue;
 
-    const cityVersion = getCityVersionFromContract(contractId, functionName);
-    if (!cityVersion) continue;
-
+    // Decode first to get cityName for DAO contracts
     const decoded = decodeTxArgs(tx);
     if (!decoded || !isValidStackingTxArgs(decoded)) continue;
+
+    const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
+    if (!cityVersion) continue;
 
     const { city, version } = cityVersion;
     const lockPeriod = Number(decoded.lockPeriod);
@@ -224,11 +250,12 @@ export const stackingEntriesAtom = atom((get) => {
 
     if (!claimFunctions.includes(functionName)) continue;
 
-    const cityVersion = getCityVersionFromContract(contractId, functionName);
-    if (!cityVersion) continue;
-
+    // Decode first to get cityName for DAO contracts
     const decoded = decodeTxArgs(tx);
     if (!decoded || !isValidStackingClaimTxArgs(decoded)) continue;
+
+    const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
+    if (!cityVersion) continue;
 
     const cycle = Number(decoded.rewardCycle);
     const key = `${cityVersion.city}-${cycle}`;
