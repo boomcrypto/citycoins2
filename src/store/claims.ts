@@ -96,6 +96,7 @@ export interface StackingEntry {
  *
  * For legacy contracts (legacyV1, legacyV2): contract uniquely identifies the city
  * For DAO contracts (daoV1, daoV2): contract is shared, city comes from function args
+ * For DAO stacking-claim (treasury) contracts: contract is city-specific
  */
 function getCityVersionFromContractAndArgs(
   contractId: string,
@@ -107,22 +108,29 @@ function getCityVersionFromContractAndArgs(
     return undefined;
   }
 
-  // For DAO versions, the contract is shared between cities
-  // We need to use the cityName from the decoded function args
-  if (info.version === "daoV1" || info.version === "daoV2") {
-    if (decoded?.cityName) {
-      const cityName = decoded.cityName.toLowerCase();
-      if (cityName === "mia" || cityName === "nyc") {
-        return { city: cityName as CityName, version: info.version };
-      }
-    }
-    // If no cityName in args, we can't determine the city for DAO contracts
-    // This shouldn't happen for valid DAO transactions
-    return undefined;
+  // For legacy versions, contract uniquely identifies the city
+  if (info.version === "legacyV1" || info.version === "legacyV2") {
+    return { city: info.city, version: info.version };
   }
 
-  // For legacy versions, contract uniquely identifies the city
-  return { city: info.city, version: info.version };
+  // For DAO stacking-claim (treasury) contracts, the contract is city-specific
+  // e.g., ccd002-treasury-mia-stacking vs ccd002-treasury-nyc-stacking
+  // These contracts don't pass cityName as an argument - city is implicit
+  if (info.module === "stacking-claim") {
+    return { city: info.city, version: info.version };
+  }
+
+  // For shared DAO contracts (mining, stacking), use cityName from function args
+  if (decoded?.cityName) {
+    const cityName = decoded.cityName.toLowerCase();
+    if (cityName === "mia" || cityName === "nyc") {
+      return { city: cityName as CityName, version: info.version };
+    }
+  }
+
+  // If no cityName in args, we can't determine the city for shared DAO contracts
+  // This shouldn't happen for valid DAO transactions
+  return undefined;
 }
 
 // =============================================================================
@@ -177,8 +185,9 @@ export const miningEntriesAtom = atom((get) => {
   }
 
   // Second pass: mark claimed and failed blocks
-  const claimedBlocks = new Map<string, string>(); // "city-block" -> claimTxId
-  const failedBlocks = new Map<string, string>(); // "city-block" -> failedTxId
+  // Key includes version to prevent conflicts between different contract versions
+  const claimedBlocks = new Map<string, string>(); // "city-version-block" -> claimTxId
+  const failedBlocks = new Map<string, string>(); // "city-version-block" -> failedTxId
 
   for (const tx of transactions) {
     if (tx.tx_type !== "contract_call") continue;
@@ -196,7 +205,7 @@ export const miningEntriesAtom = atom((get) => {
     if (!cityVersion) continue;
 
     const block = Number(decoded.minerBlockHeight);
-    const key = `${cityVersion.city}-${block}`;
+    const key = `${cityVersion.city}-${cityVersion.version}-${block}`;
 
     if (tx.tx_status === "success") {
       claimedBlocks.set(key, tx.tx_id);
@@ -208,7 +217,7 @@ export const miningEntriesAtom = atom((get) => {
 
   // Update entries with claim status
   for (const entry of entries) {
-    const key = `${entry.city}-${entry.block}`;
+    const key = `${entry.city}-${entry.version}-${entry.block}`;
     const claimTxId = claimedBlocks.get(key);
     const failedTxId = failedBlocks.get(key);
 
@@ -406,8 +415,9 @@ export const stackingEntriesAtom = atom((get) => {
   }
 
   // Second pass: mark claimed and failed cycles
-  const claimedCycles = new Map<string, string>(); // "city-cycle" -> claimTxId
-  const failedCycles = new Map<string, string>(); // "city-cycle" -> failedTxId
+  // Key includes version to prevent conflicts between different contract versions
+  const claimedCycles = new Map<string, string>(); // "city-version-cycle" -> claimTxId
+  const failedCycles = new Map<string, string>(); // "city-version-cycle" -> failedTxId
 
   for (const tx of transactions) {
     if (tx.tx_type !== "contract_call") continue;
@@ -425,7 +435,7 @@ export const stackingEntriesAtom = atom((get) => {
     if (!cityVersion) continue;
 
     const cycle = Number(decoded.rewardCycle);
-    const key = `${cityVersion.city}-${cycle}`;
+    const key = `${cityVersion.city}-${cityVersion.version}-${cycle}`;
 
     if (tx.tx_status === "success") {
       claimedCycles.set(key, tx.tx_id);
@@ -437,7 +447,7 @@ export const stackingEntriesAtom = atom((get) => {
 
   // Update entries with claim status
   for (const entry of entries) {
-    const key = `${entry.city}-${entry.cycle}`;
+    const key = `${entry.city}-${entry.version}-${entry.cycle}`;
     const claimTxId = claimedCycles.get(key);
     const failedTxId = failedCycles.get(key);
 
