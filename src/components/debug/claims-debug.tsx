@@ -48,7 +48,9 @@ const transactionAnalysisAtom = atom((get) => {
       status: string;
       contractInfo: ReturnType<typeof findContractInfo>;
       decodedCityName: string | undefined;
+      decodedFull: Record<string, unknown> | null;
       rawFirstArg: unknown;
+      rawFirstArgType: string;
     }>,
     stackingTxs: [] as Array<{
       txId: string;
@@ -57,7 +59,9 @@ const transactionAnalysisAtom = atom((get) => {
       status: string;
       contractInfo: ReturnType<typeof findContractInfo>;
       decodedCityName: string | undefined;
+      decodedFull: Record<string, unknown> | null;
       rawFirstArg: unknown;
+      rawFirstArgType: string;
     }>,
     contractCounts: {} as Record<string, number>,
   };
@@ -80,10 +84,12 @@ const transactionAnalysisAtom = atom((get) => {
       // Get raw first arg for debugging
       const rawArgs = contractTx.contract_call.function_args || [];
       let rawFirstArg: unknown = undefined;
+      let rawFirstArgType = "none";
       if (rawArgs.length > 0) {
         try {
-          // Just store the repr for display
-          rawFirstArg = rawArgs[0]?.repr || rawArgs[0]?.hex?.slice(0, 20) + "...";
+          // Store repr and type info
+          rawFirstArg = rawArgs[0]?.repr || rawArgs[0]?.hex?.slice(0, 30) + "...";
+          rawFirstArgType = rawArgs[0]?.type || "unknown";
         } catch {
           rawFirstArg = "error reading";
         }
@@ -96,7 +102,14 @@ const transactionAnalysisAtom = atom((get) => {
         status: tx.tx_status,
         contractInfo,
         decodedCityName: decoded?.cityName,
+        decodedFull: decoded ? {
+          functionName: decoded.functionName,
+          cityName: decoded.cityName,
+          cityNameType: typeof decoded.cityName,
+          amountsLength: decoded.amountsUstx?.length,
+        } : null,
         rawFirstArg,
+        rawFirstArgType,
       });
     }
 
@@ -107,9 +120,11 @@ const transactionAnalysisAtom = atom((get) => {
 
       const rawArgs = contractTx.contract_call.function_args || [];
       let rawFirstArg: unknown = undefined;
+      let rawFirstArgType = "none";
       if (rawArgs.length > 0) {
         try {
-          rawFirstArg = rawArgs[0]?.repr || rawArgs[0]?.hex?.slice(0, 20) + "...";
+          rawFirstArg = rawArgs[0]?.repr || rawArgs[0]?.hex?.slice(0, 30) + "...";
+          rawFirstArgType = rawArgs[0]?.type || "unknown";
         } catch {
           rawFirstArg = "error reading";
         }
@@ -122,7 +137,13 @@ const transactionAnalysisAtom = atom((get) => {
         status: tx.tx_status,
         contractInfo,
         decodedCityName: decoded?.cityName,
+        decodedFull: decoded ? {
+          functionName: decoded.functionName,
+          cityName: decoded.cityName,
+          cityNameType: typeof decoded.cityName,
+        } : null,
         rawFirstArg,
+        rawFirstArgType,
       });
     }
   }
@@ -342,7 +363,8 @@ function ClaimsDebug({ city }: ClaimsDebugProps) {
                     <Table.ColumnHeader>Status</Table.ColumnHeader>
                     <Table.ColumnHeader>Contract City</Table.ColumnHeader>
                     <Table.ColumnHeader>Decoded cityName</Table.ColumnHeader>
-                    <Table.ColumnHeader>Raw 1st Arg</Table.ColumnHeader>
+                    <Table.ColumnHeader>Raw 1st Arg (type)</Table.ColumnHeader>
+                    <Table.ColumnHeader>Decoded Full</Table.ColumnHeader>
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
@@ -364,7 +386,13 @@ function ClaimsDebug({ city }: ClaimsDebugProps) {
                         )}
                       </Table.Cell>
                       <Table.Cell>
-                        <Code fontSize="xs">{String(tx.rawFirstArg).slice(0, 20)}</Code>
+                        <Code fontSize="xs">{String(tx.rawFirstArg).slice(0, 15)}</Code>
+                        <Text fontSize="xs" color="fg.muted">({tx.rawFirstArgType})</Text>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Code fontSize="xs">
+                          {tx.decodedFull ? JSON.stringify(tx.decodedFull) : "null"}
+                        </Code>
                       </Table.Cell>
                     </Table.Row>
                   ))}
