@@ -6,12 +6,12 @@
  */
 
 import {
-  fetchCallReadOnlyFunction,
   ClarityValue,
   cvToJSON,
+  serializeCV,
+  deserializeCV,
   standardPrincipalCV,
   uintCV,
-  stringAsciiCV,
 } from "@stacks/transactions";
 import { CityName, Version, CITY_CONFIG, CITY_IDS } from "../config/city-config";
 
@@ -21,6 +21,89 @@ export interface MiningClaimStatus {
   canClaim: boolean;
   isWinner: boolean;
   isClaimed: boolean;
+}
+
+/**
+ * Make a read-only contract call with proper 429 handling.
+ * Uses Retry-After header when available, otherwise exponential backoff.
+ */
+async function callReadOnlyWithRetry(
+  contractAddress: string,
+  contractName: string,
+  functionName: string,
+  functionArgs: ClarityValue[],
+  senderAddress: string,
+  maxRetries: number = 3
+): Promise<ClarityValue> {
+  const url = `${HIRO_API}/v2/contracts/call-read/${contractAddress}/${contractName}`;
+
+  const body = JSON.stringify({
+    sender: senderAddress,
+    arguments: functionArgs.map((arg) => `0x${serializeCV(arg).toString("hex")}`),
+  });
+
+  let lastError: Error | null = null;
+  let baseDelay = 1000; // Start with 1 second
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body,
+      });
+
+      if (response.status === 429) {
+        // Rate limited - check for Retry-After header
+        const retryAfter = response.headers.get("Retry-After");
+        let waitTime: number;
+
+        if (retryAfter) {
+          // Retry-After can be seconds or HTTP-date
+          const seconds = parseInt(retryAfter, 10);
+          if (!isNaN(seconds)) {
+            waitTime = seconds * 1000;
+          } else {
+            // Try parsing as HTTP-date
+            const retryDate = new Date(retryAfter);
+            waitTime = Math.max(0, retryDate.getTime() - Date.now());
+          }
+        } else {
+          // No Retry-After, use exponential backoff
+          waitTime = baseDelay * Math.pow(2, attempt);
+        }
+
+        console.log(`Rate limited on ${functionName}, waiting ${waitTime}ms before retry...`);
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+        continue;
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.okay || !data.result) {
+        throw new Error(`Contract call failed: ${JSON.stringify(data)}`);
+      }
+
+      // Deserialize the result
+      const resultHex = data.result.startsWith("0x") ? data.result.slice(2) : data.result;
+      return deserializeCV(Buffer.from(resultHex, "hex"));
+    } catch (error) {
+      lastError = error as Error;
+      if (attempt < maxRetries) {
+        const waitTime = baseDelay * Math.pow(2, attempt);
+        console.log(`Error on attempt ${attempt + 1}, retrying in ${waitTime}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+
+  throw lastError || new Error("Max retries exceeded");
 }
 
 /**
@@ -56,16 +139,15 @@ async function checkLegacyMiningClaim(
   blockHeight: number
 ): Promise<MiningClaimStatus> {
   try {
-    const result = await fetchCallReadOnlyFunction({
+    const result = await callReadOnlyWithRetry(
       contractAddress,
       contractName,
-      functionName: "can-claim-mining-reward",
-      functionArgs: [standardPrincipalCV(userAddress), uintCV(blockHeight)],
-      senderAddress: userAddress,
-      network: "mainnet",
-    });
+      "can-claim-mining-reward",
+      [standardPrincipalCV(userAddress), uintCV(blockHeight)],
+      userAddress
+    );
 
-    const canClaim = cvToJSON(result as ClarityValue).value as boolean;
+    const canClaim = cvToJSON(result).value as boolean;
 
     return {
       canClaim,
@@ -89,16 +171,15 @@ async function checkDaoMiningClaim(
   blockHeight: number
 ): Promise<MiningClaimStatus> {
   try {
-    const result = await fetchCallReadOnlyFunction({
+    const result = await callReadOnlyWithRetry(
       contractAddress,
       contractName,
-      functionName: "is-block-winner",
-      functionArgs: [uintCV(cityId), standardPrincipalCV(userAddress), uintCV(blockHeight)],
-      senderAddress: userAddress,
-      network: "mainnet",
-    });
+      "is-block-winner",
+      [uintCV(cityId), standardPrincipalCV(userAddress), uintCV(blockHeight)],
+      userAddress
+    );
 
-    const json = cvToJSON(result as ClarityValue);
+    const json = cvToJSON(result);
 
     // Result is (optional { claimed: bool, winner: bool })
     if (json.value === null) {
@@ -123,42 +204,4 @@ async function checkDaoMiningClaim(
     console.error(`Error checking DAO mining claim for block ${blockHeight}:`, error);
     throw error;
   }
-}
-
-/**
- * Batch check multiple blocks with rate limiting.
- * Calls onProgress after each check to update UI.
- */
-export async function batchCheckMiningClaims(
-  entries: Array<{ city: CityName; version: Version; block: number }>,
-  userAddress: string,
-  delayMs: number = 500,
-  onProgress?: (block: number, status: MiningClaimStatus) => void
-): Promise<Map<string, MiningClaimStatus>> {
-  const results = new Map<string, MiningClaimStatus>();
-
-  for (let i = 0; i < entries.length; i++) {
-    const { city, version, block } = entries[i];
-    const key = `${city}-${block}`;
-
-    try {
-      const status = await checkMiningClaimStatus(city, version, userAddress, block);
-      results.set(key, status);
-      onProgress?.(block, status);
-    } catch (error) {
-      // On error, mark as unknown/needs retry
-      results.set(key, {
-        canClaim: false,
-        isWinner: false,
-        isClaimed: false,
-      });
-    }
-
-    // Rate limiting - wait between calls (except for last one)
-    if (i < entries.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-    }
-  }
-
-  return results;
 }

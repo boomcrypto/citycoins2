@@ -586,11 +586,13 @@ export function getCityInfo(city: CityName): CityInfo {
 
 /**
  * Calculate which cycle a block height falls into for a given version
+ * Returns the absolute cycle number (e.g., 17 for legacyV2 first cycle, not 1)
  */
 export function getBlockCycle(city: CityName, version: Version, blockHeight: number): number {
-  const { genesisBlock, cycleLength } = CITY_CONFIG[city][version].stacking;
+  const { genesisBlock, cycleLength, startCycle } = CITY_CONFIG[city][version].stacking;
   if (blockHeight < genesisBlock) return 0;
-  return Math.floor((blockHeight - genesisBlock) / cycleLength) + 1;
+  // Use startCycle offset so cycle numbers are absolute across versions
+  return startCycle + Math.floor((blockHeight - genesisBlock) / cycleLength);
 }
 
 /**
