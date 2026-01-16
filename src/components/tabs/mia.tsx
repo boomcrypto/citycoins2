@@ -53,8 +53,25 @@ import {
   buildStackingClaimTx,
   executeClaimTransaction,
 } from "../../utilities/claim-transactions";
+import { Version } from "../../config/city-config";
 
 const loadableBlockHeights = loadable(blockHeightsQueryAtom);
+
+/**
+ * Format stacked token amount based on version.
+ * legacyV1 tokens have 0 decimals, legacyV2+ have 6 decimals.
+ */
+function formatStackedAmount(amount: bigint, version: Version): string {
+  if (version === "legacyV1") {
+    // legacyV1 has 0 decimals - amount is the actual number
+    return Number(amount).toLocaleString();
+  }
+  // legacyV2+ have 6 decimals
+  return (Number(amount) / 1_000_000).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 
 interface MiaProps {
   onOpenDetails: (tx: Transaction) => void;
@@ -352,7 +369,7 @@ function Mia({ onOpenDetails }: MiaProps) {
                           <Table.Row key={`${entry.txId}-${entry.block}`}>
                             <Table.Cell>{entry.block}</Table.Cell>
                             <Table.Cell>{entry.version}</Table.Cell>
-                            <Table.Cell>{(Number(entry.amountUstx) / 1_000_000).toFixed(2)}</Table.Cell>
+                            <Table.Cell>{(Number(entry.amountUstx) / 1_000_000).toFixed(6)}</Table.Cell>
                             <Table.Cell>
                               <Button
                                 size="xs"
@@ -390,7 +407,7 @@ function Mia({ onOpenDetails }: MiaProps) {
                           <Table.Row key={`${entry.txId}-${entry.cycle}`}>
                             <Table.Cell>{entry.cycle}</Table.Cell>
                             <Table.Cell>{entry.version}</Table.Cell>
-                            <Table.Cell>{(Number(entry.amountTokens) / 1_000_000).toFixed(2)}</Table.Cell>
+                            <Table.Cell>{formatStackedAmount(entry.amountTokens, entry.version)}</Table.Cell>
                             <Table.Cell>
                               <Button
                                 size="xs"
@@ -513,10 +530,10 @@ function Mia({ onOpenDetails }: MiaProps) {
                       <Table.Row key={`${entry.txId}-${entry.block}`}>
                         <Table.Cell>{entry.block}</Table.Cell>
                         <Table.Cell>{entry.version}</Table.Cell>
-                        <Table.Cell>{(Number(entry.amountUstx) / 1_000_000).toFixed(2)}</Table.Cell>
+                        <Table.Cell>{(Number(entry.amountUstx) / 1_000_000).toFixed(6)}</Table.Cell>
                         <Table.Cell><StatusBadge status={entry.status} /></Table.Cell>
-                        <Table.Cell>
-                          {entry.status === "claimable" && (
+                        <Table.Cell minH="32px">
+                          {entry.status === "claimable" ? (
                             <Button
                               size="xs"
                               onClick={() => handleMiningClaim(entry)}
@@ -524,8 +541,7 @@ function Mia({ onOpenDetails }: MiaProps) {
                             >
                               {claimingId === `mining-${entry.block}` ? "..." : "Claim"}
                             </Button>
-                          )}
-                          {entry.status === "unverified" && (
+                          ) : entry.status === "unverified" ? (
                             <Button
                               size="xs"
                               variant="outline"
@@ -534,8 +550,7 @@ function Mia({ onOpenDetails }: MiaProps) {
                             >
                               Verify
                             </Button>
-                          )}
-                          {entry.status === "error" && (
+                          ) : entry.status === "error" ? (
                             <Button
                               size="xs"
                               variant="outline"
@@ -544,6 +559,8 @@ function Mia({ onOpenDetails }: MiaProps) {
                             >
                               Retry
                             </Button>
+                          ) : (
+                            <Box minH="24px" />
                           )}
                         </Table.Cell>
                       </Table.Row>
@@ -610,10 +627,10 @@ function Mia({ onOpenDetails }: MiaProps) {
                       <Table.Row key={`${entry.txId}-${entry.cycle}`}>
                         <Table.Cell>{entry.cycle}</Table.Cell>
                         <Table.Cell>{entry.version}</Table.Cell>
-                        <Table.Cell>{(Number(entry.amountTokens) / 1_000_000).toFixed(2)}</Table.Cell>
+                        <Table.Cell>{formatStackedAmount(entry.amountTokens, entry.version)}</Table.Cell>
                         <Table.Cell><StatusBadge status={entry.status} /></Table.Cell>
-                        <Table.Cell>
-                          {entry.status === "claimable" && (
+                        <Table.Cell minH="32px">
+                          {entry.status === "claimable" ? (
                             <Button
                               size="xs"
                               onClick={() => handleStackingClaim(entry)}
@@ -621,8 +638,7 @@ function Mia({ onOpenDetails }: MiaProps) {
                             >
                               {claimingId === `stacking-${entry.cycle}` ? "..." : "Claim"}
                             </Button>
-                          )}
-                          {entry.status === "unverified" && (
+                          ) : entry.status === "unverified" ? (
                             <Button
                               size="xs"
                               variant="outline"
@@ -631,9 +647,10 @@ function Mia({ onOpenDetails }: MiaProps) {
                             >
                               Verify
                             </Button>
-                          )}
-                          {entry.status === "unavailable" && entry.claimTxId && (
+                          ) : entry.status === "unavailable" && entry.claimTxId ? (
                             <Text fontSize="xs" color="fg.muted">Failed</Text>
+                          ) : (
+                            <Box minH="24px" />
                           )}
                         </Table.Cell>
                       </Table.Row>

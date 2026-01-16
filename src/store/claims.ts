@@ -20,6 +20,7 @@ import {
 import {
   CityName,
   Version,
+  CITY_CONFIG,
   findContractInfo,
   getBlockCycle,
   isMiningClaimEligible,
@@ -377,8 +378,16 @@ export const stackingEntriesAtom = atom((get) => {
     // Calculate start cycle based on block height and version's genesis
     const startCycle = getBlockCycle(city, version, tx.block_height);
 
+    // Get version's endCycle to cap entries at valid range
+    const { endCycle } = CITY_CONFIG[city][version].stacking;
+
     for (let i = 0; i < lockPeriod; i++) {
       const cycle = startCycle + i;
+
+      // Skip cycles beyond this version's valid range
+      if (endCycle !== undefined && cycle > endCycle) {
+        continue;
+      }
 
       entries.push({
         txId: tx.tx_id,
