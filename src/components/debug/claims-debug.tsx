@@ -514,6 +514,184 @@ function ClaimsDebug({ city }: ClaimsDebugProps) {
             </Stack>
           </Box>
 
+          {/* Stacking Entry Analysis */}
+          <Box>
+            <Heading size="md" mb={2}>Stacking Entry Analysis</Heading>
+
+            {/* Raw stacking counts */}
+            <Box mb={4} p={2} bg="gray.800" borderRadius="md">
+              <Text fontWeight="bold" mb={2}>Raw Stacking Entry Counts</Text>
+              <Text>Total entries in stackingEntriesAtom: <Code>{stackingEntries.length}</Code></Text>
+              <Text>Entries with city="mia": <Code>{stackingEntries.filter(e => e.city === "mia").length}</Code></Text>
+              <Text>Entries with city="nyc": <Code>{stackingEntries.filter(e => e.city === "nyc").length}</Code></Text>
+              <Text>Entries with other city: <Code>{stackingEntries.filter(e => e.city !== "mia" && e.city !== "nyc").length}</Code></Text>
+            </Box>
+
+            {/* Check for duplicate cycles */}
+            <Box mb={4} p={2} bg="gray.800" borderRadius="md">
+              <Text fontWeight="bold" mb={2}>Duplicate Cycle Check</Text>
+              {(() => {
+                // Group entries by cycle, tracking city, version, and txId
+                const cycleData = new Map<number, Array<{city: string, version: string, txId: string}>>();
+                stackingEntries.forEach(e => {
+                  if (!cycleData.has(e.cycle)) cycleData.set(e.cycle, []);
+                  cycleData.get(e.cycle)!.push({ city: e.city, version: e.version, txId: e.txId.slice(0, 10) });
+                });
+
+                // Find cycles that appear in both cities
+                const duplicateCities = Array.from(cycleData.entries())
+                  .filter(([_, entries]) => {
+                    const cities = new Set(entries.map(e => e.city));
+                    return cities.size > 1;
+                  });
+
+                // Find cycles that appear in multiple versions (potential issue)
+                const duplicateVersions = Array.from(cycleData.entries())
+                  .filter(([_, entries]) => {
+                    const versions = new Set(entries.map(e => e.version));
+                    return versions.size > 1;
+                  });
+
+                return (
+                  <Box>
+                    {duplicateCities.length > 0 ? (
+                      <Box mb={2}>
+                        <Text color="yellow.300">
+                          {duplicateCities.length} cycles appear in both cities (may be legitimate parallel stacking)
+                        </Text>
+                        <Text fontSize="sm">First 3:</Text>
+                        {duplicateCities.slice(0, 3).map(([cycle, entries]) => (
+                          <Code key={cycle} fontSize="xs" display="block">
+                            Cycle {cycle}: {entries.map(e => `${e.city}/${e.version}(${e.txId})`).join(", ")}
+                          </Code>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Text color="green.300" mb={2}>No cycles appear in multiple cities</Text>
+                    )}
+
+                    {duplicateVersions.length > 0 ? (
+                      <Box>
+                        <Text color="red.300">
+                          ISSUE: {duplicateVersions.length} cycles appear in multiple versions!
+                        </Text>
+                        <Text fontSize="sm">First 3:</Text>
+                        {duplicateVersions.slice(0, 3).map(([cycle, entries]) => (
+                          <Code key={cycle} fontSize="xs" display="block">
+                            Cycle {cycle}: {entries.map(e => `${e.city}/${e.version}(${e.txId})`).join(", ")}
+                          </Code>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Text color="green.300">No cycles appear in multiple versions</Text>
+                    )}
+                  </Box>
+                );
+              })()}
+            </Box>
+
+            {/* Stacking entries by city comparison */}
+            <Stack direction="row" gap={4} mb={4}>
+              <Box flex={1}>
+                <Text fontWeight="bold" mb={1}>MIA Stacking (first 5 cycles)</Text>
+                <Stack gap={1}>
+                  {stackingEntries
+                    .filter((e) => e.city === "mia")
+                    .slice(0, 5)
+                    .map((e, i) => (
+                      <Code key={i} fontSize="xs">
+                        Cycle {e.cycle} ({e.version}) - {e.status}
+                      </Code>
+                    ))}
+                  {stackingEntries.filter(e => e.city === "mia").length === 0 && (
+                    <Text fontSize="sm" color="fg.muted">No MIA stacking entries</Text>
+                  )}
+                </Stack>
+              </Box>
+              <Box flex={1}>
+                <Text fontWeight="bold" mb={1}>NYC Stacking (first 5 cycles)</Text>
+                <Stack gap={1}>
+                  {stackingEntries
+                    .filter((e) => e.city === "nyc")
+                    .slice(0, 5)
+                    .map((e, i) => (
+                      <Code key={i} fontSize="xs">
+                        Cycle {e.cycle} ({e.version}) - {e.status}
+                      </Code>
+                    ))}
+                  {stackingEntries.filter(e => e.city === "nyc").length === 0 && (
+                    <Text fontSize="sm" color="fg.muted">No NYC stacking entries</Text>
+                  )}
+                </Stack>
+              </Box>
+            </Stack>
+
+            {/* DAO Stacking TX Samples */}
+            {analysis.stackingTxs.filter(tx =>
+              tx.contractInfo?.version === "daoV1" || tx.contractInfo?.version === "daoV2"
+            ).length > 0 && (
+              <Box mb={4}>
+                <Text fontWeight="bold" mb={2}>DAO Stacking TX Samples</Text>
+                <Table.Root size="sm">
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.ColumnHeader>TX ID</Table.ColumnHeader>
+                      <Table.ColumnHeader>Function</Table.ColumnHeader>
+                      <Table.ColumnHeader>Status</Table.ColumnHeader>
+                      <Table.ColumnHeader>Contract City</Table.ColumnHeader>
+                      <Table.ColumnHeader>Decoded cityName</Table.ColumnHeader>
+                      <Table.ColumnHeader>Decoded Full</Table.ColumnHeader>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {analysis.stackingTxs
+                      .filter(tx => tx.contractInfo?.version === "daoV1" || tx.contractInfo?.version === "daoV2")
+                      .slice(0, 5)
+                      .map((tx, i) => (
+                        <Table.Row key={i}>
+                          <Table.Cell><Code fontSize="xs">{tx.txId}</Code></Table.Cell>
+                          <Table.Cell>{tx.functionName}</Table.Cell>
+                          <Table.Cell>
+                            <Badge colorPalette={tx.status === "success" ? "green" : "red"}>
+                              {tx.status}
+                            </Badge>
+                          </Table.Cell>
+                          <Table.Cell>{tx.contractInfo?.city || "?"}</Table.Cell>
+                          <Table.Cell>
+                            {tx.decodedCityName ? (
+                              <Badge colorPalette="green">{tx.decodedCityName}</Badge>
+                            ) : (
+                              <Badge colorPalette="red">undefined</Badge>
+                            )}
+                          </Table.Cell>
+                          <Table.Cell>
+                            <Code fontSize="xs">
+                              {tx.decodedFull ? JSON.stringify(tx.decodedFull) : "null"}
+                            </Code>
+                          </Table.Cell>
+                        </Table.Row>
+                      ))}
+                  </Table.Body>
+                </Table.Root>
+              </Box>
+            )}
+
+            {/* Stacking TXs without cityName (potential issues) */}
+            {daoStackingWithoutCityName.length > 0 && (
+              <Box p={2} bg="red.900" borderRadius="md">
+                <Text fontWeight="bold" color="red.200">
+                  DAO Stacking TXs without cityName: {daoStackingWithoutCityName.length}
+                </Text>
+                <Text fontSize="sm" mb={2}>These transactions cannot determine city from shared DAO contract:</Text>
+                {daoStackingWithoutCityName.slice(0, 3).map((tx, i) => (
+                  <Code key={i} fontSize="xs" display="block">
+                    {tx.txId} - {tx.functionName} - raw: {String(tx.rawFirstArg).slice(0, 20)}
+                  </Code>
+                ))}
+              </Box>
+            )}
+          </Box>
+
           {/* Sample Legacy Transactions for this city */}
           <Box>
             <Heading size="md" mb={2}>{city.toUpperCase()} Mining TX Samples (first 10)</Heading>
