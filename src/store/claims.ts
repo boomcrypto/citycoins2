@@ -34,6 +34,14 @@ import {
 // TYPES
 // =============================================================================
 
+export type MiningStatus =
+  | "pending"      // Not yet matured (< 100 blocks)
+  | "checking"     // Matured, verifying if won...
+  | "claimable"    // Verified: won, not yet claimed
+  | "claimed"      // Won and claimed
+  | "not-won"      // Verified: didn't win lottery
+  | "error";       // Verification failed
+
 export interface MiningEntry {
   txId: string;
   block: number;
@@ -42,11 +50,7 @@ export interface MiningEntry {
   contractId: string;
   functionName: string;
   amountUstx: bigint;
-  // pending = not yet matured (100 blocks)
-  // claimable = matured, no claim attempt yet
-  // claimed = successful claim
-  // unavailable = failed claim (didn't win lottery or other error)
-  status: "pending" | "claimable" | "claimed" | "unavailable";
+  status: MiningStatus;
   claimTxId?: string;
 }
 
@@ -149,7 +153,8 @@ export const miningEntriesAtom = atom((get) => {
         contractId,
         functionName,
         amountUstx,
-        status: isMiningClaimEligible(block, currentBlock) ? "claimable" : "pending",
+        // Matured blocks start as "checking" - need to verify if won
+        status: isMiningClaimEligible(block, currentBlock) ? "checking" : "pending",
       });
     }
   }
@@ -194,12 +199,69 @@ export const miningEntriesAtom = atom((get) => {
       entry.status = "claimed";
       entry.claimTxId = claimTxId;
     } else if (failedTxId) {
-      entry.status = "unavailable";
+      // Failed claim attempt = didn't win the lottery
+      entry.status = "not-won";
       entry.claimTxId = failedTxId;
     }
   }
 
   return entries;
+});
+
+// =============================================================================
+// MINING VERIFICATION STATE
+// Stores results of on-chain verification checks
+// =============================================================================
+
+export interface MiningVerificationResult {
+  status: "claimable" | "not-won" | "error";
+  checkedAt: number; // timestamp
+}
+
+// Writable atom to store verification results: "city-block" -> result
+export const miningVerificationResultsAtom = atom<Map<string, MiningVerificationResult>>(
+  new Map()
+);
+
+// Atom that combines base mining entries with verification results
+export const verifiedMiningEntriesAtom = atom((get) => {
+  const baseEntries = get(miningEntriesAtom);
+  const verificationResults = get(miningVerificationResultsAtom);
+
+  return baseEntries.map((entry) => {
+    // If already claimed/not-won from transaction history, use that
+    if (entry.status === "claimed" || entry.status === "not-won") {
+      return entry;
+    }
+
+    // If still pending (not matured), keep as pending
+    if (entry.status === "pending") {
+      return entry;
+    }
+
+    // For "checking" entries, look up verification result
+    const key = `${entry.city}-${entry.block}`;
+    const result = verificationResults.get(key);
+
+    if (result) {
+      return { ...entry, status: result.status };
+    }
+
+    // No verification result yet, keep as "checking"
+    return entry;
+  });
+});
+
+// Entries that need verification (status = "checking")
+export const miningEntriesNeedingVerificationAtom = atom((get) => {
+  const entries = get(miningEntriesAtom);
+  const verificationResults = get(miningVerificationResultsAtom);
+
+  return entries.filter((entry) => {
+    if (entry.status !== "checking") return false;
+    const key = `${entry.city}-${entry.block}`;
+    return !verificationResults.has(key);
+  });
 });
 
 // =============================================================================
@@ -310,12 +372,12 @@ export const stackingEntriesAtom = atom((get) => {
 // =============================================================================
 
 export const miaMiningEntriesAtom = atom((get) => {
-  const entries = get(miningEntriesAtom);
+  const entries = get(verifiedMiningEntriesAtom);
   return entries.filter((e) => e.city === "mia");
 });
 
 export const nycMiningEntriesAtom = atom((get) => {
-  const entries = get(miningEntriesAtom);
+  const entries = get(verifiedMiningEntriesAtom);
   return entries.filter((e) => e.city === "nyc");
 });
 
@@ -373,6 +435,8 @@ export interface ClaimsSummary {
     miningClaimed: number;
     miningClaimable: number;
     miningPending: number;
+    miningChecking: number;
+    miningNotWon: number;
     stackingTotal: number;
     stackingClaimed: number;
     stackingClaimable: number;
@@ -383,6 +447,8 @@ export interface ClaimsSummary {
     miningClaimed: number;
     miningClaimable: number;
     miningPending: number;
+    miningChecking: number;
+    miningNotWon: number;
     stackingTotal: number;
     stackingClaimed: number;
     stackingClaimable: number;
@@ -391,7 +457,7 @@ export interface ClaimsSummary {
 }
 
 export const claimsSummaryAtom = atom<ClaimsSummary>((get) => {
-  const miningEntries = get(miningEntriesAtom);
+  const miningEntries = get(verifiedMiningEntriesAtom);
   const stackingEntries = get(stackingEntriesAtom);
 
   const summarize = (city: CityName) => {
@@ -403,6 +469,8 @@ export const claimsSummaryAtom = atom<ClaimsSummary>((get) => {
       miningClaimed: mining.filter((e) => e.status === "claimed").length,
       miningClaimable: mining.filter((e) => e.status === "claimable").length,
       miningPending: mining.filter((e) => e.status === "pending").length,
+      miningChecking: mining.filter((e) => e.status === "checking").length,
+      miningNotWon: mining.filter((e) => e.status === "not-won").length,
       stackingTotal: stacking.length,
       stackingClaimed: stacking.filter((e) => e.status === "claimed").length,
       stackingClaimable: stacking.filter((e) => e.status === "claimable").length,

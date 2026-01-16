@@ -23,9 +23,13 @@ import {
   miaStackingEntriesAtom,
   miaUnclaimedMiningAtom,
   miaUnclaimedStackingAtom,
+  miningEntriesNeedingVerificationAtom,
+  miningVerificationResultsAtom,
   MiningEntry,
   StackingEntry,
+  MiningVerificationResult,
 } from "../../store/claims";
+import { checkMiningClaimStatus } from "../../utilities/mining-checks";
 import {
   buildMiningClaimTx,
   buildStackingClaimTx,
@@ -41,13 +45,24 @@ interface MiaProps {
 function StatusBadge({ status }: { status: string }) {
   const colorScheme = {
     pending: "yellow",
+    checking: "orange",
     claimable: "green",
     claimed: "gray",
     locked: "blue",
-    unavailable: "red",
+    "not-won": "red",
+    error: "red",
   }[status] || "gray";
 
-  const displayText = status === "unavailable" ? "not won" : status;
+  const displayText = {
+    pending: "pending",
+    checking: "checking...",
+    claimable: "claimable",
+    claimed: "claimed",
+    locked: "locked",
+    "not-won": "not won",
+    error: "error",
+  }[status] || status;
+
   return <Badge colorPalette={colorScheme}>{displayText}</Badge>;
 }
 
@@ -63,6 +78,12 @@ function Mia({ onOpenDetails }: MiaProps) {
   const unclaimedMining = useAtomValue(miaUnclaimedMiningAtom);
   const unclaimedStacking = useAtomValue(miaUnclaimedStackingAtom);
 
+  // Mining verification
+  const entriesNeedingVerification = useAtomValue(miningEntriesNeedingVerificationAtom);
+  const [verificationResults, setVerificationResults] = useAtom(miningVerificationResultsAtom);
+  const [verificationProgress, setVerificationProgress] = useState({ current: 0, total: 0 });
+  const [isVerifying, setIsVerifying] = useState(false);
+
   // Redemption state
   const [hasChecked, setHasChecked] = useState(false);
   const [isEligible, setIsEligible] = useState(false);
@@ -77,6 +98,64 @@ function Mia({ onOpenDetails }: MiaProps) {
       setBlockHeights(blockHeightsLoadable.data);
     }
   }, [blockHeightsLoadable, setBlockHeights]);
+
+  // Mining claim verification - checks if user won each block
+  useEffect(() => {
+    if (!stxAddress || isVerifying || entriesNeedingVerification.length === 0) return;
+
+    // Filter to only MIA entries
+    const miaEntries = entriesNeedingVerification.filter((e) => e.city === "mia");
+    if (miaEntries.length === 0) return;
+
+    const verifyBlocks = async () => {
+      setIsVerifying(true);
+      setVerificationProgress({ current: 0, total: miaEntries.length });
+
+      for (let i = 0; i < miaEntries.length; i++) {
+        const entry = miaEntries[i];
+        const key = `${entry.city}-${entry.block}`;
+
+        try {
+          const result = await checkMiningClaimStatus(
+            entry.city,
+            entry.version,
+            stxAddress,
+            entry.block
+          );
+
+          const verificationResult: MiningVerificationResult = {
+            status: result.canClaim ? "claimable" : "not-won",
+            checkedAt: Date.now(),
+          };
+
+          // Update results map
+          setVerificationResults((prev) => {
+            const next = new Map(prev);
+            next.set(key, verificationResult);
+            return next;
+          });
+        } catch (error) {
+          console.error(`Error verifying block ${entry.block}:`, error);
+          setVerificationResults((prev) => {
+            const next = new Map(prev);
+            next.set(key, { status: "error", checkedAt: Date.now() });
+            return next;
+          });
+        }
+
+        setVerificationProgress({ current: i + 1, total: miaEntries.length });
+
+        // Rate limiting: 500ms between calls
+        if (i < miaEntries.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+
+      setIsVerifying(false);
+    };
+
+    verifyBlocks();
+  }, [stxAddress, entriesNeedingVerification, isVerifying, setVerificationResults]);
 
   if (!stxAddress) {
     return (
@@ -164,12 +243,16 @@ function Mia({ onOpenDetails }: MiaProps) {
 
   const currentBlock = blockHeights?.stx ?? 0;
 
+  // Count entries by status for display
+  const checkingCount = miningEntries.filter((e) => e.status === "checking").length;
+
   return (
     <Stack gap={4}>
       <Heading size="4xl">MIA</Heading>
       <Text>
         Current block: {currentBlock || "Loading..."} |
-        Mining: {unclaimedMining.length} claimable |
+        Mining: {unclaimedMining.length} claimable
+        {checkingCount > 0 && ` (${checkingCount} checking)`} |
         Stacking: {unclaimedStacking.length} claimable
       </Text>
 
@@ -178,6 +261,20 @@ function Mia({ onOpenDetails }: MiaProps) {
         <Box>
           <Text fontSize="sm" mb={1}>Loading transactions... {fetchStatus.progress}%</Text>
           <Progress.Root value={fetchStatus.progress} max={100} size="sm">
+            <Progress.Track>
+              <Progress.Range />
+            </Progress.Track>
+          </Progress.Root>
+        </Box>
+      )}
+
+      {/* Mining verification progress */}
+      {isVerifying && verificationProgress.total > 0 && (
+        <Box>
+          <Text fontSize="sm" mb={1}>
+            Verifying mining claims... {verificationProgress.current}/{verificationProgress.total}
+          </Text>
+          <Progress.Root value={verificationProgress.current} max={verificationProgress.total} size="sm">
             <Progress.Track>
               <Progress.Range />
             </Progress.Track>
