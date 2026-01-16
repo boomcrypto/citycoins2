@@ -547,6 +547,88 @@ function ClaimsDebug({ city }: ClaimsDebugProps) {
               <Text>Entries with other city: <Code>{stackingEntries.filter(e => e.city !== "mia" && e.city !== "nyc").length}</Code></Text>
             </Box>
 
+            {/* TX ID -> Cycles Mapping */}
+            <Box mb={4}>
+              <Text fontWeight="bold" mb={2}>Stacking TX to Cycles Mapping (for manual verification)</Text>
+              {(() => {
+                // Group stacking entries by txId
+                const txToCycles = new Map<string, {
+                  city: string;
+                  version: string;
+                  cycles: number[];
+                }>();
+
+                stackingEntries.forEach(e => {
+                  const shortTxId = e.txId.slice(0, 16) + "...";
+                  if (!txToCycles.has(shortTxId)) {
+                    txToCycles.set(shortTxId, { city: e.city, version: e.version, cycles: [] });
+                  }
+                  txToCycles.get(shortTxId)!.cycles.push(e.cycle);
+                });
+
+                // Sort cycles within each TX and calculate totals
+                const txData = Array.from(txToCycles.entries()).map(([txId, data]) => {
+                  const sortedCycles = [...data.cycles].sort((a, b) => a - b);
+                  return {
+                    txId,
+                    city: data.city,
+                    version: data.version,
+                    cycleCount: sortedCycles.length,
+                    cycleRange: sortedCycles.length > 0
+                      ? `${sortedCycles[0]}-${sortedCycles[sortedCycles.length - 1]}`
+                      : "none",
+                    cycles: sortedCycles,
+                  };
+                });
+
+                // Group by city for totals
+                const miaTxs = txData.filter(t => t.city === "mia");
+                const nycTxs = txData.filter(t => t.city === "nyc");
+                const miaTotalCycles = miaTxs.reduce((sum, t) => sum + t.cycleCount, 0);
+                const nycTotalCycles = nycTxs.reduce((sum, t) => sum + t.cycleCount, 0);
+
+                return (
+                  <Box>
+                    <Stack direction="row" gap={4} mb={3}>
+                      <Badge colorPalette="orange">MIA: {miaTxs.length} TXs → {miaTotalCycles} cycles</Badge>
+                      <Badge colorPalette="purple">NYC: {nycTxs.length} TXs → {nycTotalCycles} cycles</Badge>
+                    </Stack>
+
+                    <Table.Root size="sm">
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.ColumnHeader>TX ID</Table.ColumnHeader>
+                          <Table.ColumnHeader>City</Table.ColumnHeader>
+                          <Table.ColumnHeader>Version</Table.ColumnHeader>
+                          <Table.ColumnHeader>Cycles</Table.ColumnHeader>
+                          <Table.ColumnHeader>Range</Table.ColumnHeader>
+                          <Table.ColumnHeader>Cycle List</Table.ColumnHeader>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {txData.map((tx, i) => (
+                          <Table.Row key={i} bg={tx.city === city ? "blue.900" : undefined}>
+                            <Table.Cell><Code fontSize="xs">{tx.txId}</Code></Table.Cell>
+                            <Table.Cell>
+                              <Badge colorPalette={tx.city === "mia" ? "orange" : "purple"}>
+                                {tx.city.toUpperCase()}
+                              </Badge>
+                            </Table.Cell>
+                            <Table.Cell>{tx.version}</Table.Cell>
+                            <Table.Cell fontWeight="bold">{tx.cycleCount}</Table.Cell>
+                            <Table.Cell>{tx.cycleRange}</Table.Cell>
+                            <Table.Cell>
+                              <Code fontSize="xs">{tx.cycles.join(", ")}</Code>
+                            </Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table.Root>
+                  </Box>
+                );
+              })()}
+            </Box>
+
             {/* Check for duplicate cycles */}
             <Box mb={4} p={2} bg="gray.800" borderRadius="md">
               <Text fontWeight="bold" mb={2}>Duplicate Cycle Check</Text>
