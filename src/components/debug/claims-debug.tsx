@@ -1,0 +1,413 @@
+/**
+ * Debug component for claims detection analysis.
+ * Shows detailed information about transaction processing and city detection.
+ * Remove this component once debugging is complete.
+ */
+
+import {
+  Accordion,
+  Badge,
+  Box,
+  Code,
+  Heading,
+  Stack,
+  Table,
+  Text,
+} from "@chakra-ui/react";
+import { useAtomValue } from "jotai";
+import { atom } from "jotai";
+import { transactionsAtom } from "../../store/stacks";
+import {
+  miningEntriesAtom,
+  stackingEntriesAtom,
+  MiningEntry,
+  StackingEntry,
+} from "../../store/claims";
+import { CityName, findContractInfo } from "../../config/city-config";
+import { decodeTxArgs } from "../../utilities/transactions";
+import { ContractCallTransaction } from "@stacks/stacks-blockchain-api-types";
+
+interface ClaimsDebugProps {
+  city: CityName;
+}
+
+// Atom to analyze raw transactions
+const transactionAnalysisAtom = atom((get) => {
+  const transactions = get(transactionsAtom);
+
+  const miningFunctions = ["mine-tokens", "mine-many", "mine"];
+  const stackingFunctions = ["stack-tokens", "stack"];
+
+  const analysis = {
+    total: transactions.length,
+    contractCalls: 0,
+    miningTxs: [] as Array<{
+      txId: string;
+      contractId: string;
+      functionName: string;
+      status: string;
+      contractInfo: ReturnType<typeof findContractInfo>;
+      decodedCityName: string | undefined;
+      rawFirstArg: unknown;
+    }>,
+    stackingTxs: [] as Array<{
+      txId: string;
+      contractId: string;
+      functionName: string;
+      status: string;
+      contractInfo: ReturnType<typeof findContractInfo>;
+      decodedCityName: string | undefined;
+      rawFirstArg: unknown;
+    }>,
+    contractCounts: {} as Record<string, number>,
+  };
+
+  for (const tx of transactions) {
+    if (tx.tx_type !== "contract_call") continue;
+    analysis.contractCalls++;
+
+    const contractTx = tx as ContractCallTransaction;
+    const { contract_id: contractId, function_name: functionName } = contractTx.contract_call;
+
+    // Count by contract
+    analysis.contractCounts[contractId] = (analysis.contractCounts[contractId] || 0) + 1;
+
+    // Analyze mining transactions
+    if (miningFunctions.includes(functionName)) {
+      const decoded = decodeTxArgs(tx);
+      const contractInfo = findContractInfo(contractId);
+
+      // Get raw first arg for debugging
+      const rawArgs = contractTx.contract_call.function_args || [];
+      let rawFirstArg: unknown = undefined;
+      if (rawArgs.length > 0) {
+        try {
+          // Just store the repr for display
+          rawFirstArg = rawArgs[0]?.repr || rawArgs[0]?.hex?.slice(0, 20) + "...";
+        } catch {
+          rawFirstArg = "error reading";
+        }
+      }
+
+      analysis.miningTxs.push({
+        txId: tx.tx_id.slice(0, 10) + "...",
+        contractId,
+        functionName,
+        status: tx.tx_status,
+        contractInfo,
+        decodedCityName: decoded?.cityName,
+        rawFirstArg,
+      });
+    }
+
+    // Analyze stacking transactions
+    if (stackingFunctions.includes(functionName)) {
+      const decoded = decodeTxArgs(tx);
+      const contractInfo = findContractInfo(contractId);
+
+      const rawArgs = contractTx.contract_call.function_args || [];
+      let rawFirstArg: unknown = undefined;
+      if (rawArgs.length > 0) {
+        try {
+          rawFirstArg = rawArgs[0]?.repr || rawArgs[0]?.hex?.slice(0, 20) + "...";
+        } catch {
+          rawFirstArg = "error reading";
+        }
+      }
+
+      analysis.stackingTxs.push({
+        txId: tx.tx_id.slice(0, 10) + "...",
+        contractId,
+        functionName,
+        status: tx.tx_status,
+        contractInfo,
+        decodedCityName: decoded?.cityName,
+        rawFirstArg,
+      });
+    }
+  }
+
+  return analysis;
+});
+
+// Summarize entries by city and version
+function summarizeEntries<T extends MiningEntry | StackingEntry>(
+  entries: T[],
+  idField: "block" | "cycle"
+): Record<string, Record<string, number>> {
+  const summary: Record<string, Record<string, number>> = {};
+
+  for (const entry of entries) {
+    const city = entry.city;
+    const version = entry.version;
+
+    if (!summary[city]) summary[city] = {};
+    if (!summary[city][version]) summary[city][version] = 0;
+    summary[city][version]++;
+  }
+
+  return summary;
+}
+
+function ClaimsDebug({ city }: ClaimsDebugProps) {
+  const analysis = useAtomValue(transactionAnalysisAtom);
+  const miningEntries = useAtomValue(miningEntriesAtom);
+  const stackingEntries = useAtomValue(stackingEntriesAtom);
+
+  const miningSummary = summarizeEntries(miningEntries, "block");
+  const stackingSummary = summarizeEntries(stackingEntries, "cycle");
+
+  // Filter transactions for this city
+  const cityMiningTxs = analysis.miningTxs.filter(
+    (tx) => tx.contractInfo?.city === city || tx.decodedCityName?.toLowerCase() === city
+  );
+  const cityStackingTxs = analysis.stackingTxs.filter(
+    (tx) => tx.contractInfo?.city === city || tx.decodedCityName?.toLowerCase() === city
+  );
+
+  // Find transactions that might be miscategorized
+  const daoMiningTxs = analysis.miningTxs.filter(
+    (tx) => tx.contractInfo?.version === "daoV1" || tx.contractInfo?.version === "daoV2"
+  );
+  const daoStackingTxs = analysis.stackingTxs.filter(
+    (tx) => tx.contractInfo?.version === "daoV1" || tx.contractInfo?.version === "daoV2"
+  );
+
+  // Check for issues
+  const daoMiningWithoutCityName = daoMiningTxs.filter((tx) => !tx.decodedCityName);
+  const daoStackingWithoutCityName = daoStackingTxs.filter((tx) => !tx.decodedCityName);
+
+  return (
+    <Accordion.Item value="debug-info">
+      <Accordion.ItemTrigger>
+        <Heading size="xl">
+          Debug Info
+          <Badge colorPalette="purple" ml={2}>DEV</Badge>
+        </Heading>
+        <Accordion.ItemIndicator />
+      </Accordion.ItemTrigger>
+      <Accordion.ItemContent p={4}>
+        <Stack gap={6}>
+          {/* Overview */}
+          <Box>
+            <Heading size="md" mb={2}>Transaction Overview</Heading>
+            <Stack gap={1}>
+              <Text>Total transactions: <Code>{analysis.total}</Code></Text>
+              <Text>Contract calls: <Code>{analysis.contractCalls}</Code></Text>
+              <Text>Mining TXs (all cities): <Code>{analysis.miningTxs.length}</Code></Text>
+              <Text>Stacking TXs (all cities): <Code>{analysis.stackingTxs.length}</Code></Text>
+            </Stack>
+          </Box>
+
+          {/* Entry Summary by City/Version */}
+          <Box>
+            <Heading size="md" mb={2}>Mining Entries by City/Version</Heading>
+            <Table.Root size="sm">
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeader>City</Table.ColumnHeader>
+                  <Table.ColumnHeader>legacyV1</Table.ColumnHeader>
+                  <Table.ColumnHeader>legacyV2</Table.ColumnHeader>
+                  <Table.ColumnHeader>daoV1</Table.ColumnHeader>
+                  <Table.ColumnHeader>daoV2</Table.ColumnHeader>
+                  <Table.ColumnHeader>Total</Table.ColumnHeader>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {["mia", "nyc"].map((c) => {
+                  const cityData = miningSummary[c] || {};
+                  const total = Object.values(cityData).reduce((a, b) => a + b, 0);
+                  return (
+                    <Table.Row key={c} bg={c === city ? "blue.900" : undefined}>
+                      <Table.Cell fontWeight="bold">{c.toUpperCase()}</Table.Cell>
+                      <Table.Cell>{cityData.legacyV1 || 0}</Table.Cell>
+                      <Table.Cell>{cityData.legacyV2 || 0}</Table.Cell>
+                      <Table.Cell>{cityData.daoV1 || 0}</Table.Cell>
+                      <Table.Cell>{cityData.daoV2 || 0}</Table.Cell>
+                      <Table.Cell fontWeight="bold">{total}</Table.Cell>
+                    </Table.Row>
+                  );
+                })}
+              </Table.Body>
+            </Table.Root>
+          </Box>
+
+          <Box>
+            <Heading size="md" mb={2}>Stacking Entries by City/Version</Heading>
+            <Table.Root size="sm">
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeader>City</Table.ColumnHeader>
+                  <Table.ColumnHeader>legacyV1</Table.ColumnHeader>
+                  <Table.ColumnHeader>legacyV2</Table.ColumnHeader>
+                  <Table.ColumnHeader>daoV1</Table.ColumnHeader>
+                  <Table.ColumnHeader>daoV2</Table.ColumnHeader>
+                  <Table.ColumnHeader>Total</Table.ColumnHeader>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {["mia", "nyc"].map((c) => {
+                  const cityData = stackingSummary[c] || {};
+                  const total = Object.values(cityData).reduce((a, b) => a + b, 0);
+                  return (
+                    <Table.Row key={c} bg={c === city ? "blue.900" : undefined}>
+                      <Table.Cell fontWeight="bold">{c.toUpperCase()}</Table.Cell>
+                      <Table.Cell>{cityData.legacyV1 || 0}</Table.Cell>
+                      <Table.Cell>{cityData.legacyV2 || 0}</Table.Cell>
+                      <Table.Cell>{cityData.daoV1 || 0}</Table.Cell>
+                      <Table.Cell>{cityData.daoV2 || 0}</Table.Cell>
+                      <Table.Cell fontWeight="bold">{total}</Table.Cell>
+                    </Table.Row>
+                  );
+                })}
+              </Table.Body>
+            </Table.Root>
+          </Box>
+
+          {/* Potential Issues */}
+          <Box>
+            <Heading size="md" mb={2}>Potential Issues</Heading>
+            <Stack gap={2}>
+              {daoMiningWithoutCityName.length > 0 && (
+                <Box p={2} bg="red.900" borderRadius="md">
+                  <Text fontWeight="bold" color="red.200">
+                    DAO Mining TXs without cityName: {daoMiningWithoutCityName.length}
+                  </Text>
+                  <Text fontSize="sm">These transactions will be skipped!</Text>
+                </Box>
+              )}
+              {daoStackingWithoutCityName.length > 0 && (
+                <Box p={2} bg="red.900" borderRadius="md">
+                  <Text fontWeight="bold" color="red.200">
+                    DAO Stacking TXs without cityName: {daoStackingWithoutCityName.length}
+                  </Text>
+                  <Text fontSize="sm">These transactions will be skipped!</Text>
+                </Box>
+              )}
+              {daoMiningWithoutCityName.length === 0 && daoStackingWithoutCityName.length === 0 && (
+                <Text color="green.300">No obvious issues detected</Text>
+              )}
+            </Stack>
+          </Box>
+
+          {/* Contract Counts */}
+          <Box>
+            <Heading size="md" mb={2}>Transactions by Contract</Heading>
+            <Table.Root size="sm">
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeader>Contract</Table.ColumnHeader>
+                  <Table.ColumnHeader>Count</Table.ColumnHeader>
+                  <Table.ColumnHeader>Detected City</Table.ColumnHeader>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {Object.entries(analysis.contractCounts)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 15)
+                  .map(([contract, count]) => {
+                    const info = findContractInfo(contract);
+                    const shortContract = contract.split(".")[1] || contract;
+                    return (
+                      <Table.Row key={contract}>
+                        <Table.Cell>
+                          <Code fontSize="xs">{shortContract}</Code>
+                        </Table.Cell>
+                        <Table.Cell>{count}</Table.Cell>
+                        <Table.Cell>
+                          {info ? (
+                            <Badge colorPalette={info.city === city ? "green" : "gray"}>
+                              {info.city} / {info.version}
+                            </Badge>
+                          ) : (
+                            <Badge colorPalette="gray">N/A</Badge>
+                          )}
+                        </Table.Cell>
+                      </Table.Row>
+                    );
+                  })}
+              </Table.Body>
+            </Table.Root>
+          </Box>
+
+          {/* Sample DAO Transactions */}
+          {daoMiningTxs.length > 0 && (
+            <Box>
+              <Heading size="md" mb={2}>DAO Mining TX Samples (first 10)</Heading>
+              <Table.Root size="sm">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeader>TX ID</Table.ColumnHeader>
+                    <Table.ColumnHeader>Function</Table.ColumnHeader>
+                    <Table.ColumnHeader>Status</Table.ColumnHeader>
+                    <Table.ColumnHeader>Contract City</Table.ColumnHeader>
+                    <Table.ColumnHeader>Decoded cityName</Table.ColumnHeader>
+                    <Table.ColumnHeader>Raw 1st Arg</Table.ColumnHeader>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {daoMiningTxs.slice(0, 10).map((tx, i) => (
+                    <Table.Row key={i}>
+                      <Table.Cell><Code fontSize="xs">{tx.txId}</Code></Table.Cell>
+                      <Table.Cell>{tx.functionName}</Table.Cell>
+                      <Table.Cell>
+                        <Badge colorPalette={tx.status === "success" ? "green" : "red"}>
+                          {tx.status}
+                        </Badge>
+                      </Table.Cell>
+                      <Table.Cell>{tx.contractInfo?.city || "?"}</Table.Cell>
+                      <Table.Cell>
+                        {tx.decodedCityName ? (
+                          <Badge colorPalette="green">{tx.decodedCityName}</Badge>
+                        ) : (
+                          <Badge colorPalette="red">undefined</Badge>
+                        )}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Code fontSize="xs">{String(tx.rawFirstArg).slice(0, 20)}</Code>
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table.Root>
+            </Box>
+          )}
+
+          {/* Sample Legacy Transactions for this city */}
+          <Box>
+            <Heading size="md" mb={2}>{city.toUpperCase()} Mining TX Samples (first 10)</Heading>
+            <Table.Root size="sm">
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeader>TX ID</Table.ColumnHeader>
+                  <Table.ColumnHeader>Function</Table.ColumnHeader>
+                  <Table.ColumnHeader>Version</Table.ColumnHeader>
+                  <Table.ColumnHeader>Status</Table.ColumnHeader>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {cityMiningTxs.slice(0, 10).map((tx, i) => (
+                  <Table.Row key={i}>
+                    <Table.Cell><Code fontSize="xs">{tx.txId}</Code></Table.Cell>
+                    <Table.Cell>{tx.functionName}</Table.Cell>
+                    <Table.Cell>{tx.contractInfo?.version || "?"}</Table.Cell>
+                    <Table.Cell>
+                      <Badge colorPalette={tx.status === "success" ? "green" : "red"}>
+                        {tx.status}
+                      </Badge>
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Root>
+            {cityMiningTxs.length === 0 && (
+              <Text color="fg.muted">No mining transactions found for {city.toUpperCase()}</Text>
+            )}
+          </Box>
+        </Stack>
+      </Accordion.ItemContent>
+    </Accordion.Item>
+  );
+}
+
+export default ClaimsDebug;

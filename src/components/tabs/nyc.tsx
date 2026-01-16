@@ -54,6 +54,7 @@ import {
   executeClaimTransaction,
 } from "../../utilities/claim-transactions";
 import { Version } from "../../config/city-config";
+import ClaimsDebug from "../debug/claims-debug";
 
 const loadableBlockHeights = loadable(blockHeightsQueryAtom);
 
@@ -661,6 +662,9 @@ function Nyc({ onOpenDetails }: NycProps) {
             )}
           </Accordion.ItemContent>
         </Accordion.Item>
+
+        {/* Debug Info - Remove after debugging */}
+        <ClaimsDebug city="nyc" />
       </Accordion.Root>
     </Stack>
   );
