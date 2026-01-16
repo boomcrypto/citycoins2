@@ -403,10 +403,63 @@ function ClaimsDebug({ city }: ClaimsDebugProps) {
 
           {/* Entry Comparison - Check for duplicates */}
           <Box>
-            <Heading size="md" mb={2}>Entry Comparison (First 5 blocks per city)</Heading>
+            <Heading size="md" mb={2}>Entry Analysis</Heading>
+
+            {/* Raw counts */}
+            <Box mb={4} p={2} bg="gray.800" borderRadius="md">
+              <Text fontWeight="bold" mb={2}>Raw Entry Counts (before filtering)</Text>
+              <Text>Total entries in miningEntriesAtom: <Code>{miningEntries.length}</Code></Text>
+              <Text>Entries with city="mia": <Code>{miningEntries.filter(e => e.city === "mia").length}</Code></Text>
+              <Text>Entries with city="nyc": <Code>{miningEntries.filter(e => e.city === "nyc").length}</Code></Text>
+              <Text>Entries with other city: <Code>{miningEntries.filter(e => e.city !== "mia" && e.city !== "nyc").length}</Code></Text>
+            </Box>
+
+            {/* Check for duplicate blocks */}
+            <Box mb={4} p={2} bg="gray.800" borderRadius="md">
+              <Text fontWeight="bold" mb={2}>Duplicate Block Check</Text>
+              {(() => {
+                const blockCities = new Map<number, Set<string>>();
+                miningEntries.forEach(e => {
+                  if (!blockCities.has(e.block)) blockCities.set(e.block, new Set());
+                  blockCities.get(e.block)!.add(e.city);
+                });
+                const duplicates = Array.from(blockCities.entries())
+                  .filter(([_, cities]) => cities.size > 1)
+                  .slice(0, 5);
+
+                if (duplicates.length === 0) {
+                  return <Text color="green.300">No blocks appear in multiple cities</Text>;
+                }
+                return (
+                  <Box>
+                    <Text color="red.300" mb={2}>
+                      PROBLEM: Found {Array.from(blockCities.entries()).filter(([_, c]) => c.size > 1).length} blocks that appear in BOTH cities!
+                    </Text>
+                    <Text fontSize="sm">First 5 duplicate blocks:</Text>
+                    {duplicates.map(([block, cities]) => (
+                      <Code key={block} fontSize="xs" display="block">
+                        Block {block}: appears in {Array.from(cities).join(", ")}
+                      </Code>
+                    ))}
+                  </Box>
+                );
+              })()}
+            </Box>
+
+            {/* Sample entries with full details */}
+            <Box mb={4}>
+              <Text fontWeight="bold" mb={2}>Sample Entry Details (first 3)</Text>
+              <Stack gap={1}>
+                {miningEntries.slice(0, 3).map((e, i) => (
+                  <Code key={i} fontSize="xs" display="block" whiteSpace="pre-wrap">
+                    {JSON.stringify({ block: e.block, city: e.city, version: e.version, txId: e.txId.slice(0,10) }, null, 2)}
+                  </Code>
+                ))}
+              </Stack>
+            </Box>
+
             <Text fontSize="sm" color="fg.muted" mb={2}>
               If MIA and NYC show the SAME block numbers, entries are being duplicated.
-              If they show DIFFERENT blocks, the counts are just coincidentally equal.
             </Text>
             <Stack direction="row" gap={4}>
               <Box flex={1}>
