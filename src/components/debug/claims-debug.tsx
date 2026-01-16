@@ -418,29 +418,52 @@ function ClaimsDebug({ city }: ClaimsDebugProps) {
             <Box mb={4} p={2} bg="gray.800" borderRadius="md">
               <Text fontWeight="bold" mb={2}>Duplicate Block Check</Text>
               {(() => {
-                const blockCities = new Map<number, Set<string>>();
+                // Group entries by block, tracking city and txId
+                const blockData = new Map<number, Array<{city: string, txId: string}>>();
                 miningEntries.forEach(e => {
-                  if (!blockCities.has(e.block)) blockCities.set(e.block, new Set());
-                  blockCities.get(e.block)!.add(e.city);
+                  if (!blockData.has(e.block)) blockData.set(e.block, []);
+                  blockData.get(e.block)!.push({ city: e.city, txId: e.txId.slice(0, 10) });
                 });
-                const duplicates = Array.from(blockCities.entries())
-                  .filter(([_, cities]) => cities.size > 1)
+
+                const duplicates = Array.from(blockData.entries())
+                  .filter(([_, entries]) => {
+                    const cities = new Set(entries.map(e => e.city));
+                    return cities.size > 1;
+                  })
                   .slice(0, 5);
+
+                const totalDuplicates = Array.from(blockData.entries())
+                  .filter(([_, entries]) => new Set(entries.map(e => e.city)).size > 1).length;
 
                 if (duplicates.length === 0) {
                   return <Text color="green.300">No blocks appear in multiple cities</Text>;
                 }
+
+                // Check if duplicates come from same TX or different TXs
+                const sameTxDuplicates = duplicates.filter(([_, entries]) => {
+                  const txIds = new Set(entries.map(e => e.txId));
+                  return txIds.size === 1; // Same TX created both entries
+                });
+
                 return (
                   <Box>
-                    <Text color="red.300" mb={2}>
-                      PROBLEM: Found {Array.from(blockCities.entries()).filter(([_, c]) => c.size > 1).length} blocks that appear in BOTH cities!
+                    <Text color={sameTxDuplicates.length > 0 ? "red.300" : "yellow.300"} mb={2}>
+                      Found {totalDuplicates} blocks in both cities.
+                      {sameTxDuplicates.length > 0
+                        ? ` BUG: ${sameTxDuplicates.length} blocks from SAME TX!`
+                        : " (Different TXs - likely legitimate parallel mining)"}
                     </Text>
-                    <Text fontSize="sm">First 5 duplicate blocks:</Text>
-                    {duplicates.map(([block, cities]) => (
-                      <Code key={block} fontSize="xs" display="block">
-                        Block {block}: appears in {Array.from(cities).join(", ")}
-                      </Code>
-                    ))}
+                    <Text fontSize="sm" mb={1}>First 5 duplicate blocks with TX info:</Text>
+                    {duplicates.map(([block, entries]) => {
+                      const txIds = new Set(entries.map(e => e.txId));
+                      const isSameTx = txIds.size === 1;
+                      return (
+                        <Code key={block} fontSize="xs" display="block" color={isSameTx ? "red.300" : "inherit"}>
+                          Block {block}: {entries.map(e => `${e.city}(${e.txId})`).join(", ")}
+                          {isSameTx && " ← SAME TX!"}
+                        </Code>
+                      );
+                    })}
                   </Box>
                 );
               })()}
