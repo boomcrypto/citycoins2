@@ -62,6 +62,9 @@ const transactionAnalysisAtom = atom((get) => {
       decodedFull: Record<string, unknown> | null;
       rawFirstArg: unknown;
       rawFirstArgType: string;
+      rawSecondArg: unknown;
+      rawSecondArgType: string;
+      argCount: number;
     }>,
     contractCounts: {} as Record<string, number>,
   };
@@ -121,12 +124,24 @@ const transactionAnalysisAtom = atom((get) => {
       const rawArgs = contractTx.contract_call.function_args || [];
       let rawFirstArg: unknown = undefined;
       let rawFirstArgType = "none";
+      let rawSecondArg: unknown = undefined;
+      let rawSecondArgType = "none";
+
       if (rawArgs.length > 0) {
         try {
           rawFirstArg = rawArgs[0]?.repr || rawArgs[0]?.hex?.slice(0, 30) + "...";
           rawFirstArgType = rawArgs[0]?.type || "unknown";
         } catch {
           rawFirstArg = "error reading";
+        }
+      }
+
+      if (rawArgs.length > 1) {
+        try {
+          rawSecondArg = rawArgs[1]?.repr?.slice(0, 50) || rawArgs[1]?.hex?.slice(0, 30) + "...";
+          rawSecondArgType = rawArgs[1]?.type || "unknown";
+        } catch {
+          rawSecondArg = "error reading";
         }
       }
 
@@ -141,9 +156,14 @@ const transactionAnalysisAtom = atom((get) => {
           functionName: decoded.functionName,
           cityName: decoded.cityName,
           cityNameType: typeof decoded.cityName,
+          amountToken: decoded.amountToken ? String(decoded.amountToken) : undefined,
+          lockPeriod: decoded.lockPeriod ? String(decoded.lockPeriod) : undefined,
         } : null,
         rawFirstArg,
         rawFirstArgType,
+        rawSecondArg,
+        rawSecondArgType,
+        argCount: rawArgs.length,
       });
     }
   }
@@ -631,16 +651,16 @@ function ClaimsDebug({ city }: ClaimsDebugProps) {
               tx.contractInfo?.version === "daoV1" || tx.contractInfo?.version === "daoV2"
             ).length > 0 && (
               <Box mb={4}>
-                <Text fontWeight="bold" mb={2}>DAO Stacking TX Samples</Text>
+                <Text fontWeight="bold" mb={2}>DAO Stacking TX Samples (showing arg details)</Text>
                 <Table.Root size="sm">
                   <Table.Header>
                     <Table.Row>
                       <Table.ColumnHeader>TX ID</Table.ColumnHeader>
-                      <Table.ColumnHeader>Function</Table.ColumnHeader>
                       <Table.ColumnHeader>Status</Table.ColumnHeader>
-                      <Table.ColumnHeader>Contract City</Table.ColumnHeader>
-                      <Table.ColumnHeader>Decoded cityName</Table.ColumnHeader>
-                      <Table.ColumnHeader>Decoded Full</Table.ColumnHeader>
+                      <Table.ColumnHeader>Args</Table.ColumnHeader>
+                      <Table.ColumnHeader>Arg1 (city)</Table.ColumnHeader>
+                      <Table.ColumnHeader>Arg2 (amounts)</Table.ColumnHeader>
+                      <Table.ColumnHeader>Decoded</Table.ColumnHeader>
                     </Table.Row>
                   </Table.Header>
                   <Table.Body>
@@ -650,24 +670,28 @@ function ClaimsDebug({ city }: ClaimsDebugProps) {
                       .map((tx, i) => (
                         <Table.Row key={i}>
                           <Table.Cell><Code fontSize="xs">{tx.txId}</Code></Table.Cell>
-                          <Table.Cell>{tx.functionName}</Table.Cell>
                           <Table.Cell>
                             <Badge colorPalette={tx.status === "success" ? "green" : "red"}>
                               {tx.status}
                             </Badge>
                           </Table.Cell>
-                          <Table.Cell>{tx.contractInfo?.city || "?"}</Table.Cell>
+                          <Table.Cell>{tx.argCount}</Table.Cell>
                           <Table.Cell>
-                            {tx.decodedCityName ? (
-                              <Badge colorPalette="green">{tx.decodedCityName}</Badge>
-                            ) : (
-                              <Badge colorPalette="red">undefined</Badge>
-                            )}
+                            <Code fontSize="xs">{String(tx.rawFirstArg)}</Code>
+                            <Text fontSize="xs" color="fg.muted">({tx.rawFirstArgType})</Text>
                           </Table.Cell>
                           <Table.Cell>
-                            <Code fontSize="xs">
-                              {tx.decodedFull ? JSON.stringify(tx.decodedFull) : "null"}
-                            </Code>
+                            <Code fontSize="xs">{String(tx.rawSecondArg)}</Code>
+                            <Text fontSize="xs" color="fg.muted">({tx.rawSecondArgType})</Text>
+                          </Table.Cell>
+                          <Table.Cell>
+                            {tx.decodedFull ? (
+                              <Code fontSize="xs" color="green.300">
+                                {JSON.stringify(tx.decodedFull)}
+                              </Code>
+                            ) : (
+                              <Badge colorPalette="red">null (decode failed)</Badge>
+                            )}
                           </Table.Cell>
                         </Table.Row>
                       ))}
