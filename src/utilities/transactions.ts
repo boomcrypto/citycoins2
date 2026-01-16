@@ -154,19 +154,30 @@ export function decodeTxArgs(tx: Transaction, debug = false): any | null {
       structured.lockPeriod = safeConvertToBigint(decodedArgs[1]);
       break;
     case "stack":
-      // DAO stack function: (cityName, amounts-per-cycle-list)
-      if (decodedArgs.length < 2 || !Array.isArray(decodedArgs[1])) return null;
+      // DAO stack function: (cityName, amount, lockPeriod)
+      // Note: Earlier versions may have used (cityName, amounts-list) but current DAO uses 3 args
+      if (decodedArgs.length < 2) return null;
+
+      // First arg is always cityName
       structured.cityName = decodedArgs[0];
-      const stackAmounts = decodedArgs[1].map((val: any) =>
-        safeConvertToBigint(val)
-      );
-      // lockPeriod is the number of cycles (length of amounts array)
-      structured.lockPeriod = BigInt(stackAmounts.length);
-      // amountToken is the total stacked (sum of all cycles, though typically same amount per cycle)
-      structured.amountToken = stackAmounts.reduce(
-        (sum: bigint, amt: bigint) => sum + amt,
-        0n
-      );
+
+      if (Array.isArray(decodedArgs[1])) {
+        // Old format: (cityName, amounts-per-cycle-list)
+        const stackAmounts = decodedArgs[1].map((val: any) =>
+          safeConvertToBigint(val)
+        );
+        structured.lockPeriod = BigInt(stackAmounts.length);
+        structured.amountToken = stackAmounts.reduce(
+          (sum: bigint, amt: bigint) => sum + amt,
+          0n
+        );
+      } else {
+        // Current format: (cityName, amount, lockPeriod)
+        structured.amountToken = safeConvertToBigint(decodedArgs[1]);
+        structured.lockPeriod = decodedArgs.length >= 3
+          ? safeConvertToBigint(decodedArgs[2])
+          : 1n;
+      }
       break;
     case "claim-mining-reward":
       // First arg can be city name (string) or the block height (uint)
