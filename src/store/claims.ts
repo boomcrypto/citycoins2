@@ -42,7 +42,11 @@ export interface MiningEntry {
   contractId: string;
   functionName: string;
   amountUstx: bigint;
-  status: "pending" | "claimable" | "claimed" | "unknown";
+  // pending = not yet matured (100 blocks)
+  // claimable = matured, no claim attempt yet
+  // claimed = successful claim
+  // unavailable = failed claim (didn't win lottery or other error)
+  status: "pending" | "claimable" | "claimed" | "unavailable";
   claimTxId?: string;
 }
 
@@ -54,7 +58,11 @@ export interface StackingEntry {
   contractId: string;
   functionName: string;
   amountTokens: bigint;
-  status: "locked" | "claimable" | "claimed" | "unknown";
+  // locked = cycle not yet complete
+  // claimable = cycle complete, no claim attempt yet
+  // claimed = successful claim
+  // unavailable = failed claim
+  status: "locked" | "claimable" | "claimed" | "unavailable";
   claimTxId?: string;
 }
 
@@ -146,12 +154,12 @@ export const miningEntriesAtom = atom((get) => {
     }
   }
 
-  // Second pass: mark claimed blocks
+  // Second pass: mark claimed and failed blocks
   const claimedBlocks = new Map<string, string>(); // "city-block" -> claimTxId
+  const failedBlocks = new Map<string, string>(); // "city-block" -> failedTxId
 
   for (const tx of transactions) {
     if (tx.tx_type !== "contract_call") continue;
-    if (tx.tx_status !== "success") continue;
 
     const contractTx = tx as ContractCallTransaction;
     const { contract_id: contractId, function_name: functionName } = contractTx.contract_call;
@@ -167,16 +175,27 @@ export const miningEntriesAtom = atom((get) => {
 
     const block = Number(decoded.minerBlockHeight);
     const key = `${cityVersion.city}-${block}`;
-    claimedBlocks.set(key, tx.tx_id);
+
+    if (tx.tx_status === "success") {
+      claimedBlocks.set(key, tx.tx_id);
+    } else if (tx.tx_status === "abort_by_response") {
+      // Failed claim - user didn't win lottery or other contract error
+      failedBlocks.set(key, tx.tx_id);
+    }
   }
 
   // Update entries with claim status
   for (const entry of entries) {
     const key = `${entry.city}-${entry.block}`;
     const claimTxId = claimedBlocks.get(key);
+    const failedTxId = failedBlocks.get(key);
+
     if (claimTxId) {
       entry.status = "claimed";
       entry.claimTxId = claimTxId;
+    } else if (failedTxId) {
+      entry.status = "unavailable";
+      entry.claimTxId = failedTxId;
     }
   }
 
@@ -238,12 +257,12 @@ export const stackingEntriesAtom = atom((get) => {
     }
   }
 
-  // Second pass: mark claimed cycles
+  // Second pass: mark claimed and failed cycles
   const claimedCycles = new Map<string, string>(); // "city-cycle" -> claimTxId
+  const failedCycles = new Map<string, string>(); // "city-cycle" -> failedTxId
 
   for (const tx of transactions) {
     if (tx.tx_type !== "contract_call") continue;
-    if (tx.tx_status !== "success") continue;
 
     const contractTx = tx as ContractCallTransaction;
     const { contract_id: contractId, function_name: functionName } = contractTx.contract_call;
@@ -259,16 +278,27 @@ export const stackingEntriesAtom = atom((get) => {
 
     const cycle = Number(decoded.rewardCycle);
     const key = `${cityVersion.city}-${cycle}`;
-    claimedCycles.set(key, tx.tx_id);
+
+    if (tx.tx_status === "success") {
+      claimedCycles.set(key, tx.tx_id);
+    } else if (tx.tx_status === "abort_by_response") {
+      // Failed claim
+      failedCycles.set(key, tx.tx_id);
+    }
   }
 
   // Update entries with claim status
   for (const entry of entries) {
     const key = `${entry.city}-${entry.cycle}`;
     const claimTxId = claimedCycles.get(key);
+    const failedTxId = failedCycles.get(key);
+
     if (claimTxId) {
       entry.status = "claimed";
       entry.claimTxId = claimTxId;
+    } else if (failedTxId) {
+      entry.status = "unavailable";
+      entry.claimTxId = failedTxId;
     }
   }
 

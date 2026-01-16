@@ -44,10 +44,11 @@ function StatusBadge({ status }: { status: string }) {
     claimable: "green",
     claimed: "gray",
     locked: "blue",
-    unknown: "red",
+    unavailable: "red",
   }[status] || "gray";
 
-  return <Badge colorPalette={colorScheme}>{status}</Badge>;
+  const displayText = status === "unavailable" ? "not won" : status;
+  return <Badge colorPalette={colorScheme}>{displayText}</Badge>;
 }
 
 function Mia({ onOpenDetails }: MiaProps) {
