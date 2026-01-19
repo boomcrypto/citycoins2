@@ -244,6 +244,9 @@ export interface UserIds {
  * - Legacy API: Per-city, per-version user IDs
  * - Protocol API: Shared DAO user ID from ccd003
  *
+ * All requests are made in parallel via Promise.all for better performance.
+ * Each individual request still goes through the rate-limited queue.
+ *
  * @param address - User's Stacks address
  * @returns All user IDs or null if all lookups failed
  */
@@ -251,12 +254,15 @@ export async function fetchAllUserIds(
   address: string
 ): Promise<VerificationResult<UserIds>> {
   try {
-    // Fetch all user IDs sequentially (rate limited)
-    const miaV1 = await legacyApi.getUserId("mia", "legacyV1", address);
-    const miaV2 = await legacyApi.getUserId("mia", "legacyV2", address);
-    const nycV1 = await legacyApi.getUserId("nyc", "legacyV1", address);
-    const nycV2 = await legacyApi.getUserId("nyc", "legacyV2", address);
-    const daoResult = await protocolApi.getUserId(address);
+    // Fetch all user IDs in parallel - each goes through rate-limited queue
+    // This is faster than sequential because the queue handles spacing
+    const [miaV1, miaV2, nycV1, nycV2, daoResult] = await Promise.all([
+      legacyApi.getUserId("mia", "legacyV1", address),
+      legacyApi.getUserId("mia", "legacyV2", address),
+      legacyApi.getUserId("nyc", "legacyV1", address),
+      legacyApi.getUserId("nyc", "legacyV2", address),
+      protocolApi.getUserId(address),
+    ]);
 
     return {
       success: true,

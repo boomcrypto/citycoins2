@@ -282,12 +282,88 @@ export const transactionFetchStatusAtom = atom<FetchStatus>({
 });
 
 /////////////////////////
+// BLOCK HEIGHT FETCH STATUS
+/////////////////////////
+
+export type BlockHeightFetchStatus = {
+  isLoading: boolean;
+  error: string | null;
+  lastFetched: number | null;
+};
+
+export const blockHeightFetchStatusAtom = atom<BlockHeightFetchStatus>({
+  isLoading: false,
+  error: null,
+  lastFetched: null,
+});
+
+// Cache duration for block heights (30 seconds)
+const BLOCK_HEIGHT_CACHE_DURATION = 30 * 1000;
+
+/////////////////////////
 // LOADABLE ASYNC ATOMS
 /////////////////////////
 
 export const blockHeightsQueryAtom = atom(async () => {
   return await getBlockHeights();
 });
+
+/**
+ * Action atom to fetch block heights with deduplication.
+ *
+ * - Checks if a fetch is already in progress
+ * - Checks if cached data is still fresh (within BLOCK_HEIGHT_CACHE_DURATION)
+ * - Only fetches if needed
+ */
+export const fetchBlockHeightsAtom = atom(
+  null,
+  async (get, set) => {
+    const status = get(blockHeightFetchStatusAtom);
+    const existingHeights = get(blockHeightsAtom);
+
+    // Skip if already loading (deduplication)
+    if (status.isLoading) {
+      return existingHeights;
+    }
+
+    // Skip if cache is still fresh
+    const now = Date.now();
+    if (
+      status.lastFetched &&
+      existingHeights &&
+      now - status.lastFetched < BLOCK_HEIGHT_CACHE_DURATION
+    ) {
+      return existingHeights;
+    }
+
+    set(blockHeightFetchStatusAtom, {
+      isLoading: true,
+      error: null,
+      lastFetched: status.lastFetched,
+    });
+
+    try {
+      const blockHeights = await getBlockHeights();
+      if (blockHeights) {
+        set(blockHeightsAtom, blockHeights);
+        set(blockHeightFetchStatusAtom, {
+          isLoading: false,
+          error: null,
+          lastFetched: Date.now(),
+        });
+        return blockHeights;
+      }
+      throw new Error("Failed to fetch block heights");
+    } catch (error) {
+      set(blockHeightFetchStatusAtom, {
+        isLoading: false,
+        error: error instanceof Error ? error.message : String(error),
+        lastFetched: status.lastFetched,
+      });
+      return existingHeights;
+    }
+  }
+);
 
 /////////////////////////
 // HELPER FUNCTIONS

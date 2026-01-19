@@ -5,10 +5,15 @@
  * 1. Tracking what was mined/stacked (from user transactions)
  * 2. Tracking what was already claimed (from claim transactions)
  * 3. Computing what's still claimable (difference + eligibility checks)
+ *
+ * Performance optimizations:
+ * - Decoded transaction args are cached to avoid repeated deserialization
+ * - Single-pass processing where possible
+ * - Memoized summaries computed during entry creation
  */
 
 import { atom } from "jotai";
-import { ContractCallTransaction } from "@stacks/stacks-blockchain-api-types";
+import { ContractCallTransaction, Transaction } from "@stacks/stacks-blockchain-api-types";
 import { transactionsAtom, blockHeightsAtom } from "./stacks";
 import {
   decodeTxArgs,
@@ -16,6 +21,10 @@ import {
   isValidMiningClaimTxArgs,
   isValidStackingTxArgs,
   isValidStackingClaimTxArgs,
+  MiningTxArgs,
+  MiningClaimTxArgs,
+  StackingTxArgs,
+  StackingClaimTxArgs,
 } from "../utilities/transactions";
 import {
   CityName,
@@ -88,6 +97,27 @@ export interface StackingEntry {
 }
 
 // =============================================================================
+// DECODED TRANSACTION CACHE
+// Caches expensive deserialization results keyed by tx_id
+// =============================================================================
+
+type DecodedTxCache = Map<string, ReturnType<typeof decodeTxArgs>>;
+
+/**
+ * Get or compute decoded transaction args with caching.
+ * This is critical for performance as decodeTxArgs does expensive Clarity deserialization.
+ */
+function getDecodedTxArgs(tx: Transaction, cache: DecodedTxCache): ReturnType<typeof decodeTxArgs> {
+  const cached = cache.get(tx.tx_id);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const decoded = decodeTxArgs(tx);
+  cache.set(tx.tx_id, decoded);
+  return decoded;
+}
+
+// =============================================================================
 // HELPER: Extract city/version from contract and decoded args
 // =============================================================================
 
@@ -134,104 +164,178 @@ function getCityVersionFromContractAndArgs(
 }
 
 // =============================================================================
+// PROCESSED TRANSACTIONS ATOM
+// Single-pass processing with cached decoding for all transaction types
+// =============================================================================
+
+interface ProcessedTransactions {
+  // Mining data
+  miningEntries: MiningEntry[];
+  claimedMiningBlocks: Map<string, string>;
+  failedMiningBlocks: Map<string, string>;
+  // Stacking data
+  stackingEntries: StackingEntry[];
+  claimedStackingCycles: Map<string, string>;
+  failedStackingCycles: Map<string, string>;
+}
+
+/**
+ * Pre-compute function sets once (not on every iteration)
+ */
+const MINING_FUNCTIONS = new Set(getAllMiningFunctions());
+const MINING_CLAIM_FUNCTIONS = new Set(getAllMiningClaimFunctions());
+const STACKING_FUNCTIONS = new Set(getAllStackingFunctions());
+const STACKING_CLAIM_FUNCTIONS = new Set(getAllStackingClaimFunctions());
+
+/**
+ * Processes all transactions in a single pass, caching decoded args.
+ * This is the foundation for all claims-related atoms.
+ */
+const processedTransactionsAtom = atom((get) => {
+  const transactions = get(transactionsAtom);
+  const currentBlock = get(blockHeightsAtom)?.stx ?? 0;
+
+  // Cache for decoded transaction arguments
+  const decodedCache: DecodedTxCache = new Map();
+
+  // Result collections
+  const result: ProcessedTransactions = {
+    miningEntries: [],
+    claimedMiningBlocks: new Map(),
+    failedMiningBlocks: new Map(),
+    stackingEntries: [],
+    claimedStackingCycles: new Map(),
+    failedStackingCycles: new Map(),
+  };
+
+  // Single pass through all transactions
+  for (const tx of transactions) {
+    if (tx.tx_type !== "contract_call") continue;
+
+    const contractTx = tx as ContractCallTransaction;
+    const { contract_id: contractId, function_name: functionName } = contractTx.contract_call;
+
+    // Process mining transactions
+    if (tx.tx_status === "success" && MINING_FUNCTIONS.has(functionName)) {
+      const decoded = getDecodedTxArgs(tx, decodedCache);
+      if (decoded && isValidMiningTxArgs(decoded)) {
+        const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
+        if (cityVersion) {
+          const { city, version } = cityVersion;
+          const numBlocks = decoded.amountsUstx.length;
+
+          for (let i = 0; i < numBlocks; i++) {
+            const block = tx.block_height + i;
+            result.miningEntries.push({
+              txId: tx.tx_id,
+              block,
+              city,
+              version,
+              contractId,
+              functionName,
+              amountUstx: decoded.amountsUstx[i],
+              status: isMiningClaimEligible(block, currentBlock) ? "unverified" : "pending",
+            });
+          }
+        }
+      }
+    }
+
+    // Process mining claim transactions
+    if (MINING_CLAIM_FUNCTIONS.has(functionName)) {
+      const decoded = getDecodedTxArgs(tx, decodedCache);
+      if (decoded && isValidMiningClaimTxArgs(decoded)) {
+        const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
+        if (cityVersion) {
+          const block = Number(decoded.minerBlockHeight);
+          const key = `${cityVersion.city}-${cityVersion.version}-${block}`;
+
+          if (tx.tx_status === "success") {
+            result.claimedMiningBlocks.set(key, tx.tx_id);
+          } else if (tx.tx_status === "abort_by_response") {
+            result.failedMiningBlocks.set(key, tx.tx_id);
+          }
+        }
+      }
+    }
+
+    // Process stacking transactions
+    if (tx.tx_status === "success" && STACKING_FUNCTIONS.has(functionName)) {
+      const decoded = getDecodedTxArgs(tx, decodedCache);
+      if (decoded && isValidStackingTxArgs(decoded)) {
+        const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
+        if (cityVersion) {
+          const { city, version } = cityVersion;
+          const lockPeriod = Number(decoded.lockPeriod);
+          const amountTokens = decoded.amountToken;
+          const startCycle = getBlockCycle(city, version, tx.block_height);
+          const { endCycle } = CITY_CONFIG[city][version].stacking;
+
+          for (let i = 0; i < lockPeriod; i++) {
+            const cycle = startCycle + i;
+            if (endCycle !== undefined && cycle > endCycle) continue;
+
+            result.stackingEntries.push({
+              txId: tx.tx_id,
+              cycle,
+              city,
+              version,
+              contractId,
+              functionName,
+              amountTokens,
+              status: isStackingClaimEligible(city, version, cycle, currentBlock)
+                ? "unverified"
+                : "locked",
+            });
+          }
+        }
+      }
+    }
+
+    // Process stacking claim transactions
+    if (STACKING_CLAIM_FUNCTIONS.has(functionName)) {
+      const decoded = getDecodedTxArgs(tx, decodedCache);
+      if (decoded && isValidStackingClaimTxArgs(decoded)) {
+        const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
+        if (cityVersion) {
+          const cycle = Number(decoded.rewardCycle);
+          const key = `${cityVersion.city}-${cityVersion.version}-${cycle}`;
+
+          if (tx.tx_status === "success") {
+            result.claimedStackingCycles.set(key, tx.tx_id);
+          } else if (tx.tx_status === "abort_by_response") {
+            result.failedStackingCycles.set(key, tx.tx_id);
+          }
+        }
+      }
+    }
+  }
+
+  return result;
+});
+
+// =============================================================================
 // MINING ENTRIES ATOM
 // Tracks all blocks user has mined across all cities/versions
 // =============================================================================
 
 export const miningEntriesAtom = atom((get) => {
-  const transactions = get(transactionsAtom);
-  const currentBlock = get(blockHeightsAtom)?.stx ?? 0;
-  const entries: MiningEntry[] = [];
-
-  const miningFunctions = getAllMiningFunctions();
-  const claimFunctions = getAllMiningClaimFunctions();
-
-  // First pass: collect all mined blocks
-  for (const tx of transactions) {
-    if (tx.tx_type !== "contract_call") continue;
-    if (tx.tx_status !== "success") continue;
-
-    const contractTx = tx as ContractCallTransaction;
-    const { contract_id: contractId, function_name: functionName } = contractTx.contract_call;
-
-    if (!miningFunctions.includes(functionName)) continue;
-
-    // Decode first to get cityName for DAO contracts
-    const decoded = decodeTxArgs(tx);
-    if (!decoded || !isValidMiningTxArgs(decoded)) continue;
-
-    const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
-    if (!cityVersion) continue;
-
-    const { city, version } = cityVersion;
-    const numBlocks = decoded.amountsUstx.length;
-
-    for (let i = 0; i < numBlocks; i++) {
-      const block = tx.block_height + i;
-      const amountUstx = decoded.amountsUstx[i];
-
-      entries.push({
-        txId: tx.tx_id,
-        block,
-        city,
-        version,
-        contractId,
-        functionName,
-        amountUstx,
-        // Matured blocks start as "unverified" - user must trigger verification
-        status: isMiningClaimEligible(block, currentBlock) ? "unverified" : "pending",
-      });
-    }
-  }
-
-  // Second pass: mark claimed and failed blocks
-  // Key includes version to prevent conflicts between different contract versions
-  const claimedBlocks = new Map<string, string>(); // "city-version-block" -> claimTxId
-  const failedBlocks = new Map<string, string>(); // "city-version-block" -> failedTxId
-
-  for (const tx of transactions) {
-    if (tx.tx_type !== "contract_call") continue;
-
-    const contractTx = tx as ContractCallTransaction;
-    const { contract_id: contractId, function_name: functionName } = contractTx.contract_call;
-
-    if (!claimFunctions.includes(functionName)) continue;
-
-    // Decode first to get cityName for DAO contracts
-    const decoded = decodeTxArgs(tx);
-    if (!decoded || !isValidMiningClaimTxArgs(decoded)) continue;
-
-    const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
-    if (!cityVersion) continue;
-
-    const block = Number(decoded.minerBlockHeight);
-    const key = `${cityVersion.city}-${cityVersion.version}-${block}`;
-
-    if (tx.tx_status === "success") {
-      claimedBlocks.set(key, tx.tx_id);
-    } else if (tx.tx_status === "abort_by_response") {
-      // Failed claim - user didn't win lottery or other contract error
-      failedBlocks.set(key, tx.tx_id);
-    }
-  }
+  const processed = get(processedTransactionsAtom);
+  const { miningEntries, claimedMiningBlocks, failedMiningBlocks } = processed;
 
   // Update entries with claim status
-  for (const entry of entries) {
+  return miningEntries.map((entry) => {
     const key = `${entry.city}-${entry.version}-${entry.block}`;
-    const claimTxId = claimedBlocks.get(key);
-    const failedTxId = failedBlocks.get(key);
+    const claimTxId = claimedMiningBlocks.get(key);
+    const failedTxId = failedMiningBlocks.get(key);
 
     if (claimTxId) {
-      entry.status = "claimed";
-      entry.claimTxId = claimTxId;
+      return { ...entry, status: "claimed" as MiningStatus, claimTxId };
     } else if (failedTxId) {
-      // Failed claim attempt = didn't win the lottery
-      entry.status = "not-won";
-      entry.claimTxId = failedTxId;
+      return { ...entry, status: "not-won" as MiningStatus, claimTxId: failedTxId };
     }
-  }
-
-  return entries;
+    return entry;
+  });
 });
 
 // =============================================================================
@@ -356,111 +460,22 @@ export const miningEntriesNeedingVerificationAtom = atom((get) => {
 // =============================================================================
 
 export const stackingEntriesAtom = atom((get) => {
-  const transactions = get(transactionsAtom);
-  const currentBlock = get(blockHeightsAtom)?.stx ?? 0;
-  const entries: StackingEntry[] = [];
-
-  const stackingFunctions = getAllStackingFunctions();
-  const claimFunctions = getAllStackingClaimFunctions();
-
-  // First pass: collect all stacked cycles
-  for (const tx of transactions) {
-    if (tx.tx_type !== "contract_call") continue;
-    if (tx.tx_status !== "success") continue;
-
-    const contractTx = tx as ContractCallTransaction;
-    const { contract_id: contractId, function_name: functionName } = contractTx.contract_call;
-
-    if (!stackingFunctions.includes(functionName)) continue;
-
-    // Decode first to get cityName for DAO contracts
-    const decoded = decodeTxArgs(tx);
-    if (!decoded || !isValidStackingTxArgs(decoded)) continue;
-
-    const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
-    if (!cityVersion) continue;
-
-    const { city, version } = cityVersion;
-    const lockPeriod = Number(decoded.lockPeriod);
-    const amountTokens = decoded.amountToken;
-
-    // Calculate start cycle based on block height and version's genesis
-    const startCycle = getBlockCycle(city, version, tx.block_height);
-
-    // Get version's endCycle to cap entries at valid range
-    const { endCycle } = CITY_CONFIG[city][version].stacking;
-
-    for (let i = 0; i < lockPeriod; i++) {
-      const cycle = startCycle + i;
-
-      // Skip cycles beyond this version's valid range
-      if (endCycle !== undefined && cycle > endCycle) {
-        continue;
-      }
-
-      entries.push({
-        txId: tx.tx_id,
-        cycle,
-        city,
-        version,
-        contractId,
-        functionName,
-        amountTokens,
-        // Completed cycles start as "unverified" - user must trigger verification
-        status: isStackingClaimEligible(city, version, cycle, currentBlock)
-          ? "unverified"
-          : "locked",
-      });
-    }
-  }
-
-  // Second pass: mark claimed and failed cycles
-  // Key includes version to prevent conflicts between different contract versions
-  const claimedCycles = new Map<string, string>(); // "city-version-cycle" -> claimTxId
-  const failedCycles = new Map<string, string>(); // "city-version-cycle" -> failedTxId
-
-  for (const tx of transactions) {
-    if (tx.tx_type !== "contract_call") continue;
-
-    const contractTx = tx as ContractCallTransaction;
-    const { contract_id: contractId, function_name: functionName } = contractTx.contract_call;
-
-    if (!claimFunctions.includes(functionName)) continue;
-
-    // Decode first to get cityName for DAO contracts
-    const decoded = decodeTxArgs(tx);
-    if (!decoded || !isValidStackingClaimTxArgs(decoded)) continue;
-
-    const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
-    if (!cityVersion) continue;
-
-    const cycle = Number(decoded.rewardCycle);
-    const key = `${cityVersion.city}-${cityVersion.version}-${cycle}`;
-
-    if (tx.tx_status === "success") {
-      claimedCycles.set(key, tx.tx_id);
-    } else if (tx.tx_status === "abort_by_response") {
-      // Failed claim
-      failedCycles.set(key, tx.tx_id);
-    }
-  }
+  const processed = get(processedTransactionsAtom);
+  const { stackingEntries, claimedStackingCycles, failedStackingCycles } = processed;
 
   // Update entries with claim status
-  for (const entry of entries) {
+  return stackingEntries.map((entry) => {
     const key = `${entry.city}-${entry.version}-${entry.cycle}`;
-    const claimTxId = claimedCycles.get(key);
-    const failedTxId = failedCycles.get(key);
+    const claimTxId = claimedStackingCycles.get(key);
+    const failedTxId = failedStackingCycles.get(key);
 
     if (claimTxId) {
-      entry.status = "claimed";
-      entry.claimTxId = claimTxId;
+      return { ...entry, status: "claimed" as StackingStatus, claimTxId };
     } else if (failedTxId) {
-      entry.status = "unavailable";
-      entry.claimTxId = failedTxId;
+      return { ...entry, status: "unavailable" as StackingStatus, claimTxId: failedTxId };
     }
-  }
-
-  return entries;
+    return entry;
+  });
 });
 
 // =============================================================================
@@ -578,6 +593,7 @@ export const nycUnclaimedStackingAtom = atom((get) => {
 
 // =============================================================================
 // SUMMARY ATOMS
+// Optimized to compute summaries in a single pass
 // =============================================================================
 
 export interface CitySummary {
@@ -604,36 +620,62 @@ export interface ClaimsSummary {
   nyc: CitySummary;
 }
 
+const emptySummary = (): CitySummary => ({
+  miningTotal: 0,
+  miningClaimed: 0,
+  miningClaimable: 0,
+  miningPending: 0,
+  miningUnverified: 0,
+  miningNotWon: 0,
+  miningError: 0,
+  stackingTotal: 0,
+  stackingClaimed: 0,
+  stackingClaimable: 0,
+  stackingLocked: 0,
+  stackingUnverified: 0,
+  stackingNoReward: 0,
+  stackingUnavailable: 0,
+});
+
+/**
+ * Optimized summary computation - single pass through entries
+ */
 export const claimsSummaryAtom = atom<ClaimsSummary>((get) => {
   const miningEntries = get(verifiedMiningEntriesAtom);
   const stackingEntries = get(verifiedStackingEntriesAtom);
 
-  const summarize = (city: CityName): CitySummary => {
-    const mining = miningEntries.filter((e) => e.city === city);
-    const stacking = stackingEntries.filter((e) => e.city === city);
-
-    return {
-      // Mining
-      miningTotal: mining.length,
-      miningClaimed: mining.filter((e) => e.status === "claimed").length,
-      miningClaimable: mining.filter((e) => e.status === "claimable").length,
-      miningPending: mining.filter((e) => e.status === "pending").length,
-      miningUnverified: mining.filter((e) => e.status === "unverified").length,
-      miningNotWon: mining.filter((e) => e.status === "not-won").length,
-      miningError: mining.filter((e) => e.status === "error").length,
-      // Stacking
-      stackingTotal: stacking.length,
-      stackingClaimed: stacking.filter((e) => e.status === "claimed").length,
-      stackingClaimable: stacking.filter((e) => e.status === "claimable").length,
-      stackingLocked: stacking.filter((e) => e.status === "locked").length,
-      stackingUnverified: stacking.filter((e) => e.status === "unverified").length,
-      stackingNoReward: stacking.filter((e) => e.status === "no-reward").length,
-      stackingUnavailable: stacking.filter((e) => e.status === "unavailable").length,
-    };
+  const result: ClaimsSummary = {
+    mia: emptySummary(),
+    nyc: emptySummary(),
   };
 
-  return {
-    mia: summarize("mia"),
-    nyc: summarize("nyc"),
-  };
+  // Single pass through mining entries
+  for (const entry of miningEntries) {
+    const summary = result[entry.city];
+    summary.miningTotal++;
+    switch (entry.status) {
+      case "claimed": summary.miningClaimed++; break;
+      case "claimable": summary.miningClaimable++; break;
+      case "pending": summary.miningPending++; break;
+      case "unverified": summary.miningUnverified++; break;
+      case "not-won": summary.miningNotWon++; break;
+      case "error": summary.miningError++; break;
+    }
+  }
+
+  // Single pass through stacking entries
+  for (const entry of stackingEntries) {
+    const summary = result[entry.city];
+    summary.stackingTotal++;
+    switch (entry.status) {
+      case "claimed": summary.stackingClaimed++; break;
+      case "claimable": summary.stackingClaimable++; break;
+      case "locked": summary.stackingLocked++; break;
+      case "unverified": summary.stackingUnverified++; break;
+      case "no-reward": summary.stackingNoReward++; break;
+      case "unavailable": summary.stackingUnavailable++; break;
+    }
+  }
+
+  return result;
 });
