@@ -1,6 +1,6 @@
 import { atomWithStorage } from "jotai/utils";
 import { Loadable } from "jotai/vanilla/utils/loadable";
-import { verificationCacheAtom } from "./verification";
+import { verificationCacheByAddressAtom } from "./verification";
 
 /////////////////////////
 // CONSTANTS
@@ -31,7 +31,7 @@ export const activeTabAtom = atomWithStorage<string>(
   "mia" // default: MIA tab
 );
 
-export const commonLocalStorageAtoms = [activeTabAtom, verificationCacheAtom];
+export const commonLocalStorageAtoms = [activeTabAtom, verificationCacheByAddressAtom];
 
 // HELPER FUNCTIONS
 

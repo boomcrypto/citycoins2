@@ -102,14 +102,39 @@ function parseCacheKey(key: string): EntryKey | null {
 // =============================================================================
 
 /**
- * Persistent verification cache
+ * Persistent verification cache - keyed by Stacks address
  *
- * Keys are "city-version-type-id" (e.g., "mia-legacyV1-mining-12345")
+ * Top-level keys are Stacks addresses
+ * Second-level keys are "city-version-type-id" (e.g., "mia-legacyV1-mining-12345")
  * Values are verification results with timestamps
+ *
+ * Structure: { [stxAddress]: { [entryKey]: VerificationResult } }
  */
-export const verificationCacheAtom = atomWithStorage<
-  Record<string, VerificationResult>
->("citycoins-verification-cache", {});
+export const verificationCacheByAddressAtom = atomWithStorage<
+  Record<string, Record<string, VerificationResult>>
+>("citycoins-verification-cache-v2", {});
+
+/**
+ * Derived atom that provides the verification cache for the current address
+ * This is the main atom used by the rest of the app
+ */
+export const verificationCacheAtom = atom(
+  (get) => {
+    const address = get(stxAddressAtom);
+    const cacheByAddress = get(verificationCacheByAddressAtom);
+    if (!address) return {};
+    return cacheByAddress[address] || {};
+  },
+  (get, set, newCache: Record<string, VerificationResult>) => {
+    const address = get(stxAddressAtom);
+    if (!address) return;
+    const cacheByAddress = get(verificationCacheByAddressAtom);
+    set(verificationCacheByAddressAtom, {
+      ...cacheByAddress,
+      [address]: newCache,
+    });
+  }
+);
 
 /**
  * Current verification progress
