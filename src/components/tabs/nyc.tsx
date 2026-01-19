@@ -54,7 +54,6 @@ import {
   executeClaimTransaction,
 } from "../../utilities/claim-transactions";
 import { Version } from "../../config/city-config";
-import ClaimsDebug from "../debug/claims-debug";
 
 const loadableBlockHeights = loadable(blockHeightsQueryAtom);
 
@@ -106,7 +105,7 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge colorPalette={colorScheme}>{displayText}</Badge>;
 }
 
-function Nyc({ onOpenDetails }: NycProps) {
+function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
   const stxAddress = useAtomValue(stxAddressAtom);
   const [blockHeights, setBlockHeights] = useAtom(blockHeightsAtom);
   const blockHeightsLoadable = useAtomValue(loadableBlockHeights);
@@ -663,8 +662,6 @@ function Nyc({ onOpenDetails }: NycProps) {
           </Accordion.ItemContent>
         </Accordion.Item>
 
-        {/* Debug Info - Remove after debugging */}
-        <ClaimsDebug city="nyc" />
       </Accordion.Root>
     </Stack>
   );

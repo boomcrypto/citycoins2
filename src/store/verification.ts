@@ -308,11 +308,9 @@ export const verifyAllMiningAtom = atom(
     });
 
     if (unverified.length === 0) {
-      console.log("[verifyAllMining] No unverified entries");
       return;
     }
 
-    console.log(`[verifyAllMining] Verifying ${unverified.length} entries for ${city}`);
 
     set(verificationProgressAtom, {
       isRunning: true,
@@ -407,7 +405,6 @@ export const verifyAllMiningAtom = atom(
       currentItem: "",
     });
 
-    console.log(`[verifyAllMining] Completed verification for ${city}`);
   }
 );
 
@@ -423,13 +420,11 @@ export const verifySingleStackingAtom = atom(
   async (get, set, entry: StackingEntry) => {
     const userIds = get(userIdsAtom);
     if (!userIds) {
-      console.log("[verifySingleStacking] No user IDs available");
       return;
     }
 
     const userId = getUserIdForVersion(userIds, entry.city, entry.version);
     if (userId === null) {
-      console.log("[verifySingleStacking] No user ID for", entry.city, entry.version);
       return;
     }
 
@@ -516,7 +511,6 @@ export const verifyAllStackingAtom = atom(
     const { city, entries } = params;
     const userIds = get(userIdsAtom);
     if (!userIds) {
-      console.log("[verifyAllStacking] No user IDs available");
       return;
     }
 
@@ -538,11 +532,9 @@ export const verifyAllStackingAtom = atom(
     });
 
     if (unverified.length === 0) {
-      console.log("[verifyAllStacking] No unverified entries");
       return;
     }
 
-    console.log(`[verifyAllStacking] Verifying ${unverified.length} entries for ${city}`);
 
     set(verificationProgressAtom, {
       isRunning: true,
@@ -628,7 +620,6 @@ export const verifyAllStackingAtom = atom(
       currentItem: "",
     });
 
-    console.log(`[verifyAllStacking] Completed verification for ${city}`);
   }
 );
 

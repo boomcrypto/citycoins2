@@ -146,11 +146,6 @@ export async function rateLimitedFetch<T = unknown>(
       if (response.status === 429) {
         const retryAfter = parseRetryAfter(response.headers.get("Retry-After"));
         const waitMs = retryAfter || 1000 * Math.pow(2, attempt + 1);
-
-        console.log(
-          `[rateLimitedFetch] 429 Rate limited on attempt ${attempt + 1}, waiting ${waitMs}ms...`
-        );
-
         await sleep(waitMs);
         continue;
       }
@@ -184,9 +179,6 @@ export async function rateLimitedFetch<T = unknown>(
 
       // Retry with backoff
       const waitMs = 1000 * Math.pow(2, attempt);
-      console.log(
-        `[rateLimitedFetch] Network error on attempt ${attempt + 1}, retrying in ${waitMs}ms...`
-      );
       await sleep(waitMs);
     }
   }

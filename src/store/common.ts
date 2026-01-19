@@ -110,7 +110,6 @@ export async function fancyFetch<T>(
     return responseData;
   } catch (error) {
     if (attempts < retries) {
-      console.log(`(${attempts}) Retrying fetch in 5 seconds... (${error})`);
       await sleep(5000);
       return fancyFetch(url, json, retries, attempts + 1);
     } else {

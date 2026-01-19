@@ -107,18 +107,15 @@ export const fetchUserIdsAtom = atom(
   async (get, set) => {
     const address = get(stxAddressAtom);
     if (!address) {
-      console.log("[fetchUserIds] No address, skipping");
       return;
     }
 
     // Check if we already have user IDs cached
     const existingIds = get(userIdsAtom);
     if (existingIds) {
-      console.log("[fetchUserIds] User IDs already cached");
       return;
     }
 
-    console.log("[fetchUserIds] Fetching user IDs for:", address);
     set(userIdFetchStatusAtom, {
       isLoading: true,
       error: null,
@@ -138,10 +135,7 @@ export const fetchUserIdsAtom = atom(
         error: null,
         lastFetched: Date.now(),
       });
-
-      console.log("[fetchUserIds] User IDs fetched:", result.data);
     } catch (error) {
-      console.error("[fetchUserIds] Error:", error);
       set(userIdFetchStatusAtom, {
         isLoading: false,
         error: error instanceof Error ? error.message : String(error),
@@ -180,7 +174,6 @@ export const transactionsAtom = atom(
   async (get, set, update: Transaction[]) => {
     const address = get(stxAddressAtom);
     if (!address) return;
-    console.log("starting fetch of all txs");
     set(transactionFetchStatusAtom, {
       isLoading: true,
       error: null,
@@ -188,7 +181,6 @@ export const transactionsAtom = atom(
     });
     try {
       const newTxs = await getAllTxs(address, update, set);
-      console.log("fetch complete, setting acctTxsAtom");
       set(transactionFetchStatusAtom, {
         isLoading: false,
         error: null,
@@ -198,7 +190,6 @@ export const transactionsAtom = atom(
       set(acctTxsAtom, compressedTxs);
     } catch (error) {
       // Save whatever transactions we have so far
-      console.error("Error fetching transactions, saving partial results:", error);
       set(transactionFetchStatusAtom, {
         isLoading: false,
         error: error instanceof Error ? error.message : String(error),
@@ -348,7 +339,6 @@ async function getAllTxs(
     const txs = getTransactions();
     const compressedTxs = LZString.compress(JSON.stringify(txs));
     atomSetter(acctTxsAtom, compressedTxs);
-    console.log(`Saved ${txs.length} transactions to storage`);
   };
 
   try {
@@ -358,26 +348,20 @@ async function getAllTxs(
         `${endpoint}?limit=${limit}`
       );
     totalTransactions = initialResponse.total;
-    console.log(totalTransactions, "total transactions from API");
 
     // Return if all transactions are already loaded
     if (existingCount === totalTransactions) {
-      console.log("all transactions already loaded");
       return existingTxs;
     }
 
     // Process initial fetch - v1 returns transactions directly in results
     const newTransactions = initialResponse.results as Transaction[];
-    console.log(newTransactions.length, "transactions from initial fetch");
 
-    let addedCount = 0;
     for (const tx of newTransactions) {
       if (tx?.tx_id && !txMap.has(tx.tx_id)) {
         txMap.set(tx.tx_id, tx);
-        addedCount++;
       }
     }
-    console.log(addedCount, "new unique,", txMap.size, "total after initial fetch");
 
     // Update progress
     atomSetter(transactionFetchStatusAtom, (prev) => ({
@@ -390,7 +374,6 @@ async function getAllTxs(
 
     // Return if we've fetched everything or API returned less than limit
     if (newTransactions.length < limit || limit >= totalTransactions) {
-      console.log("all transactions fetched");
       return getTransactions();
     }
 
@@ -398,7 +381,6 @@ async function getAllTxs(
     while (offset + limit < totalTransactions) {
       await sleep(1500); // Rate limiting
       offset += limit;
-      console.log(`Fetching offset ${offset} of ${totalTransactions}`);
 
       try {
         const response =
@@ -410,20 +392,13 @@ async function getAllTxs(
 
         // v1 returns transactions directly in results
         const additionalTransactions = response.results as Transaction[];
-        console.log(additionalTransactions.length, "transactions fetched");
-        if (additionalTransactions.length > 0) {
-          console.log("First tx_id at offset", offset + ":", additionalTransactions[0]?.tx_id?.slice(0, 16));
-        }
 
         // Add unique transactions to map
-        let batchAdded = 0;
         for (const tx of additionalTransactions) {
           if (tx?.tx_id && !txMap.has(tx.tx_id)) {
             txMap.set(tx.tx_id, tx);
-            batchAdded++;
           }
         }
-        console.log(batchAdded, "new unique,", txMap.size, "total");
 
         // Update progress based on offset
         const progress = Math.min(
@@ -442,24 +417,20 @@ async function getAllTxs(
 
         // Stop if API returned fewer than requested (end of data)
         if (additionalTransactions.length < limit) {
-          console.log("Reached end of transactions (partial page)");
           break;
         }
       } catch (fetchError) {
         consecutiveErrors++;
-        console.error(`Fetch error (${consecutiveErrors}/${maxConsecutiveErrors}):`, fetchError);
 
         // Save progress on error
         saveProgress();
 
         if (consecutiveErrors >= maxConsecutiveErrors) {
-          console.error("Too many errors, returning partial results");
           return getTransactions();
         }
 
         // Exponential backoff: 5s, 10s, 20s
         const backoffTime = 5000 * Math.pow(2, consecutiveErrors - 1);
-        console.log(`Backing off for ${backoffTime / 1000}s...`);
         await sleep(backoffTime);
         offset -= limit; // Retry same offset
       }

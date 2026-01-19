@@ -2,16 +2,12 @@ import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import {
   ClarityType,
-  ClarityValue,
   cvToJSON,
   fetchCallReadOnlyFunction,
-  OptionalCV,
   SomeCV,
   standardPrincipalCV,
   TupleCV,
-  TupleData,
   UIntCV,
-  uintCV,
   validateStacksAddress,
 } from "@stacks/transactions";
 import { stxAddressAtom } from "./stacks";
@@ -128,7 +124,6 @@ export const ccip016IsVoteActiveQueryAtom = atom(async () => {
 export const ccip016VoteTotalsQueryAtom = atom(async () => {
   try {
     const voteTotals = await getVoteTotals();
-    console.log(voteTotals, "voteTotals");
     return voteTotals;
   } catch (error) {
     throw new Error(
