@@ -724,11 +724,17 @@ export const retryFailedStackingAtom = atom(
 
 /**
  * Get verification summary for mining entries
+ *
+ * This summary accounts for:
+ * 1. Entry status from transaction history (claimed/not-won from claim txs)
+ * 2. Verification cache results (from manual verification)
+ * 3. Base status (pending/unverified)
  */
 export const miningVerificationSummaryAtom = atom((get) => {
   const cache = get(verificationCacheAtom);
 
   return (entries: MiningEntry[]) => {
+    let pending = 0;
     let unverified = 0;
     let verifying = 0;
     let claimable = 0;
@@ -737,6 +743,21 @@ export const miningVerificationSummaryAtom = atom((get) => {
     let error = 0;
 
     for (const entry of entries) {
+      // First check: entry status from transaction history takes priority
+      if (entry.status === "claimed") {
+        claimed++;
+        continue;
+      }
+      if (entry.status === "not-won") {
+        notWon++;
+        continue;
+      }
+      if (entry.status === "pending") {
+        pending++;
+        continue;
+      }
+
+      // Second check: verification cache
       const key = createCacheKey({
         city: entry.city,
         version: entry.version,
@@ -768,17 +789,23 @@ export const miningVerificationSummaryAtom = atom((get) => {
       }
     }
 
-    return { unverified, verifying, claimable, notWon, claimed, error, total: entries.length };
+    return { pending, unverified, verifying, claimable, notWon, claimed, error, total: entries.length };
   };
 });
 
 /**
  * Get verification summary for stacking entries
+ *
+ * This summary accounts for:
+ * 1. Entry status from transaction history (claimed from claim txs)
+ * 2. Verification cache results (from manual verification)
+ * 3. Base status (locked/unverified)
  */
 export const stackingVerificationSummaryAtom = atom((get) => {
   const cache = get(verificationCacheAtom);
 
   return (entries: StackingEntry[]) => {
+    let locked = 0;
     let unverified = 0;
     let verifying = 0;
     let claimable = 0;
@@ -787,6 +814,17 @@ export const stackingVerificationSummaryAtom = atom((get) => {
     let error = 0;
 
     for (const entry of entries) {
+      // First check: entry status from transaction history takes priority
+      if (entry.status === "claimed") {
+        claimed++;
+        continue;
+      }
+      if (entry.status === "locked") {
+        locked++;
+        continue;
+      }
+
+      // Second check: verification cache
       const key = createCacheKey({
         city: entry.city,
         version: entry.version,
@@ -818,6 +856,6 @@ export const stackingVerificationSummaryAtom = atom((get) => {
       }
     }
 
-    return { unverified, verifying, claimable, noReward, claimed, error, total: entries.length };
+    return { locked, unverified, verifying, claimable, noReward, claimed, error, total: entries.length };
   };
 });
