@@ -1,5 +1,6 @@
 import { atomWithStorage } from "jotai/utils";
 import { Loadable } from "jotai/vanilla/utils/loadable";
+import { verificationCacheByAddressAtom } from "./verification";
 
 /////////////////////////
 // CONSTANTS
@@ -27,10 +28,10 @@ export type LoadableDataset<T> = {
 
 export const activeTabAtom = atomWithStorage<string>(
   "citycoins-ui-activeTab",
-  "voting" // default: Voting
+  "mia" // default: MIA tab
 );
 
-export const commonLocalStorageAtoms = [activeTabAtom];
+export const commonLocalStorageAtoms = [activeTabAtom, verificationCacheByAddressAtom];
 
 // HELPER FUNCTIONS
 
@@ -109,7 +110,6 @@ export async function fancyFetch<T>(
     return responseData;
   } catch (error) {
     if (attempts < retries) {
-      console.log(`(${attempts}) Retrying fetch in 5 seconds... (${error})`);
       await sleep(5000);
       return fancyFetch(url, json, retries, attempts + 1);
     } else {
