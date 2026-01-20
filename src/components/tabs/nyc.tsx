@@ -799,6 +799,42 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
     }
   }, [stxAddress, userIds, fetchUserIds]);
 
+  // Memoized handlers - MUST be called before any conditional returns
+  const handleMiningClaim = useCallback(async (entry: MiningEntry) => {
+    const id = `mining-${entry.block}`;
+    setClaimingId(id);
+    try {
+      const params = buildMiningClaimTx(entry.city, entry.version, entry.block);
+      await executeClaimTransaction(params);
+    } catch (error) {
+      console.error("Mining claim failed:", error);
+    } finally {
+      setClaimingId(null);
+    }
+  }, []);
+
+  const handleStackingClaim = useCallback(async (entry: StackingEntry) => {
+    const id = `stacking-${entry.cycle}`;
+    setClaimingId(id);
+    try {
+      const params = buildStackingClaimTx(entry.city, entry.version, entry.cycle);
+      await executeClaimTransaction(params);
+    } catch (error) {
+      console.error("Stacking claim failed:", error);
+    } finally {
+      setClaimingId(null);
+    }
+  }, []);
+
+  const handleVerifyMining = useCallback((entry: MiningEntry) => {
+    verifySingleMining(entry);
+  }, [verifySingleMining]);
+
+  const handleVerifyStacking = useCallback((entry: StackingEntry) => {
+    verifySingleStacking(entry);
+  }, [verifySingleStacking]);
+
+  // Early return for unauthenticated state - AFTER all hooks
   if (!stxAddress) {
     return (
       <Stack gap={4}>
@@ -856,41 +892,6 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
       console.error("Error executing redemption:", error);
     }
   };
-
-  // Memoized handlers
-  const handleMiningClaim = useCallback(async (entry: MiningEntry) => {
-    const id = `mining-${entry.block}`;
-    setClaimingId(id);
-    try {
-      const params = buildMiningClaimTx(entry.city, entry.version, entry.block);
-      await executeClaimTransaction(params);
-    } catch (error) {
-      console.error("Mining claim failed:", error);
-    } finally {
-      setClaimingId(null);
-    }
-  }, []);
-
-  const handleStackingClaim = useCallback(async (entry: StackingEntry) => {
-    const id = `stacking-${entry.cycle}`;
-    setClaimingId(id);
-    try {
-      const params = buildStackingClaimTx(entry.city, entry.version, entry.cycle);
-      await executeClaimTransaction(params);
-    } catch (error) {
-      console.error("Stacking claim failed:", error);
-    } finally {
-      setClaimingId(null);
-    }
-  }, []);
-
-  const handleVerifyMining = useCallback((entry: MiningEntry) => {
-    verifySingleMining(entry);
-  }, [verifySingleMining]);
-
-  const handleVerifyStacking = useCallback((entry: StackingEntry) => {
-    verifySingleStacking(entry);
-  }, [verifySingleStacking]);
 
   const handleVerifyAllMining = () => {
     const nycEntries = miningNeedingVerification.filter((e) => e.city === "nyc");
