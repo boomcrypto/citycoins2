@@ -10,12 +10,8 @@ import {
   Box,
   Progress,
   HStack,
-  Input,
-  Select,
-  createListCollection,
-  Portal,
 } from "@chakra-ui/react";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import {
   stxAddressAtom,
   blockHeightsAtom,
@@ -26,11 +22,10 @@ import {
   userIdFetchStatusAtom,
 } from "../../store/stacks";
 import SignIn from "../auth/sign-in";
-import { useState, useEffect, useMemo, useCallback, memo, useRef } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { fancyFetch, HIRO_API } from "../../store/common";
 import { request } from "@stacks/connect";
-import { AddressBalanceResponse, Transaction } from "@stacks/stacks-blockchain-api-types";
+import { AddressBalanceResponse } from "@stacks/stacks-blockchain-api-types";
 import {
   nycMiningEntriesAtom,
   nycStackingEntriesAtom,
@@ -38,8 +33,6 @@ import {
   nycUnclaimedStackingAtom,
   miningEntriesNeedingVerificationAtom,
   stackingEntriesNeedingVerificationAtom,
-  MiningEntry,
-  StackingEntry,
 } from "../../store/claims";
 import {
   verificationProgressAtom,
@@ -57,683 +50,18 @@ import {
   buildStackingClaimTx,
   executeClaimTransaction,
 } from "../../utilities/claim-transactions";
-import { Version } from "../../config/city-config";
+import {
+  PaginatedMiningTable,
+  PaginatedStackingTable,
+  formatStackedAmount,
+  type MiningEntry,
+  type StackingEntry,
+} from "../claims";
+import { CITY_CLAIMS_CONFIG } from "../../config/city-claims-config";
 
-// =============================================================================
-// CONSTANTS
-// =============================================================================
+const config = CITY_CLAIMS_CONFIG.nyc;
 
-const ITEMS_PER_PAGE = 50;
-
-const statusFilterCollection = createListCollection({
-  items: [
-    { label: "All Statuses", value: "all" },
-    { label: "Claimable", value: "claimable" },
-    { label: "Unverified", value: "unverified" },
-    { label: "Pending", value: "pending" },
-    { label: "Claimed", value: "claimed" },
-    { label: "Not Won", value: "not-won" },
-    { label: "Error", value: "error" },
-  ],
-});
-
-const stackingStatusFilterCollection = createListCollection({
-  items: [
-    { label: "All Statuses", value: "all" },
-    { label: "Claimable", value: "claimable" },
-    { label: "Unverified", value: "unverified" },
-    { label: "Locked", value: "locked" },
-    { label: "Claimed", value: "claimed" },
-    { label: "No Reward", value: "no-reward" },
-    { label: "Unavailable", value: "unavailable" },
-  ],
-});
-
-// =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
-
-/**
- * Format stacked token amount based on version.
- * legacyV1 tokens have 0 decimals, legacyV2+ have 6 decimals.
- */
-function formatStackedAmount(amount: bigint, version: Version): string {
-  if (version === "legacyV1") {
-    // legacyV1 has 0 decimals - amount is the actual number
-    return Number(amount).toLocaleString();
-  }
-  // legacyV2+ have 6 decimals
-  return (Number(amount) / 1_000_000).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-// =============================================================================
-// MEMOIZED COMPONENTS
-// =============================================================================
-
-interface NycProps {
-  onOpenDetails: (tx: Transaction) => void;
-}
-
-const StatusBadge = memo(function StatusBadge({ status }: { status: string }) {
-  const colorScheme = {
-    pending: "yellow",
-    unverified: "orange",
-    claimable: "green",
-    claimed: "gray",
-    locked: "blue",
-    "not-won": "red",
-    "no-reward": "orange",
-    unavailable: "red",
-    error: "red",
-  }[status] || "gray";
-
-  const displayText = {
-    pending: "pending",
-    unverified: "unverified",
-    claimable: "claimable",
-    claimed: "claimed",
-    locked: "locked",
-    "not-won": "not won",
-    "no-reward": "no reward",
-    unavailable: "unavailable",
-    error: "error",
-  }[status] || status;
-
-  return <Badge colorPalette={colorScheme}>{displayText}</Badge>;
-});
-
-// Memoized mining row component
-const MiningRow = memo(function MiningRow({
-  entry,
-  onClaim,
-  onVerify,
-  claimingId,
-  isVerifying,
-}: {
-  entry: MiningEntry;
-  onClaim: (entry: MiningEntry) => void;
-  onVerify: (entry: MiningEntry) => void;
-  claimingId: string | null;
-  isVerifying: boolean;
-}) {
-  const isClaiming = claimingId === `mining-${entry.block}`;
-
-  return (
-    <Table.Row>
-      <Table.Cell>{entry.block}</Table.Cell>
-      <Table.Cell>{entry.version}</Table.Cell>
-      <Table.Cell>{(Number(entry.amountUstx) / 1_000_000).toFixed(6)}</Table.Cell>
-      <Table.Cell><StatusBadge status={entry.status} /></Table.Cell>
-      <Table.Cell minH="32px">
-        {entry.status === "claimable" ? (
-          <Button
-            size="xs"
-            onClick={() => onClaim(entry)}
-            disabled={isClaiming}
-          >
-            {isClaiming ? "..." : "Claim"}
-          </Button>
-        ) : entry.status === "unverified" ? (
-          <Button
-            size="xs"
-            variant="outline"
-            onClick={() => onVerify(entry)}
-            disabled={isVerifying}
-          >
-            Verify
-          </Button>
-        ) : entry.status === "error" ? (
-          <Button
-            size="xs"
-            variant="outline"
-            onClick={() => onVerify(entry)}
-            disabled={isVerifying}
-          >
-            Retry
-          </Button>
-        ) : (
-          <Box minH="24px" />
-        )}
-      </Table.Cell>
-    </Table.Row>
-  );
-});
-
-// Memoized stacking row component
-const StackingRow = memo(function StackingRow({
-  entry,
-  onClaim,
-  onVerify,
-  claimingId,
-  isVerifying,
-  hasUserIds,
-}: {
-  entry: StackingEntry;
-  onClaim: (entry: StackingEntry) => void;
-  onVerify: (entry: StackingEntry) => void;
-  claimingId: string | null;
-  isVerifying: boolean;
-  hasUserIds: boolean;
-}) {
-  const isClaiming = claimingId === `stacking-${entry.cycle}`;
-
-  return (
-    <Table.Row>
-      <Table.Cell>{entry.cycle}</Table.Cell>
-      <Table.Cell>{entry.version}</Table.Cell>
-      <Table.Cell>{formatStackedAmount(entry.amountTokens, entry.version)}</Table.Cell>
-      <Table.Cell><StatusBadge status={entry.status} /></Table.Cell>
-      <Table.Cell minH="32px">
-        {entry.status === "claimable" ? (
-          <Button
-            size="xs"
-            onClick={() => onClaim(entry)}
-            disabled={isClaiming}
-          >
-            {isClaiming ? "..." : "Claim"}
-          </Button>
-        ) : entry.status === "unverified" ? (
-          <Button
-            size="xs"
-            variant="outline"
-            onClick={() => onVerify(entry)}
-            disabled={isVerifying || !hasUserIds}
-          >
-            Verify
-          </Button>
-        ) : entry.status === "unavailable" && entry.claimTxId ? (
-          <Text fontSize="xs" color="fg.muted">Failed</Text>
-        ) : (
-          <Box minH="24px" />
-        )}
-      </Table.Cell>
-    </Table.Row>
-  );
-});
-
-// =============================================================================
-// VIRTUALIZED TABLE COMPONENTS
-// =============================================================================
-
-interface VirtualizedMiningTableProps {
-  entries: MiningEntry[];
-  onClaim: (entry: MiningEntry) => void;
-  onVerify: (entry: MiningEntry) => void;
-  claimingId: string | null;
-  isVerifying: boolean;
-}
-
-function VirtualizedMiningTable({
-  entries,
-  onClaim,
-  onVerify,
-  claimingId,
-  isVerifying,
-}: VirtualizedMiningTableProps) {
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  const rowVirtualizer = useVirtualizer({
-    count: entries.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 40,
-    overscan: 10,
-  });
-
-  return (
-    <Box ref={parentRef} maxH="400px" overflowY="auto">
-      <Table.Root size="sm">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader>Block</Table.ColumnHeader>
-            <Table.ColumnHeader>Version</Table.ColumnHeader>
-            <Table.ColumnHeader>Commit (STX)</Table.ColumnHeader>
-            <Table.ColumnHeader>Status</Table.ColumnHeader>
-            <Table.ColumnHeader>Action</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          <Box
-            as="tr"
-            style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
-              position: "relative",
-            }}
-          >
-            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const entry = entries[virtualRow.index];
-              return (
-                <Box
-                  key={`${entry.txId}-${entry.block}`}
-                  as="tr"
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: `${virtualRow.size}px`,
-                    transform: `translateY(${virtualRow.start}px)`,
-                    display: "table-row",
-                  }}
-                >
-                  <MiningRow
-                    entry={entry}
-                    onClaim={onClaim}
-                    onVerify={onVerify}
-                    claimingId={claimingId}
-                    isVerifying={isVerifying}
-                  />
-                </Box>
-              );
-            })}
-          </Box>
-        </Table.Body>
-      </Table.Root>
-    </Box>
-  );
-}
-
-interface VirtualizedStackingTableProps {
-  entries: StackingEntry[];
-  onClaim: (entry: StackingEntry) => void;
-  onVerify: (entry: StackingEntry) => void;
-  claimingId: string | null;
-  isVerifying: boolean;
-  hasUserIds: boolean;
-}
-
-function VirtualizedStackingTable({
-  entries,
-  onClaim,
-  onVerify,
-  claimingId,
-  isVerifying,
-  hasUserIds,
-}: VirtualizedStackingTableProps) {
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  const rowVirtualizer = useVirtualizer({
-    count: entries.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 40,
-    overscan: 10,
-  });
-
-  return (
-    <Box ref={parentRef} maxH="400px" overflowY="auto">
-      <Table.Root size="sm">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader>Cycle</Table.ColumnHeader>
-            <Table.ColumnHeader>Version</Table.ColumnHeader>
-            <Table.ColumnHeader>Stacked</Table.ColumnHeader>
-            <Table.ColumnHeader>Status</Table.ColumnHeader>
-            <Table.ColumnHeader>Action</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          <Box
-            as="tr"
-            style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
-              position: "relative",
-            }}
-          >
-            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const entry = entries[virtualRow.index];
-              return (
-                <Box
-                  key={`${entry.txId}-${entry.cycle}`}
-                  as="tr"
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: `${virtualRow.size}px`,
-                    transform: `translateY(${virtualRow.start}px)`,
-                    display: "table-row",
-                  }}
-                >
-                  <StackingRow
-                    entry={entry}
-                    onClaim={onClaim}
-                    onVerify={onVerify}
-                    claimingId={claimingId}
-                    isVerifying={isVerifying}
-                    hasUserIds={hasUserIds}
-                  />
-                </Box>
-              );
-            })}
-          </Box>
-        </Table.Body>
-      </Table.Root>
-    </Box>
-  );
-}
-
-// =============================================================================
-// PAGINATED TABLE WITH FILTERS
-// =============================================================================
-
-interface PaginatedMiningTableProps {
-  entries: MiningEntry[];
-  onClaim: (entry: MiningEntry) => void;
-  onVerify: (entry: MiningEntry) => void;
-  claimingId: string | null;
-  isVerifying: boolean;
-}
-
-function PaginatedMiningTable({
-  entries,
-  onClaim,
-  onVerify,
-  claimingId,
-  isVerifying,
-}: PaginatedMiningTableProps) {
-  const [page, setPage] = useState(0);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [searchBlock, setSearchBlock] = useState("");
-
-  // Filter entries
-  const filteredEntries = useMemo(() => {
-    return entries.filter((entry) => {
-      if (statusFilter !== "all" && entry.status !== statusFilter) return false;
-      if (searchBlock && !String(entry.block).includes(searchBlock)) return false;
-      return true;
-    });
-  }, [entries, statusFilter, searchBlock]);
-
-  // Paginate
-  const totalPages = Math.ceil(filteredEntries.length / ITEMS_PER_PAGE);
-  const paginatedEntries = useMemo(() => {
-    const start = page * ITEMS_PER_PAGE;
-    return filteredEntries.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredEntries, page]);
-
-  // Reset page when filter changes
-  useEffect(() => {
-    setPage(0);
-  }, [statusFilter, searchBlock]);
-
-  // Use virtualization for large filtered lists
-  const useVirtualization = filteredEntries.length > 100;
-
-  if (entries.length === 0) {
-    return <Text color="fg.muted">No mining history found.</Text>;
-  }
-
-  return (
-    <Stack gap={4}>
-      {/* Filters */}
-      <HStack gap={4} flexWrap="wrap">
-        <Select.Root
-          collection={statusFilterCollection}
-          value={[statusFilter]}
-          onValueChange={(e) => setStatusFilter(e.value[0])}
-          size="sm"
-          w="auto"
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger>
-              <Select.ValueText placeholder="All Statuses" />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Portal>
-            <Select.Positioner>
-              <Select.Content>
-                {statusFilterCollection.items.map((item) => (
-                  <Select.Item item={item} key={item.value}>
-                    {item.label}
-                    <Select.ItemIndicator />
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Portal>
-        </Select.Root>
-        <Input
-          placeholder="Search by block..."
-          value={searchBlock}
-          onChange={(e) => setSearchBlock(e.target.value)}
-          size="sm"
-          w="150px"
-        />
-        <Text fontSize="sm" color="fg.muted">
-          Showing {paginatedEntries.length} of {filteredEntries.length} entries
-        </Text>
-      </HStack>
-
-      {/* Table */}
-      {useVirtualization ? (
-        <VirtualizedMiningTable
-          entries={filteredEntries}
-          onClaim={onClaim}
-          onVerify={onVerify}
-          claimingId={claimingId}
-          isVerifying={isVerifying}
-        />
-      ) : (
-        <Table.Root size="sm">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>Block</Table.ColumnHeader>
-              <Table.ColumnHeader>Version</Table.ColumnHeader>
-              <Table.ColumnHeader>Commit (STX)</Table.ColumnHeader>
-              <Table.ColumnHeader>Status</Table.ColumnHeader>
-              <Table.ColumnHeader>Action</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {paginatedEntries.map((entry) => (
-              <MiningRow
-                key={`${entry.txId}-${entry.block}`}
-                entry={entry}
-                onClaim={onClaim}
-                onVerify={onVerify}
-                claimingId={claimingId}
-                isVerifying={isVerifying}
-              />
-            ))}
-          </Table.Body>
-        </Table.Root>
-      )}
-
-      {/* Pagination */}
-      {totalPages > 1 && !useVirtualization && (
-        <HStack gap={2} justify="center">
-          <Button
-            size="xs"
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0}
-          >
-            Previous
-          </Button>
-          <Text fontSize="sm">
-            Page {page + 1} of {totalPages}
-          </Text>
-          <Button
-            size="xs"
-            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            disabled={page >= totalPages - 1}
-          >
-            Next
-          </Button>
-        </HStack>
-      )}
-    </Stack>
-  );
-}
-
-interface PaginatedStackingTableProps {
-  entries: StackingEntry[];
-  onClaim: (entry: StackingEntry) => void;
-  onVerify: (entry: StackingEntry) => void;
-  claimingId: string | null;
-  isVerifying: boolean;
-  hasUserIds: boolean;
-}
-
-function PaginatedStackingTable({
-  entries,
-  onClaim,
-  onVerify,
-  claimingId,
-  isVerifying,
-  hasUserIds,
-}: PaginatedStackingTableProps) {
-  const [page, setPage] = useState(0);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [searchCycle, setSearchCycle] = useState("");
-
-  // Filter entries
-  const filteredEntries = useMemo(() => {
-    return entries.filter((entry) => {
-      if (statusFilter !== "all" && entry.status !== statusFilter) return false;
-      if (searchCycle && !String(entry.cycle).includes(searchCycle)) return false;
-      return true;
-    });
-  }, [entries, statusFilter, searchCycle]);
-
-  // Paginate
-  const totalPages = Math.ceil(filteredEntries.length / ITEMS_PER_PAGE);
-  const paginatedEntries = useMemo(() => {
-    const start = page * ITEMS_PER_PAGE;
-    return filteredEntries.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredEntries, page]);
-
-  // Reset page when filter changes
-  useEffect(() => {
-    setPage(0);
-  }, [statusFilter, searchCycle]);
-
-  // Use virtualization for large filtered lists
-  const useVirtualization = filteredEntries.length > 100;
-
-  if (entries.length === 0) {
-    return <Text color="fg.muted">No stacking history found.</Text>;
-  }
-
-  return (
-    <Stack gap={4}>
-      {/* Filters */}
-      <HStack gap={4} flexWrap="wrap">
-        <Select.Root
-          collection={stackingStatusFilterCollection}
-          value={[statusFilter]}
-          onValueChange={(e) => setStatusFilter(e.value[0])}
-          size="sm"
-          w="auto"
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger>
-              <Select.ValueText placeholder="All Statuses" />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Portal>
-            <Select.Positioner>
-              <Select.Content>
-                {stackingStatusFilterCollection.items.map((item) => (
-                  <Select.Item item={item} key={item.value}>
-                    {item.label}
-                    <Select.ItemIndicator />
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Portal>
-        </Select.Root>
-        <Input
-          placeholder="Search by cycle..."
-          value={searchCycle}
-          onChange={(e) => setSearchCycle(e.target.value)}
-          size="sm"
-          w="150px"
-        />
-        <Text fontSize="sm" color="fg.muted">
-          Showing {paginatedEntries.length} of {filteredEntries.length} entries
-        </Text>
-      </HStack>
-
-      {/* Table */}
-      {useVirtualization ? (
-        <VirtualizedStackingTable
-          entries={filteredEntries}
-          onClaim={onClaim}
-          onVerify={onVerify}
-          claimingId={claimingId}
-          isVerifying={isVerifying}
-          hasUserIds={hasUserIds}
-        />
-      ) : (
-        <Table.Root size="sm">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>Cycle</Table.ColumnHeader>
-              <Table.ColumnHeader>Version</Table.ColumnHeader>
-              <Table.ColumnHeader>Stacked</Table.ColumnHeader>
-              <Table.ColumnHeader>Status</Table.ColumnHeader>
-              <Table.ColumnHeader>Action</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {paginatedEntries.map((entry) => (
-              <StackingRow
-                key={`${entry.txId}-${entry.cycle}`}
-                entry={entry}
-                onClaim={onClaim}
-                onVerify={onVerify}
-                claimingId={claimingId}
-                isVerifying={isVerifying}
-                hasUserIds={hasUserIds}
-              />
-            ))}
-          </Table.Body>
-        </Table.Root>
-      )}
-
-      {/* Pagination */}
-      {totalPages > 1 && !useVirtualization && (
-        <HStack gap={2} justify="center">
-          <Button
-            size="xs"
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0}
-          >
-            Previous
-          </Button>
-          <Text fontSize="sm">
-            Page {page + 1} of {totalPages}
-          </Text>
-          <Button
-            size="xs"
-            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            disabled={page >= totalPages - 1}
-          >
-            Next
-          </Button>
-        </HStack>
-      )}
-    </Stack>
-  );
-}
-
-// =============================================================================
-// MAIN COMPONENT
-// =============================================================================
-
-function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
+function Nyc() {
   const stxAddress = useAtomValue(stxAddressAtom);
   const blockHeights = useAtomValue(blockHeightsAtom);
   const fetchBlockHeights = useSetAtom(fetchBlockHeightsAtom);
@@ -799,7 +127,7 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
     }
   }, [stxAddress, userIds, fetchUserIds]);
 
-  // Memoized handlers - MUST be called before any conditional returns
+  // Memoized handlers
   const handleMiningClaim = useCallback(async (entry: MiningEntry) => {
     const id = `mining-${entry.block}`;
     setClaimingId(id);
@@ -834,23 +162,17 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
     verifySingleStacking(entry);
   }, [verifySingleStacking]);
 
-  // Early return for unauthenticated state - AFTER all hooks
   if (!stxAddress) {
     return (
       <Stack gap={4}>
-        <Heading size="4xl">NYC</Heading>
+        <Heading size="4xl">{config.symbol}</Heading>
         <Text>
-          Connect your wallet to access tools and utilities for NewYorkCityCoin (NYC).
+          Connect your wallet to access tools and utilities for NewYorkCityCoin ({config.symbol}).
         </Text>
         <SignIn />
       </Stack>
     );
   }
-
-  const NYC_ASSET_ID = "newyorkcitycoin";
-  const NYC_V1_CONTRACT = "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-token";
-  const NYC_V2_CONTRACT = "SPSCWDV3RKV5ZRN1FQD84YE1NQFEDJ9R1F4DYQ11.newyorkcitycoin-token-v2";
-  const NYC_REDEMPTION_CONTRACT = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd012-redemption-nyc";
 
   const checkEligibility = async () => {
     if (!stxAddress) return;
@@ -860,11 +182,11 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
       const url = `${HIRO_API}/extended/v1/address/${stxAddress}/balances`;
       const data = await fancyFetch<AddressBalanceResponse>(url);
       const v1Balance = parseInt(
-        data.fungible_tokens?.[`${NYC_V1_CONTRACT}::${NYC_ASSET_ID}`]?.balance || "0",
+        data.fungible_tokens?.[`${config.v1Contract}::${config.assetId}`]?.balance || "0",
         10
       );
       const v2Balance = parseInt(
-        data.fungible_tokens?.[`${NYC_V2_CONTRACT}::${NYC_ASSET_ID}`]?.balance || "0",
+        data.fungible_tokens?.[`${config.v2Contract}::${config.assetId}`]?.balance || "0",
         10
       );
 
@@ -880,11 +202,11 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
   };
 
   const executeRedemption = async () => {
-    const [address, name] = NYC_REDEMPTION_CONTRACT.split(".");
+    const [address, name] = config.redemptionContract.split(".");
     try {
       await request("stx_callContract", {
         contract: `${address}.${name}`,
-        functionName: "redeem-nyc",
+        functionName: config.redemptionFunction,
         functionArgs: [],
         postConditionMode: "allow",
       });
@@ -894,37 +216,37 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
   };
 
   const handleVerifyAllMining = () => {
-    const nycEntries = miningNeedingVerification.filter((e) => e.city === "nyc");
-    if (nycEntries.length > 0) {
-      verifyAllMining({ city: "nyc", entries: nycEntries });
+    const cityEntries = miningNeedingVerification.filter((e) => e.city === config.cityName);
+    if (cityEntries.length > 0) {
+      verifyAllMining({ city: config.cityName, entries: cityEntries });
     }
   };
 
   const handleVerifyAllStacking = () => {
-    const nycEntries = stackingNeedingVerification.filter((e) => e.city === "nyc");
-    if (nycEntries.length > 0) {
-      verifyAllStacking({ city: "nyc", entries: nycEntries });
+    const cityEntries = stackingNeedingVerification.filter((e) => e.city === config.cityName);
+    if (cityEntries.length > 0) {
+      verifyAllStacking({ city: config.cityName, entries: cityEntries });
     }
   };
 
   const handleRetryFailedMining = () => {
-    retryFailedMining({ city: "nyc", entries: miningEntries });
+    retryFailedMining({ city: config.cityName, entries: miningEntries });
   };
 
   const handleRetryFailedStacking = () => {
-    retryFailedStacking({ city: "nyc", entries: stackingEntries });
+    retryFailedStacking({ city: config.cityName, entries: stackingEntries });
   };
 
   const currentBlock = blockHeights?.stx ?? 0;
-  const isVerifying = verificationProgress.isRunning && verificationProgress.city === "nyc";
+  const isVerifying = verificationProgress.isRunning && verificationProgress.city === config.cityName;
 
-  // Count NYC-specific entries needing verification
-  const nycUnverifiedMining = miningNeedingVerification.filter((e) => e.city === "nyc").length;
-  const nycUnverifiedStacking = stackingNeedingVerification.filter((e) => e.city === "nyc").length;
+  // Count city-specific entries needing verification
+  const cityUnverifiedMining = miningNeedingVerification.filter((e) => e.city === config.cityName).length;
+  const cityUnverifiedStacking = stackingNeedingVerification.filter((e) => e.city === config.cityName).length;
 
   return (
     <Stack gap={4}>
-      <Heading size="4xl">NYC</Heading>
+      <Heading size="4xl">{config.symbol}</Heading>
       <Text>
         Current block: {currentBlock || "Loading..."} |
         Mining: {miningSummary.claimable} claimable
@@ -983,9 +305,9 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
             {unclaimedMining.length === 0 && unclaimedStacking.length === 0 ? (
               <Stack gap={4}>
                 <Text color="fg.muted">No verified claimable funds yet.</Text>
-                {(nycUnverifiedMining > 0 || nycUnverifiedStacking > 0) && (
+                {(cityUnverifiedMining > 0 || cityUnverifiedStacking > 0) && (
                   <Text fontSize="sm">
-                    You have {nycUnverifiedMining} mining blocks and {nycUnverifiedStacking} stacking cycles
+                    You have {cityUnverifiedMining} mining blocks and {cityUnverifiedStacking} stacking cycles
                     that need verification. Check the history sections below to verify them.
                   </Text>
                 )}
@@ -997,9 +319,9 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
                   <Box>
                     <Heading size="md" mb={2}>Mining Rewards ({unclaimedMining.length})</Heading>
                     <Text fontSize="sm" color="fg.muted" mb={2}>
-                      Claim NYC tokens for blocks you mined. Each block must be claimed separately.
+                      Claim {config.symbol} tokens for blocks you mined. Each block must be claimed separately.
                     </Text>
-                    <Table.Root size="sm">
+                    <Table.Root size="sm" width="100%">
                       <Table.Header>
                         <Table.Row>
                           <Table.ColumnHeader>Block</Table.ColumnHeader>
@@ -1035,9 +357,9 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
                   <Box>
                     <Heading size="md" mb={2}>Stacking Rewards ({unclaimedStacking.length})</Heading>
                     <Text fontSize="sm" color="fg.muted" mb={2}>
-                      Claim STX rewards for cycles you stacked. Final cycle also returns your NYC.
+                      Claim STX rewards for cycles you stacked. Final cycle also returns your {config.symbol}.
                     </Text>
-                    <Table.Root size="sm">
+                    <Table.Root size="sm" width="100%">
                       <Table.Header>
                         <Table.Row>
                           <Table.ColumnHeader>Cycle</Table.ColumnHeader>
@@ -1073,21 +395,25 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
         </Accordion.Item>
 
         {/* Redemption */}
-        <Accordion.Item value="redeem-nyc">
+        <Accordion.Item value={`redeem-${config.cityName}`}>
           <Accordion.ItemTrigger>
-            <Heading size="xl">Redeem NYC</Heading>
+            <Heading size="xl">Redeem {config.symbol}</Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
             <Text mb={4}>
-              Burn NYC to receive STX per{" "}
-              <Link
-                href="https://github.com/citycoins/governance/blob/main/ccips/ccip-022/ccip-022-citycoins-treasury-redemption-nyc.md"
-                target="_blank"
-              >
-                CCIP-022
+              Burn {config.symbol} to receive STX per{" "}
+              <Link href={config.ccipLink.href} target="_blank">
+                {config.ccipLink.text}
               </Link>
-              .
+              .{config.pendingApproval && (
+                <>
+                  {" "}
+                  <Text as="span" color="fg.muted">
+                    Pending approval.
+                  </Text>
+                </>
+              )}
             </Text>
             <Stack direction="row" gap={4}>
               <Button
@@ -1107,8 +433,8 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
             </Stack>
             {hasChecked && (
               <Stack mt={4}>
-                <Text>NYC v1 Balance: {balanceV1}</Text>
-                <Text>NYC v2 Balance: {(balanceV2 / 1_000_000).toFixed(2)}</Text>
+                <Text>{config.symbol} v1 Balance: {balanceV1}</Text>
+                <Text>{config.symbol} v2 Balance: {(balanceV2 / 1_000_000).toFixed(2)}</Text>
                 <Text>
                   {isEligible
                     ? "You are eligible for redemption."
@@ -1134,14 +460,14 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
                   {miningSummary.error > 0 && ` ${miningSummary.error} failed,`}
                   {" "}{miningSummary.notWon} not won, {miningSummary.claimed} claimed
                 </Text>
-                {nycUnverifiedMining > 0 && (
+                {cityUnverifiedMining > 0 && (
                   <Button
                     size="xs"
                     variant="outline"
                     onClick={handleVerifyAllMining}
                     disabled={isVerifying}
                   >
-                    Verify All ({nycUnverifiedMining})
+                    Verify All ({cityUnverifiedMining})
                   </Button>
                 )}
                 {miningSummary.error > 0 && (
@@ -1182,14 +508,14 @@ function Nyc({ onOpenDetails: _onOpenDetails }: NycProps) {
                   {stackingSummary.error > 0 && ` ${stackingSummary.error} failed,`}
                   {" "}{stackingSummary.noReward} no reward, {stackingSummary.claimed} claimed
                 </Text>
-                {nycUnverifiedStacking > 0 && (
+                {cityUnverifiedStacking > 0 && (
                   <Button
                     size="xs"
                     variant="outline"
                     onClick={handleVerifyAllStacking}
                     disabled={isVerifying || !userIds}
                   >
-                    Verify All ({nycUnverifiedStacking})
+                    Verify All ({cityUnverifiedStacking})
                   </Button>
                 )}
                 {stackingSummary.error > 0 && (
