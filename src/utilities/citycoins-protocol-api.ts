@@ -1,34 +1,36 @@
 /**
  * CityCoins Protocol API Client
  *
- * Provides typed access to the CityCoins Protocol/DAO API endpoints.
- * Base URL: https://protocol.citycoins.co/api
+ * Provides typed access to DAO v1/v2 contract data.
+ * Now uses direct contract reads instead of protocol.citycoins.co middleware.
  *
  * Used for: daoV1, daoV2 contract versions
- *
- * All requests go through the rate-limited fetch utility to ensure
- * we respect the underlying Hiro API rate limits.
  */
 
-import { CityName, CITY_IDS } from "../config/city-config";
-import { rateLimitedFetch, RateLimitedFetchResult } from "./rate-limited-fetch";
+import { CityName } from "../config/city-config";
+import {
+  daoIsBlockWinner,
+  daoGetMiningStats,
+  daoGetStackingReward,
+  daoGetStacker,
+  daoIsCyclePaid,
+  daoGetCurrentRewardCycle,
+  daoGetUserId,
+} from "./contract-reads";
 
 // =============================================================================
-// CONSTANTS
+// TYPES (maintained for backward compatibility)
 // =============================================================================
 
-const BASE_URL = "https://protocol.citycoins.co/api";
-
-// Map our internal version names to mining contract names
 type DaoVersion = "daoV1" | "daoV2";
-const MINING_CONTRACT_MAP: Record<DaoVersion, string> = {
-  daoV1: "ccd006-citycoin-mining",
-  daoV2: "ccd006-citycoin-mining-v2",
-};
 
-// =============================================================================
-// TYPES
-// =============================================================================
+/** Result type for API-like responses */
+export interface RateLimitedFetchResult<T> {
+  ok: boolean;
+  status: number;
+  data?: T;
+  error?: string;
+}
 
 /** Block winner status from the DAO contract */
 export interface BlockWinnerResult {
@@ -66,9 +68,6 @@ export interface DaoUserIdResult {
 /**
  * Check if a user is the block winner and if they've claimed.
  *
- * Endpoint: GET /ccd006-citycoin-mining{-v2}/is-block-winner
- * Query params: cityId, user, claimHeight
- *
  * @param city - City name (mia or nyc)
  * @param version - Contract version (daoV1 or daoV2)
  * @param userAddress - User's Stacks address
@@ -81,14 +80,19 @@ export async function isBlockWinner(
   userAddress: string,
   claimHeight: number
 ): Promise<RateLimitedFetchResult<DaoMiningClaimResult>> {
-  const contract = MINING_CONTRACT_MAP[version];
-  const cityId = CITY_IDS[city];
-  const url = `${BASE_URL}/${contract}/is-block-winner?cityId=${cityId}&user=${userAddress}&claimHeight=${claimHeight}`;
+  const result = await daoIsBlockWinner(city, version, userAddress, claimHeight);
 
-  const result = await rateLimitedFetch<BlockWinnerResult>(url);
+  if (!result.ok) {
+    // Actual error (network, contract error, etc.)
+    return {
+      ok: false,
+      status: 500,
+      error: result.error || "Contract call failed",
+    };
+  }
 
-  // 404 means user didn't participate in this block
-  if (result.status === 404) {
+  if (!result.data) {
+    // Valid "no data" response - user didn't participate
     return {
       ok: true,
       status: 404,
@@ -96,28 +100,21 @@ export async function isBlockWinner(
     };
   }
 
-  if (!result.ok) {
-    return { ok: false, status: result.status, error: result.error };
-  }
-
-  const { winner, claimed } = result.data || { winner: false, claimed: false };
+  const { isWinner, isClaimed } = result.data;
 
   return {
     ok: true,
-    status: result.status,
+    status: 200,
     data: {
-      isWinner: winner,
-      isClaimed: claimed,
-      canClaim: winner && !claimed,
+      isWinner,
+      isClaimed,
+      canClaim: isWinner && !isClaimed,
     },
   };
 }
 
 /**
  * Get mining statistics for a block.
- *
- * Endpoint: GET /ccd006-citycoin-mining{-v2}/get-mining-stats
- * Query params: cityId, height
  *
  * @param city - City name (mia or nyc)
  * @param version - Contract version (daoV1 or daoV2)
@@ -129,11 +126,17 @@ export async function getMiningStats(
   version: DaoVersion,
   height: number
 ): Promise<RateLimitedFetchResult<{ miners: number; amount: number; claimed: boolean }>> {
-  const contract = MINING_CONTRACT_MAP[version];
-  const cityId = CITY_IDS[city];
-  const url = `${BASE_URL}/${contract}/get-mining-stats?cityId=${cityId}&height=${height}`;
+  const result = await daoGetMiningStats(city, version, height);
 
-  return await rateLimitedFetch(url);
+  if (!result.ok || !result.data) {
+    return { ok: false, status: 500, error: result.error };
+  }
+
+  return {
+    ok: true,
+    status: 200,
+    data: result.data,
+  };
 }
 
 // =============================================================================
@@ -142,9 +145,6 @@ export async function getMiningStats(
 
 /**
  * Get the stacking reward for a user in a specific cycle.
- *
- * Endpoint: GET /ccd007-citycoin-stacking/get-stacking-reward
- * Query params: cityId, cycle, userId
  *
  * @param city - City name (mia or nyc)
  * @param userId - User's ID from ccd003-user-registry
@@ -156,36 +156,29 @@ export async function getStackingReward(
   userId: number,
   cycle: number
 ): Promise<RateLimitedFetchResult<DaoStackingRewardResult>> {
-  const cityId = CITY_IDS[city];
-  const url = `${BASE_URL}/ccd007-citycoin-stacking/get-stacking-reward?cityId=${cityId}&cycle=${cycle}&userId=${userId}`;
+  const result = await daoGetStackingReward(city, userId, cycle);
 
-  const result = await rateLimitedFetch<number>(url);
-
-  // 404 means no reward for this cycle
-  if (result.status === 404) {
+  if (!result.ok) {
+    // Actual error (network, contract error, etc.)
     return {
-      ok: true,
-      status: 404,
-      data: { reward: 0 },
+      ok: false,
+      status: 500,
+      error: result.error || "Contract call failed",
     };
   }
 
-  if (!result.ok) {
-    return { ok: false, status: result.status, error: result.error };
-  }
+  // Zero reward is a valid response (no reward available)
+  const reward = result.data || 0;
 
   return {
     ok: true,
-    status: result.status,
-    data: { reward: Number(result.data) || 0 },
+    status: reward > 0 ? 200 : 404,
+    data: { reward },
   };
 }
 
 /**
  * Get stacker info for a user in a specific cycle.
- *
- * Endpoint: GET /ccd007-citycoin-stacking/get-stacker
- * Query params: cityId, cycle, userId
  *
  * @param city - City name (mia or nyc)
  * @param userId - User's ID from ccd003-user-registry
@@ -197,13 +190,19 @@ export async function getStacker(
   userId: number,
   cycle: number
 ): Promise<RateLimitedFetchResult<StackerResult>> {
-  const cityId = CITY_IDS[city];
-  const url = `${BASE_URL}/ccd007-citycoin-stacking/get-stacker?cityId=${cityId}&cycle=${cycle}&userId=${userId}`;
+  const result = await daoGetStacker(city, userId, cycle);
 
-  const result = await rateLimitedFetch<StackerResult>(url);
+  if (!result.ok) {
+    // Actual error (network, contract error, etc.)
+    return {
+      ok: false,
+      status: 500,
+      error: result.error || "Contract call failed",
+    };
+  }
 
-  // 404 means user didn't stack in this cycle
-  if (result.status === 404) {
+  if (!result.data || (result.data.stacked === 0 && result.data.claimable === 0)) {
+    // User didn't stack in this cycle
     return {
       ok: true,
       status: 404,
@@ -211,18 +210,15 @@ export async function getStacker(
     };
   }
 
-  if (!result.ok) {
-    return { ok: false, status: result.status, error: result.error };
-  }
-
-  return result;
+  return {
+    ok: true,
+    status: 200,
+    data: result.data,
+  };
 }
 
 /**
  * Check if a cycle has been paid out.
- *
- * Endpoint: GET /ccd007-citycoin-stacking/is-cycle-paid
- * Query params: cityId, cycle
  *
  * @param city - City name (mia or nyc)
  * @param cycle - Reward cycle number
@@ -232,18 +228,15 @@ export async function isCyclePaid(
   city: CityName,
   cycle: number
 ): Promise<RateLimitedFetchResult<boolean>> {
-  const cityId = CITY_IDS[city];
-  const url = `${BASE_URL}/ccd007-citycoin-stacking/is-cycle-paid?cityId=${cityId}&cycle=${cycle}`;
-
-  const result = await rateLimitedFetch<boolean>(url);
+  const result = await daoIsCyclePaid(city, cycle);
 
   if (!result.ok) {
-    return { ok: false, status: result.status, error: result.error };
+    return { ok: false, status: 500, error: result.error };
   }
 
   return {
     ok: true,
-    status: result.status,
+    status: 200,
     data: result.data === true,
   };
 }
@@ -251,23 +244,19 @@ export async function isCyclePaid(
 /**
  * Get the current reward cycle.
  *
- * Endpoint: GET /ccd007-citycoin-stacking/get-current-reward-cycle
- *
  * @returns The current reward cycle number
  */
 export async function getCurrentRewardCycle(): Promise<RateLimitedFetchResult<number>> {
-  const url = `${BASE_URL}/ccd007-citycoin-stacking/get-current-reward-cycle`;
-
-  const result = await rateLimitedFetch<number>(url);
+  const result = await daoGetCurrentRewardCycle();
 
   if (!result.ok) {
-    return { ok: false, status: result.status, error: result.error };
+    return { ok: false, status: 500, error: result.error };
   }
 
   return {
     ok: true,
-    status: result.status,
-    data: Number(result.data) || 0,
+    status: 200,
+    data: result.data || 0,
   };
 }
 
@@ -277,9 +266,6 @@ export async function getCurrentRewardCycle(): Promise<RateLimitedFetchResult<nu
 
 /**
  * Get a user's ID from their address.
- *
- * Endpoint: GET /ccd003-user-registry/get-user-id
- * Query params: user
  *
  * Note: This is the DAO user registry, shared across all cities.
  * User IDs are registered when users first interact with any DAO contract.
@@ -291,12 +277,14 @@ export async function getCurrentRewardCycle(): Promise<RateLimitedFetchResult<nu
 export async function getUserId(
   address: string
 ): Promise<RateLimitedFetchResult<DaoUserIdResult>> {
-  const url = `${BASE_URL}/ccd003-user-registry/get-user-id?user=${address}`;
+  const result = await daoGetUserId(address);
 
-  const result = await rateLimitedFetch<number>(url);
+  if (!result.ok) {
+    return { ok: false, status: 500, error: result.error };
+  }
 
-  // 404 means user not found, which is a valid response (not an error)
-  if (result.status === 404) {
+  // null userId is a valid response (user not found)
+  if (result.data === null) {
     return {
       ok: true,
       status: 404,
@@ -304,16 +292,10 @@ export async function getUserId(
     };
   }
 
-  if (!result.ok) {
-    return { ok: false, status: result.status, error: result.error };
-  }
-
-  const userId = result.data;
-
   return {
     ok: true,
-    status: result.status,
-    data: { userId: userId ? Number(userId) : null },
+    status: 200,
+    data: { userId: result.data },
   };
 }
 

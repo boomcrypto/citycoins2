@@ -1,38 +1,32 @@
 /**
  * CityCoins Legacy API Client
  *
- * Provides typed access to the CityCoins Legacy API endpoints.
- * Base URL: https://api.citycoins.co
+ * Provides typed access to legacy v1/v2 contract data.
+ * Now uses direct contract reads instead of api.citycoins.co middleware.
  *
  * Used for: legacyV1, legacyV2 contract versions
- *
- * All requests go through the rate-limited fetch utility to ensure
- * we respect the underlying Hiro API rate limits.
  */
 
 import { CityName } from "../config/city-config";
-import { rateLimitedFetch, RateLimitedFetchResult } from "./rate-limited-fetch";
+import {
+  legacyCanClaimMiningReward,
+  legacyIsBlockWinner,
+  legacyGetStackingReward,
+  legacyGetUserId,
+} from "./contract-reads";
 
 // =============================================================================
-// CONSTANTS
+// TYPES (maintained for backward compatibility)
 // =============================================================================
 
-const BASE_URL = "https://api.citycoins.co";
-
-// Map our internal version names to API version paths
 type LegacyVersion = "legacyV1" | "legacyV2";
-const VERSION_MAP: Record<LegacyVersion, string> = {
-  legacyV1: "v1",
-  legacyV2: "v2",
-};
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
-/** Standard single-value response from the legacy API */
-interface SingleValueResponse<T> {
-  value: T;
+/** Result type for API-like responses */
+export interface RateLimitedFetchResult<T> {
+  ok: boolean;
+  status: number;
+  data?: T;
+  error?: string;
 }
 
 /** Mining claim check result */
@@ -57,8 +51,6 @@ export interface LegacyUserIdResult {
 /**
  * Check if a user can claim a mining reward for a specific block.
  *
- * Endpoint: GET /{version}/{city}/mining-claims/can-claim-mining-reward/{block}/{address}
- *
  * @param city - City name (mia or nyc)
  * @param version - Contract version (legacyV1 or legacyV2)
  * @param blockHeight - The block height to check
@@ -71,26 +63,21 @@ export async function canClaimMiningReward(
   blockHeight: number,
   address: string
 ): Promise<RateLimitedFetchResult<LegacyMiningClaimResult>> {
-  const v = VERSION_MAP[version];
-  const url = `${BASE_URL}/${v}/${city}/mining-claims/can-claim-mining-reward/${blockHeight}/${address}`;
-
-  const result = await rateLimitedFetch<SingleValueResponse<boolean>>(url);
+  const result = await legacyCanClaimMiningReward(city, version, blockHeight, address);
 
   if (!result.ok) {
-    return { ok: false, status: result.status, error: result.error };
+    return { ok: false, status: 500, error: result.error };
   }
 
   return {
     ok: true,
-    status: result.status,
-    data: { canClaim: result.data?.value === true },
+    status: 200,
+    data: { canClaim: result.data === true },
   };
 }
 
 /**
  * Check if a user is the block winner for a specific block.
- *
- * Endpoint: GET /{version}/{city}/mining-claims/is-block-winner/{block}/{address}
  *
  * @param city - City name (mia or nyc)
  * @param version - Contract version (legacyV1 or legacyV2)
@@ -104,19 +91,16 @@ export async function isBlockWinner(
   blockHeight: number,
   address: string
 ): Promise<RateLimitedFetchResult<boolean>> {
-  const v = VERSION_MAP[version];
-  const url = `${BASE_URL}/${v}/${city}/mining-claims/is-block-winner/${blockHeight}/${address}`;
-
-  const result = await rateLimitedFetch<SingleValueResponse<boolean>>(url);
+  const result = await legacyIsBlockWinner(city, version, blockHeight, address);
 
   if (!result.ok) {
-    return { ok: false, status: result.status, error: result.error };
+    return { ok: false, status: 500, error: result.error };
   }
 
   return {
     ok: true,
-    status: result.status,
-    data: result.data?.value === true,
+    status: 200,
+    data: result.data === true,
   };
 }
 
@@ -126,8 +110,6 @@ export async function isBlockWinner(
 
 /**
  * Get the stacking reward for a user in a specific cycle.
- *
- * Endpoint: GET /{version}/{city}/stacking-claims/get-stacking-reward/{cycle}/{userId}
  *
  * Note: Requires userId, not address. Use getUserId() first.
  *
@@ -143,19 +125,16 @@ export async function getStackingReward(
   userId: number,
   cycle: number
 ): Promise<RateLimitedFetchResult<LegacyStackingRewardResult>> {
-  const v = VERSION_MAP[version];
-  const url = `${BASE_URL}/${v}/${city}/stacking-claims/get-stacking-reward/${cycle}/${userId}`;
-
-  const result = await rateLimitedFetch<SingleValueResponse<number>>(url);
+  const result = await legacyGetStackingReward(city, version, userId, cycle);
 
   if (!result.ok) {
-    return { ok: false, status: result.status, error: result.error };
+    return { ok: false, status: 500, error: result.error };
   }
 
   return {
     ok: true,
-    status: result.status,
-    data: { reward: Number(result.data?.value) || 0 },
+    status: 200,
+    data: { reward: result.data || 0 },
   };
 }
 
@@ -165,8 +144,6 @@ export async function getStackingReward(
 
 /**
  * Get a user's ID from their address.
- *
- * Endpoint: GET /{version}/{city}/activation/get-user-id/{address}
  *
  * Note: User IDs are registered when users first interact with the contract.
  * Returns null if user has never interacted with the contract.
@@ -181,13 +158,14 @@ export async function getUserId(
   version: LegacyVersion,
   address: string
 ): Promise<RateLimitedFetchResult<LegacyUserIdResult>> {
-  const v = VERSION_MAP[version];
-  const url = `${BASE_URL}/${v}/${city}/activation/get-user-id/${address}`;
+  const result = await legacyGetUserId(city, version, address);
 
-  const result = await rateLimitedFetch<SingleValueResponse<number>>(url);
+  if (!result.ok) {
+    return { ok: false, status: 500, error: result.error };
+  }
 
-  // 404 means user not found, which is a valid response (not an error)
-  if (result.status === 404) {
+  // null userId is a valid response (user not found)
+  if (result.data === null) {
     return {
       ok: true,
       status: 404,
@@ -195,16 +173,10 @@ export async function getUserId(
     };
   }
 
-  if (!result.ok) {
-    return { ok: false, status: result.status, error: result.error };
-  }
-
-  const userId = result.data?.value;
-
   return {
     ok: true,
-    status: result.status,
-    data: { userId: userId ? Number(userId) : null },
+    status: 200,
+    data: { userId: result.data },
   };
 }
 
