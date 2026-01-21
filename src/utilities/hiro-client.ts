@@ -25,6 +25,7 @@ const HIRO_API_BASE = "https://api.hiro.so";
 const DEFAULT_DELAY_MS = 200;
 const MIN_DELAY_MS = 50;
 const SLOW_DELAY_MS = 500;
+const MAX_DELAY_MS = 2000; // Cap to prevent unbounded delays
 
 // =============================================================================
 // RATE LIMIT STATE
@@ -47,18 +48,26 @@ const state: RateLimitState = {
 };
 
 /**
+ * Safely parse integer from header value, returning null if invalid
+ */
+function safeParseInt(value: string | null): number | null {
+  if (!value) return null;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? null : parsed;
+}
+
+/**
  * Update rate limit state from response headers
  */
 function updateRateLimitState(headers: Headers): void {
-  const remainingSecond = headers.get("x-ratelimit-remaining-stacks-second");
-  const remainingMinute = headers.get("x-ratelimit-remaining-stacks-minute");
-  const reset = headers.get("ratelimit-reset");
-  const cost = headers.get("x-ratelimit-cost-stacks");
-
-  state.remainingSecond = remainingSecond ? parseInt(remainingSecond, 10) : null;
-  state.remainingMinute = remainingMinute ? parseInt(remainingMinute, 10) : null;
-  state.reset = reset ? parseInt(reset, 10) : null;
-  state.cost = cost ? parseInt(cost, 10) : null;
+  state.remainingSecond = safeParseInt(
+    headers.get("x-ratelimit-remaining-stacks-second")
+  );
+  state.remainingMinute = safeParseInt(
+    headers.get("x-ratelimit-remaining-stacks-minute")
+  );
+  state.reset = safeParseInt(headers.get("ratelimit-reset"));
+  state.cost = safeParseInt(headers.get("x-ratelimit-cost-stacks"));
   state.lastRequest = Date.now();
 }
 
@@ -74,14 +83,15 @@ function calculateDelay(): number {
   // If per-second quota is exhausted, wait until next second
   if (state.remainingSecond !== null && state.remainingSecond <= 0) {
     const elapsed = Date.now() - state.lastRequest;
-    return Math.max(0, 1000 - elapsed);
+    return Math.min(MAX_DELAY_MS, Math.max(0, 1000 - elapsed));
   }
 
-  // If per-minute quota is low, slow down proportionally
+  // If per-minute quota is low or exhausted, slow down proportionally
   if (state.remainingMinute !== null && state.remainingMinute < 10) {
     // When minute quota is low, spread remaining requests across time
-    // Lower quota = longer delay
-    return SLOW_DELAY_MS + (10 - state.remainingMinute) * 100;
+    // Lower quota = longer delay, but cap at MAX_DELAY_MS
+    const quotaDelay = Math.max(0, 10 - state.remainingMinute) * 100;
+    return Math.min(MAX_DELAY_MS, SLOW_DELAY_MS + quotaDelay);
   }
 
   // Otherwise use minimal delay
@@ -99,37 +109,70 @@ interface QueuedRequest {
 class HiroRequestQueue {
   private queue: QueuedRequest[] = [];
   private processing = false;
+  private processingPromise: Promise<void> | null = null;
 
   async waitForTurn(): Promise<void> {
     return new Promise((resolve) => {
       this.queue.push({ resolve });
-      this.processQueue();
+      this.startProcessing();
+    });
+  }
+
+  private startProcessing(): void {
+    // If already processing, the existing loop will pick up new items
+    if (this.processing) return;
+
+    this.processing = true;
+    this.processingPromise = this.processQueue().finally(() => {
+      this.processing = false;
+      this.processingPromise = null;
     });
   }
 
   private async processQueue(): Promise<void> {
-    if (this.processing || this.queue.length === 0) return;
-    this.processing = true;
-
     while (this.queue.length > 0) {
       const delay = calculateDelay();
       if (delay > 0) {
         await sleep(delay);
       }
 
+      // Update lastRequest timestamp when request is allowed to proceed
+      state.lastRequest = Date.now();
+
       const next = this.queue.shift();
       next?.resolve();
     }
-
-    this.processing = false;
   }
 
   get length(): number {
     return this.queue.length;
   }
+
+  /**
+   * Reset the queue state.
+   * Intended for testing or hot module reloading scenarios.
+   */
+  reset(): void {
+    this.queue = [];
+    this.processing = false;
+    this.processingPromise = null;
+  }
 }
 
 export const hiroQueue = new HiroRequestQueue();
+
+/**
+ * Reset the global Hiro request queue and rate limit state.
+ * Intended for testing or hot module reloading scenarios.
+ */
+export function resetHiroClientForTesting(): void {
+  hiroQueue.reset();
+  state.remainingSecond = null;
+  state.remainingMinute = null;
+  state.reset = null;
+  state.cost = null;
+  state.lastRequest = 0;
+}
 
 // =============================================================================
 // HELPER FUNCTIONS

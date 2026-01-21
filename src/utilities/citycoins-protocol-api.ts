@@ -82,8 +82,17 @@ export async function isBlockWinner(
 ): Promise<RateLimitedFetchResult<DaoMiningClaimResult>> {
   const result = await daoIsBlockWinner(city, version, userAddress, claimHeight);
 
-  if (!result.ok || !result.data) {
-    // Contract errors treated as "user didn't participate"
+  if (!result.ok) {
+    // Actual error (network, contract error, etc.)
+    return {
+      ok: false,
+      status: 500,
+      error: result.error || "Contract call failed",
+    };
+  }
+
+  if (!result.data) {
+    // Valid "no data" response - user didn't participate
     return {
       ok: true,
       status: 404,
@@ -150,18 +159,21 @@ export async function getStackingReward(
   const result = await daoGetStackingReward(city, userId, cycle);
 
   if (!result.ok) {
-    // No reward is a valid response
+    // Actual error (network, contract error, etc.)
     return {
-      ok: true,
-      status: 404,
-      data: { reward: 0 },
+      ok: false,
+      status: 500,
+      error: result.error || "Contract call failed",
     };
   }
 
+  // Zero reward is a valid response (no reward available)
+  const reward = result.data || 0;
+
   return {
     ok: true,
-    status: 200,
-    data: { reward: result.data || 0 },
+    status: reward > 0 ? 200 : 404,
+    data: { reward },
   };
 }
 
@@ -180,7 +192,16 @@ export async function getStacker(
 ): Promise<RateLimitedFetchResult<StackerResult>> {
   const result = await daoGetStacker(city, userId, cycle);
 
-  if (!result.ok || !result.data) {
+  if (!result.ok) {
+    // Actual error (network, contract error, etc.)
+    return {
+      ok: false,
+      status: 500,
+      error: result.error || "Contract call failed",
+    };
+  }
+
+  if (!result.data || (result.data.stacked === 0 && result.data.claimable === 0)) {
     // User didn't stack in this cycle
     return {
       ok: true,

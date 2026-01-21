@@ -16,6 +16,24 @@ import {
 import { CityName, CITY_CONFIG, CITY_IDS } from "../../config/city-config";
 import { callReadOnlyFunction, ContractCallResult } from "../hiro-client";
 
+const MAX_SAFE_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);
+
+/**
+ * Safely convert BigInt to Number, returning error if value exceeds safe integer range
+ */
+function safeNumberFromBigInt(
+  value: bigint,
+  fieldName: string
+): { ok: true; data: number } | { ok: false; error: string } {
+  if (value > MAX_SAFE_BIGINT) {
+    return {
+      ok: false,
+      error: `${fieldName} exceeds JavaScript safe integer range`,
+    };
+  }
+  return { ok: true, data: Number(value) };
+}
+
 type DaoVersion = "daoV1" | "daoV2";
 
 /**
@@ -166,15 +184,30 @@ export async function getMiningStats(
 
     if (cv.type === ClarityType.OptionalSome || cv.type === ClarityType.Tuple) {
       const tuple = (cv.type === ClarityType.OptionalSome ? cv.value : cv) as TupleCV;
-      const miners = tuple.value.miners as UIntCV | undefined;
-      const amount = tuple.value.amount as UIntCV | undefined;
+      const minersCV = tuple.value.miners as UIntCV | undefined;
+      const amountCV = tuple.value.amount as UIntCV | undefined;
       const claimed = tuple.value.claimed;
+
+      let minersNumber = 0;
+      let amountNumber = 0;
+
+      if (minersCV?.value !== undefined) {
+        const conversion = safeNumberFromBigInt(minersCV.value, "Miners count");
+        if (!conversion.ok) return conversion;
+        minersNumber = conversion.data;
+      }
+
+      if (amountCV?.value !== undefined) {
+        const conversion = safeNumberFromBigInt(amountCV.value, "Mining amount");
+        if (!conversion.ok) return conversion;
+        amountNumber = conversion.data;
+      }
 
       return {
         ok: true,
         data: {
-          miners: miners ? Number(miners.value) : 0,
-          amount: amount ? Number(amount.value) : 0,
+          miners: minersNumber,
+          amount: amountNumber,
           claimed: claimed?.type === ClarityType.BoolTrue,
         },
       };

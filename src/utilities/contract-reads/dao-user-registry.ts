@@ -13,6 +13,24 @@ import {
 } from "@stacks/transactions";
 import { callReadOnlyFunction, ContractCallResult } from "../hiro-client";
 
+const MAX_SAFE_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);
+
+/**
+ * Safely convert BigInt to Number, returning error if value exceeds safe integer range
+ */
+function safeNumberFromBigInt(
+  value: bigint,
+  fieldName: string
+): { ok: true; data: number } | { ok: false; error: string } {
+  if (value > MAX_SAFE_BIGINT) {
+    return {
+      ok: false,
+      error: `${fieldName} exceeds JavaScript safe integer range`,
+    };
+  }
+  return { ok: true, data: Number(value) };
+}
+
 // DAO user registry contract address (shared across all cities)
 const USER_REGISTRY_ADDRESS = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH";
 const USER_REGISTRY_NAME = "ccd003-user-registry";
@@ -55,13 +73,20 @@ export async function getUserId(
     if (cv.type === ClarityType.OptionalSome) {
       const inner = cv.value;
       if (inner.type === ClarityType.UInt) {
-        return { ok: true, data: Number((inner as UIntCV).value) };
+        const conversion = safeNumberFromBigInt(
+          (inner as UIntCV).value,
+          "User ID"
+        );
+        if (!conversion.ok) return conversion;
+        return { ok: true, data: conversion.data };
       }
     }
 
     // Direct uint (shouldn't happen but handle it)
     if (cv.type === ClarityType.UInt) {
-      return { ok: true, data: Number((cv as UIntCV).value) };
+      const conversion = safeNumberFromBigInt((cv as UIntCV).value, "User ID");
+      if (!conversion.ok) return conversion;
+      return { ok: true, data: conversion.data };
     }
 
     return { ok: false, error: `Unexpected response type: ${cv.type}` };
