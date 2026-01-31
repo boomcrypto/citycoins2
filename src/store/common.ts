@@ -85,6 +85,11 @@ export async function sleep(ms: number) {
 
 /**
  * Fancy fetch function that retries on failure.
+ *
+ * @deprecated Use `hiroFetch` from `../utilities/hiro-client` instead.
+ * hiroFetch provides header-aware rate limiting, dynamic delays based on
+ * API quota headers, and proper Retry-After handling for 429 responses.
+ *
  * @param url The URL to fetch from.
  * @param json Whether to parse the response as JSON or text.
  * @param retries (default: 3) The maximum number of retries to attempt.
