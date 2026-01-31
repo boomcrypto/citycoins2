@@ -86,26 +86,6 @@ function createCacheKey(entry: EntryKey): string {
   return `${entry.city}-${entry.version}-${entry.type}-${entry.id}`;
 }
 
-/**
- * Parse a cache key back to entry key
- */
-function parseCacheKey(key: string): EntryKey | null {
-  const parts = key.split("-");
-  if (parts.length !== 4) return null;
-
-  const [city, version, type, id] = parts;
-  if (!["mia", "nyc"].includes(city)) return null;
-  if (!["legacyV1", "legacyV2", "daoV1", "daoV2"].includes(version)) return null;
-  if (!["mining", "stacking"].includes(type)) return null;
-
-  return {
-    city: city as CityName,
-    version: version as Version,
-    type: type as "mining" | "stacking",
-    id: parseInt(id, 10),
-  };
-}
-
 // =============================================================================
 // ATOMS
 // =============================================================================
