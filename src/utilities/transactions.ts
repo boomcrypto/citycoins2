@@ -42,10 +42,12 @@ export interface StackingClaimTxArgs {
 export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
   return (
     typeof decoded === "object" &&
+    decoded !== null &&
     (decoded.functionName === "mine-tokens" ||
       decoded.functionName === "mine-many" ||
       decoded.functionName === "mine") &&
     Array.isArray(decoded.amountsUstx) &&
+    decoded.amountsUstx.length > 0 && // Reject empty arrays
     decoded.amountsUstx.every((amt: any) => typeof amt === "bigint" && amt > 0n) // Basic validation: positive bigints
   );
 }
@@ -53,6 +55,7 @@ export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
 export function isValidStackingTxArgs(decoded: any): decoded is StackingTxArgs {
   return (
     typeof decoded === "object" &&
+    decoded !== null &&
     (decoded.functionName === "stack-tokens" || decoded.functionName === "stack") &&
     typeof decoded.amountToken === "bigint" &&
     decoded.amountToken > 0n &&
@@ -66,6 +69,7 @@ export function isValidMiningClaimTxArgs(
 ): decoded is MiningClaimTxArgs {
   return (
     typeof decoded === "object" &&
+    decoded !== null &&
     decoded.functionName === "claim-mining-reward" &&
     typeof decoded.minerBlockHeight === "bigint" &&
     decoded.minerBlockHeight > 0n
@@ -77,6 +81,7 @@ export function isValidStackingClaimTxArgs(
 ): decoded is StackingClaimTxArgs {
   return (
     typeof decoded === "object" &&
+    decoded !== null &&
     decoded.functionName === "claim-stacking-reward" &&
     typeof decoded.rewardCycle === "bigint" &&
     decoded.rewardCycle > 0n
