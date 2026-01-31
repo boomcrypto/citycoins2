@@ -285,6 +285,12 @@ export const verifySingleMiningAtom = atom(
 
 /**
  * Verify all unverified mining entries for a city
+ *
+ * Uses batch cache updates: collects all verification results during processing,
+ * then applies a single cache update at the end. This reduces complexity from
+ * O(n*k) to O(n+k) where n = entries to verify, k = cache size.
+ *
+ * Note: "verifying" status is still set per-entry for UI feedback during long operations.
  */
 export const verifyAllMiningAtom = atom(
   null,
@@ -311,7 +317,6 @@ export const verifyAllMiningAtom = atom(
       return;
     }
 
-
     set(verificationProgressAtom, {
       isRunning: true,
       type: "mining",
@@ -321,7 +326,10 @@ export const verifyAllMiningAtom = atom(
       currentItem: "",
     });
 
-    // Process entries one by one (rate limited)
+    // Collect all verification results for batch cache update
+    const batchUpdates: Record<string, VerificationResult> = {};
+
+    // Process entries one by one (rate limited by hiroFetch)
     for (let i = 0; i < unverified.length; i++) {
       const entry = unverified[i];
       const key = createCacheKey({
@@ -331,14 +339,14 @@ export const verifyAllMiningAtom = atom(
         id: entry.block,
       });
 
-      // Update progress
+      // Update progress for UI feedback
       set(verificationProgressAtom, (prev) => ({
         ...prev,
         current: i + 1,
         currentItem: `Block ${entry.block}`,
       }));
 
-      // Mark as verifying
+      // Mark as verifying for UI indication (individual update for real-time feedback)
       const currentCache = get(verificationCacheAtom);
       set(verificationCacheAtom, {
         ...currentCache,
@@ -352,8 +360,6 @@ export const verifyAllMiningAtom = atom(
           address,
           entry.block
         );
-
-        const updatedCache = get(verificationCacheAtom);
 
         if (result.success) {
           const { canClaim, isClaimed, isWinner } = result.data;
@@ -369,32 +375,27 @@ export const verifyAllMiningAtom = atom(
             status = "not-won";
           }
 
-          set(verificationCacheAtom, {
-            ...updatedCache,
-            [key]: { status, verifiedAt: Date.now() },
-          });
+          // Collect result for batch update
+          batchUpdates[key] = { status, verifiedAt: Date.now() };
         } else {
-          set(verificationCacheAtom, {
-            ...updatedCache,
-            [key]: {
-              status: "error",
-              verifiedAt: Date.now(),
-              error: result.error.message,
-            },
-          });
-        }
-      } catch (error) {
-        const updatedCache = get(verificationCacheAtom);
-        set(verificationCacheAtom, {
-          ...updatedCache,
-          [key]: {
+          batchUpdates[key] = {
             status: "error",
             verifiedAt: Date.now(),
-            error: error instanceof Error ? error.message : String(error),
-          },
-        });
+            error: result.error.message,
+          };
+        }
+      } catch (error) {
+        batchUpdates[key] = {
+          status: "error",
+          verifiedAt: Date.now(),
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
     }
+
+    // Apply all results in a single batch cache update - O(k) instead of O(n*k)
+    const finalCache = get(verificationCacheAtom);
+    set(verificationCacheAtom, { ...finalCache, ...batchUpdates });
 
     set(verificationProgressAtom, {
       isRunning: false,
@@ -404,7 +405,6 @@ export const verifyAllMiningAtom = atom(
       total: 0,
       currentItem: "",
     });
-
   }
 );
 
@@ -504,6 +504,12 @@ export const verifySingleStackingAtom = atom(
 
 /**
  * Verify all unverified stacking entries for a city
+ *
+ * Uses batch cache updates: collects all verification results during processing,
+ * then applies a single cache update at the end. This reduces complexity from
+ * O(n*k) to O(n+k) where n = entries to verify, k = cache size.
+ *
+ * Note: "verifying" status is still set per-entry for UI feedback during long operations.
  */
 export const verifyAllStackingAtom = atom(
   null,
@@ -535,7 +541,6 @@ export const verifyAllStackingAtom = atom(
       return;
     }
 
-
     set(verificationProgressAtom, {
       isRunning: true,
       type: "stacking",
@@ -545,7 +550,10 @@ export const verifyAllStackingAtom = atom(
       currentItem: "",
     });
 
-    // Process entries one by one (rate limited)
+    // Collect all verification results for batch cache update
+    const batchUpdates: Record<string, VerificationResult> = {};
+
+    // Process entries one by one (rate limited by hiroFetch)
     for (let i = 0; i < unverified.length; i++) {
       const entry = unverified[i];
       const userId = getUserIdForVersion(userIds, entry.city, entry.version)!;
@@ -556,14 +564,14 @@ export const verifyAllStackingAtom = atom(
         id: entry.cycle,
       });
 
-      // Update progress
+      // Update progress for UI feedback
       set(verificationProgressAtom, (prev) => ({
         ...prev,
         current: i + 1,
         currentItem: `Cycle ${entry.cycle}`,
       }));
 
-      // Mark as verifying
+      // Mark as verifying for UI indication (individual update for real-time feedback)
       const currentCache = get(verificationCacheAtom);
       set(verificationCacheAtom, {
         ...currentCache,
@@ -578,38 +586,31 @@ export const verifyAllStackingAtom = atom(
           entry.cycle
         );
 
-        const updatedCache = get(verificationCacheAtom);
-
         if (result.success) {
-          const { reward, canClaim } = result.data;
+          const { canClaim } = result.data;
           const status: VerificationStatus = canClaim ? "claimable" : "no-reward";
 
-          set(verificationCacheAtom, {
-            ...updatedCache,
-            [key]: { status, verifiedAt: Date.now() },
-          });
+          // Collect result for batch update
+          batchUpdates[key] = { status, verifiedAt: Date.now() };
         } else {
-          set(verificationCacheAtom, {
-            ...updatedCache,
-            [key]: {
-              status: "error",
-              verifiedAt: Date.now(),
-              error: result.error.message,
-            },
-          });
-        }
-      } catch (error) {
-        const updatedCache = get(verificationCacheAtom);
-        set(verificationCacheAtom, {
-          ...updatedCache,
-          [key]: {
+          batchUpdates[key] = {
             status: "error",
             verifiedAt: Date.now(),
-            error: error instanceof Error ? error.message : String(error),
-          },
-        });
+            error: result.error.message,
+          };
+        }
+      } catch (error) {
+        batchUpdates[key] = {
+          status: "error",
+          verifiedAt: Date.now(),
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
     }
+
+    // Apply all results in a single batch cache update - O(k) instead of O(n*k)
+    const finalCache = get(verificationCacheAtom);
+    set(verificationCacheAtom, { ...finalCache, ...batchUpdates });
 
     set(verificationProgressAtom, {
       isRunning: false,
@@ -619,7 +620,6 @@ export const verifyAllStackingAtom = atom(
       total: 0,
       currentItem: "",
     });
-
   }
 );
 
