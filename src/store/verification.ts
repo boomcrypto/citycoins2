@@ -86,6 +86,44 @@ function createCacheKey(entry: EntryKey): string {
   return `${entry.city}-${entry.version}-${entry.type}-${entry.id}`;
 }
 
+/**
+ * Determine verification status from mining claim result
+ *
+ * Status logic:
+ * - isClaimed: Already claimed the reward
+ * - canClaim: Won and eligible to claim
+ * - !isWinner: Did not win the mining lottery
+ * - isWinner but !canClaim: Edge case, treated as already claimed
+ */
+function getMiningStatusFromResult(result: {
+  canClaim: boolean;
+  isClaimed: boolean;
+  isWinner: boolean;
+}): VerificationStatus {
+  const { canClaim, isClaimed, isWinner } = result;
+
+  if (isClaimed) {
+    return "claimed";
+  }
+  if (canClaim) {
+    return "claimable";
+  }
+  if (!isWinner) {
+    return "not-won";
+  }
+  // Winner but can't claim = already claimed (edge case)
+  return "not-won";
+}
+
+/**
+ * Determine verification status from stacking claim result
+ */
+function getStackingStatusFromResult(result: {
+  canClaim: boolean;
+}): VerificationStatus {
+  return result.canClaim ? "claimable" : "no-reward";
+}
+
 // =============================================================================
 // ATOMS
 // =============================================================================
@@ -342,19 +380,7 @@ export const verifySingleMiningAtom = atom(
       const updatedCache = get(verificationCacheAtom);
 
       if (result.success) {
-        const { canClaim, isClaimed, isWinner } = result.data;
-        let status: VerificationStatus;
-
-        if (isClaimed) {
-          status = "claimed";
-        } else if (canClaim) {
-          status = "claimable";
-        } else if (!isWinner) {
-          status = "not-won";
-        } else {
-          status = "not-won"; // Winner but can't claim = already claimed
-        }
-
+        const status = getMiningStatusFromResult(result.data);
         set(verificationCacheAtom, {
           ...updatedCache,
           [key]: { status, verifiedAt: Date.now() },
@@ -471,20 +497,7 @@ export const verifyAllMiningAtom = atom(
         );
 
         if (result.success) {
-          const { canClaim, isClaimed, isWinner } = result.data;
-          let status: VerificationStatus;
-
-          if (isClaimed) {
-            status = "claimed";
-          } else if (canClaim) {
-            status = "claimable";
-          } else if (!isWinner) {
-            status = "not-won";
-          } else {
-            status = "not-won";
-          }
-
-          // Collect result for batch update
+          const status = getMiningStatusFromResult(result.data);
           batchUpdates[key] = { status, verifiedAt: Date.now() };
         } else {
           batchUpdates[key] = {
@@ -571,9 +584,7 @@ export const verifySingleStackingAtom = atom(
       const updatedCache = get(verificationCacheAtom);
 
       if (result.success) {
-        const { reward, canClaim } = result.data;
-        const status: VerificationStatus = canClaim ? "claimable" : "no-reward";
-
+        const status = getStackingStatusFromResult(result.data);
         set(verificationCacheAtom, {
           ...updatedCache,
           [key]: { status, verifiedAt: Date.now() },
@@ -696,10 +707,7 @@ export const verifyAllStackingAtom = atom(
         );
 
         if (result.success) {
-          const { canClaim } = result.data;
-          const status: VerificationStatus = canClaim ? "claimable" : "no-reward";
-
-          // Collect result for batch update
+          const status = getStackingStatusFromResult(result.data);
           batchUpdates[key] = { status, verifiedAt: Date.now() };
         } else {
           batchUpdates[key] = {
