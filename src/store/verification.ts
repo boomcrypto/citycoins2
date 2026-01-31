@@ -175,16 +175,14 @@ export const verificationCacheAtom = atom(
 );
 
 /**
- * Flag to prevent broadcast loops.
- * Set to true when processing incoming broadcast, false otherwise.
- */
-let isProcessingBroadcast = false;
-
-/**
  * Action atom to handle incoming broadcast messages from other tabs.
  *
  * This merges verification results from other tabs into the local cache
  * using a "newer wins" strategy based on verifiedAt timestamps.
+ *
+ * Note: Updates are written directly to verificationCacheByAddressAtom
+ * (bypassing verificationCacheAtom setter) to avoid re-broadcasting
+ * incoming messages back to other tabs.
  */
 export const handleBroadcastMessageAtom = atom(
   null,
@@ -210,18 +208,13 @@ export const handleBroadcastMessageAtom = atom(
 
     // Only update if there were actual changes
     if (mergedCache !== currentCache) {
-      // Set flag to prevent re-broadcasting this update
-      isProcessingBroadcast = true;
-      try {
-        // Update directly to storage to avoid triggering our broadcast
-        const cacheByAddress = get(verificationCacheByAddressAtom);
-        set(verificationCacheByAddressAtom, {
-          ...cacheByAddress,
-          [address]: mergedCache,
-        });
-      } finally {
-        isProcessingBroadcast = false;
-      }
+      // Update directly to storage atom to avoid triggering broadcast
+      // (verificationCacheAtom setter broadcasts, but we're receiving, not sending)
+      const cacheByAddress = get(verificationCacheByAddressAtom);
+      set(verificationCacheByAddressAtom, {
+        ...cacheByAddress,
+        [address]: mergedCache,
+      });
     }
   }
 );
