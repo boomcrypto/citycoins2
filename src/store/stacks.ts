@@ -149,16 +149,43 @@ export const fetchUserIdsAtom = atom(
 // DERIVED ATOMS
 /////////////////////////
 
+/**
+ * Memoization cache for decompressed transactions.
+ *
+ * Without memoization, LZ-string decompression runs on every atom read,
+ * which at 10k transactions takes ~50ms per read. With memoization,
+ * decompression only runs when the compressed data actually changes.
+ */
+let cachedDecompressedTxs: Transaction[] | null = null;
+let cachedCompressedString: string | null = null;
+
 export const decompressedAcctTxsAtom = atom((get) => {
   const acctTxs = get(acctTxsAtom);
-  if (!acctTxs) return [];
+
+  // Handle empty input
+  if (!acctTxs) {
+    cachedCompressedString = null;
+    cachedDecompressedTxs = null;
+    return [];
+  }
+
+  // Return cached result if compressed data hasn't changed
+  if (acctTxs === cachedCompressedString && cachedDecompressedTxs !== null) {
+    return cachedDecompressedTxs;
+  }
+
+  // Decompress and cache
   try {
     const decompressedTxs: Transaction[] = JSON.parse(
       LZString.decompress(acctTxs)
     );
+    cachedCompressedString = acctTxs;
+    cachedDecompressedTxs = decompressedTxs;
     return decompressedTxs;
   } catch (error) {
     console.error("Failed to decompress transactions", error);
+    cachedCompressedString = null;
+    cachedDecompressedTxs = null;
     return [];
   }
 });
