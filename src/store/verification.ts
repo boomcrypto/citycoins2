@@ -18,6 +18,15 @@ import {
 } from "../utilities/claim-verification";
 import { stxAddressAtom, userIdsAtom } from "./stacks";
 import { MiningEntry, StackingEntry } from "./claims";
+import {
+  broadcastVerificationUpdate,
+  subscribeToBroadcasts,
+  mergeVerificationEntries,
+  isVerificationUpdateMessage,
+  VerificationUpdatePayload,
+  BroadcastMessage,
+  Unsubscribe,
+} from "../utilities/broadcast-sync";
 
 // =============================================================================
 // TYPES
@@ -117,6 +126,8 @@ export const verificationCacheByAddressAtom = atomWithStorage<
 /**
  * Derived atom that provides the verification cache for the current address
  * This is the main atom used by the rest of the app
+ *
+ * The setter automatically broadcasts updates to other tabs via BroadcastChannel.
  */
 export const verificationCacheAtom = atom(
   (get) => {
@@ -128,13 +139,138 @@ export const verificationCacheAtom = atom(
   (get, set, newCache: Record<string, VerificationResult>) => {
     const address = get(stxAddressAtom);
     if (!address) return;
+
+    // Get old cache to determine what changed
     const cacheByAddress = get(verificationCacheByAddressAtom);
+    const oldCache = cacheByAddress[address] || {};
+
+    // Update the cache
     set(verificationCacheByAddressAtom, {
       ...cacheByAddress,
       [address]: newCache,
     });
+
+    // Find entries that changed (for broadcasting)
+    const changedEntries: Record<string, VerificationResult> = {};
+    for (const [key, result] of Object.entries(newCache)) {
+      const oldResult = oldCache[key];
+      // Broadcast if entry is new or status changed (not just verifying -> verifying)
+      if (
+        !oldResult ||
+        oldResult.status !== result.status ||
+        result.verifiedAt > oldResult.verifiedAt
+      ) {
+        // Only broadcast final states, not "verifying" progress updates
+        if (result.status !== "verifying") {
+          changedEntries[key] = result;
+        }
+      }
+    }
+
+    // Broadcast changes to other tabs (if any)
+    if (Object.keys(changedEntries).length > 0) {
+      broadcastVerificationUpdate(address, changedEntries);
+    }
   }
 );
+
+/**
+ * Flag to prevent broadcast loops.
+ * Set to true when processing incoming broadcast, false otherwise.
+ */
+let isProcessingBroadcast = false;
+
+/**
+ * Action atom to handle incoming broadcast messages from other tabs.
+ *
+ * This merges verification results from other tabs into the local cache
+ * using a "newer wins" strategy based on verifiedAt timestamps.
+ */
+export const handleBroadcastMessageAtom = atom(
+  null,
+  (get, set, message: BroadcastMessage<VerificationUpdatePayload>) => {
+    const address = get(stxAddressAtom);
+    if (!address) return;
+
+    // Only process messages for the current address
+    if (message.address !== address) {
+      return;
+    }
+
+    // Validate message structure
+    if (!isVerificationUpdateMessage(message)) {
+      return;
+    }
+
+    const currentCache = get(verificationCacheAtom);
+    const incomingEntries = message.payload.entries;
+
+    // Merge incoming entries with current cache
+    const mergedCache = mergeVerificationEntries(currentCache, incomingEntries);
+
+    // Only update if there were actual changes
+    if (mergedCache !== currentCache) {
+      // Set flag to prevent re-broadcasting this update
+      isProcessingBroadcast = true;
+      try {
+        // Update directly to storage to avoid triggering our broadcast
+        const cacheByAddress = get(verificationCacheByAddressAtom);
+        set(verificationCacheByAddressAtom, {
+          ...cacheByAddress,
+          [address]: mergedCache,
+        });
+      } finally {
+        isProcessingBroadcast = false;
+      }
+    }
+  }
+);
+
+/**
+ * Subscription management for broadcast sync.
+ * Store the unsubscribe function so we can clean up on disconnect.
+ */
+let broadcastUnsubscribe: Unsubscribe | null = null;
+
+/**
+ * Action atom to initialize cross-tab synchronization.
+ *
+ * Call this once when the app mounts or when a wallet connects.
+ * It subscribes to broadcast messages from other tabs and merges
+ * incoming verification updates into the local cache.
+ *
+ * @returns true if subscription was set up, false if already subscribed
+ */
+export const initBroadcastSyncAtom = atom(null, (get, set) => {
+  // Already subscribed
+  if (broadcastUnsubscribe) {
+    return false;
+  }
+
+  broadcastUnsubscribe = subscribeToBroadcasts((message) => {
+    // Type guard for verification updates
+    if (isVerificationUpdateMessage(message)) {
+      set(
+        handleBroadcastMessageAtom,
+        message as BroadcastMessage<VerificationUpdatePayload>
+      );
+    }
+  });
+
+  return true;
+});
+
+/**
+ * Action atom to clean up cross-tab synchronization.
+ *
+ * Call this when the app unmounts or when a wallet disconnects.
+ */
+export const cleanupBroadcastSyncAtom = atom(null, () => {
+  if (broadcastUnsubscribe) {
+    broadcastUnsubscribe();
+    broadcastUnsubscribe = null;
+  }
+});
 
 /**
  * Current verification progress
