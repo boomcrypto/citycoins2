@@ -10,6 +10,13 @@ import { Setter, atom } from "jotai";
 import LZString from "lz-string";
 import { decodeTxArgs, isValidMiningTxArgs, isValidMiningClaimTxArgs, isValidStackingTxArgs, isValidStackingClaimTxArgs } from "../utilities/transactions";
 import { fetchAllUserIds, UserIds } from "../utilities/claim-verification";
+import {
+  canSaveData,
+  emitStorageWarning,
+  getStorageInfo,
+  getStringByteSize,
+  isQuotaExceededError,
+} from "../utilities/storage-monitor";
 
 /////////////////////////
 // TYPES
@@ -450,7 +457,37 @@ async function getAllTxs(
   const saveProgress = () => {
     const txs = getTransactions();
     const compressedTxs = LZString.compress(JSON.stringify(txs));
-    atomSetter(acctTxsAtom, compressedTxs);
+
+    // Check storage before saving
+    const dataSize = getStringByteSize(compressedTxs);
+    const storageCheck = canSaveData(dataSize);
+
+    // Emit warning at warning/critical levels
+    if (storageCheck.level === "warning" || storageCheck.level === "critical") {
+      emitStorageWarning(storageCheck.level, storageCheck.info);
+    }
+
+    // Skip save if quota would be exceeded
+    if (!storageCheck.ok) {
+      console.warn(
+        `Storage quota exceeded. Cannot save ${txs.length} transactions.`
+      );
+      emitStorageWarning("exceeded", storageCheck.info);
+      return;
+    }
+
+    // Attempt save with graceful error handling
+    try {
+      atomSetter(acctTxsAtom, compressedTxs);
+    } catch (error) {
+      if (isQuotaExceededError(error)) {
+        console.warn("localStorage quota exceeded during save");
+        emitStorageWarning("exceeded", getStorageInfo());
+      } else {
+        // Re-throw non-quota errors
+        throw error;
+      }
+    }
   };
 
   try {
