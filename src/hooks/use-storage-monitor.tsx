@@ -75,12 +75,4 @@ export function useStorageMonitor() {
       );
     };
   }, []);
-
-  // Reset warning flags when component remounts (e.g., after clearing data)
-  useEffect(() => {
-    return () => {
-      hasShownWarning.current = false;
-      hasShownCritical.current = false;
-    };
-  }, []);
 }
