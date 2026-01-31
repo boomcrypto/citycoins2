@@ -21,9 +21,7 @@ import { VerificationResult } from "../store/verification";
 /**
  * Message types for cross-tab communication
  */
-export type BroadcastMessageType =
-  | "VERIFICATION_UPDATE" // Single or batch verification results
-  | "CACHE_MERGE"; // Request to merge verification cache
+export type BroadcastMessageType = "VERIFICATION_UPDATE";
 
 /**
  * Payload for verification update messages
