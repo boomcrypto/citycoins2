@@ -1,5 +1,7 @@
 # Transaction Fetch Flow
 
+> **Note:** Transaction fetching has been migrated from `fancyFetch` to `hiroFetch`. Some diagrams in this document still reference the old implementation. See PR #50 for migration details.
+
 This document maps the complete data flow from Hiro API fetch through localStorage compression to Jotai atoms in the CityCoins UI v2 application.
 
 ## Overview
@@ -8,7 +10,7 @@ This document maps the complete data flow from Hiro API fetch through localStora
 Hiro API (/extended/v1/address/{address}/transactions)
     |
     v
-fancyFetch (retry with 5s fixed delay on error)
+hiroFetch (rate-limit aware queue with Retry-After header support)
     |
     v
 getAllTxs() - paginated fetch with deduplication

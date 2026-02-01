@@ -273,13 +273,13 @@ describe("isVerificationUpdateMessage", () => {
   });
 
   it("should return false for other message types", () => {
-    const message: BroadcastMessage = {
-      type: "CACHE_MERGE",
+    const message = {
+      type: "UNKNOWN_TYPE",
       address: "SP123",
       payload: {},
       timestamp: Date.now(),
       tabId: "test-tab",
-    };
+    } as unknown as BroadcastMessage;
 
     expect(isVerificationUpdateMessage(message)).toBe(false);
   });

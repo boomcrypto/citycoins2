@@ -458,9 +458,12 @@ async function getAllTxs(
     const txs = getTransactions();
     const compressedTxs = LZString.compress(JSON.stringify(txs));
 
-    // Check storage before saving
-    const dataSize = getStringByteSize(compressedTxs);
-    const storageCheck = canSaveData(dataSize);
+    // Check storage before saving - calculate delta vs existing data
+    const newSize = getStringByteSize(compressedTxs);
+    const existingData = localStorage.getItem("citycoins-stacks-acctTxs") || "";
+    const existingSize = getStringByteSize(existingData);
+    const deltaSize = newSize - existingSize; // Can be negative if shrinking
+    const storageCheck = canSaveData(Math.max(0, deltaSize));
 
     // Emit warning at warning/critical levels
     if (storageCheck.level === "warning" || storageCheck.level === "critical") {

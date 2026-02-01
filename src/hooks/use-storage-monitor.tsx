@@ -36,7 +36,7 @@ export function useStorageMonitor() {
         hasShownWarning.current = true;
         toaster.create({
           title: "Storage space running low",
-          description: `Using ${formatBytes(info.used)} of 5MB. Consider clearing cached data if you experience issues.`,
+          description: `CityCoins cached data is using ${formatBytes(info.used)}. Consider clearing cached data if you experience issues.`,
           type: "warning",
           duration: 10000,
         });
@@ -45,7 +45,7 @@ export function useStorageMonitor() {
         hasShownWarning.current = true; // Also suppress warning
         toaster.create({
           title: "Storage space critical",
-          description: `Using ${formatBytes(info.used)} of 5MB. Clear cached data to continue saving transactions.`,
+          description: `CityCoins cached data is using ${formatBytes(info.used)}. Clear cached data to continue saving transactions.`,
           type: "error",
           duration: null, // Keep visible until dismissed
         });
@@ -54,7 +54,7 @@ export function useStorageMonitor() {
         toaster.create({
           title: "Storage limit reached",
           description:
-            "Unable to save new data. Clear cached data from the settings menu to free up space.",
+            "Unable to save new data. Clear CityCoins cached data from the settings menu to free up space.",
           type: "error",
           duration: null, // Keep visible until dismissed
         });

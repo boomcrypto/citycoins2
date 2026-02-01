@@ -93,7 +93,7 @@ function createCacheKey(entry: EntryKey): string {
  * - isClaimed: Already claimed the reward
  * - canClaim: Won and eligible to claim
  * - !isWinner: Did not win the mining lottery
- * - isWinner but !canClaim: Edge case, treated as already claimed
+ * - isWinner but !canClaim && !isClaimed: Should not happen, treat as not-won
  */
 function getMiningStatusFromResult(result: {
   canClaim: boolean;
@@ -108,10 +108,7 @@ function getMiningStatusFromResult(result: {
   if (canClaim) {
     return "claimable";
   }
-  if (!isWinner) {
-    return "not-won";
-  }
-  // Winner but can't claim = already claimed (edge case)
+  // Not a winner or unexpected state
   return "not-won";
 }
 

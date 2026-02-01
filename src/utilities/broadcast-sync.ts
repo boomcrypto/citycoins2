@@ -12,7 +12,7 @@
  * - Timestamp-based "newer wins" merge strategy
  */
 
-import { VerificationResult } from "../store/verification";
+import type { VerificationResult } from "../store/verification";
 
 // =============================================================================
 // TYPES

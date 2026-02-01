@@ -2,11 +2,13 @@
 
 **Phase 3 Deliverable - January 2026**
 
+> **Note:** The recommendations in this audit have been implemented. Transaction fetching now uses `hiroFetch` instead of `fancyFetch`. See PR #50 for details.
+
 This document analyzes the rate limiting implementations in citycoins-ui-v2, identifies bottlenecks, and provides recommendations for improvement.
 
 ## Executive Summary
 
-The codebase uses **two different rate limiting strategies** that are not unified:
+The codebase ~~uses~~ **previously used** two different rate limiting strategies that were not unified:
 
 | Strategy | Used By | Approach | Retry Delay |
 |----------|---------|----------|-------------|
