@@ -597,10 +597,11 @@ export function getBlockCycle(city: CityName, version: Version, blockHeight: num
 
 /**
  * Calculate the first block of a cycle for a given version
+ * Uses startCycle offset to correctly map absolute cycle numbers to blocks
  */
 export function getCycleFirstBlock(city: CityName, version: Version, cycle: number): number {
-  const { genesisBlock, cycleLength } = CITY_CONFIG[city][version].stacking;
-  return genesisBlock + (cycle - 1) * cycleLength;
+  const { genesisBlock, cycleLength, startCycle } = CITY_CONFIG[city][version].stacking;
+  return genesisBlock + (cycle - startCycle) * cycleLength;
 }
 
 /**

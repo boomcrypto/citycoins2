@@ -4,11 +4,19 @@ import {
   AddressTransactionsListResponse,
   Transaction,
 } from "@stacks/stacks-blockchain-api-types";
-import { HIRO_API, fancyFetch, sleep } from "./common";
+import { HIRO_API } from "./common";
+import { hiroFetch } from "../utilities/hiro-client";
 import { Setter, atom } from "jotai";
 import LZString from "lz-string";
 import { decodeTxArgs, isValidMiningTxArgs, isValidMiningClaimTxArgs, isValidStackingTxArgs, isValidStackingClaimTxArgs } from "../utilities/transactions";
 import { fetchAllUserIds, UserIds } from "../utilities/claim-verification";
+import {
+  canSaveData,
+  emitStorageWarning,
+  getStorageInfo,
+  getStringByteSize,
+  isQuotaExceededError,
+} from "../utilities/storage-monitor";
 
 /////////////////////////
 // TYPES
@@ -149,16 +157,43 @@ export const fetchUserIdsAtom = atom(
 // DERIVED ATOMS
 /////////////////////////
 
+/**
+ * Memoization cache for decompressed transactions.
+ *
+ * Without memoization, LZ-string decompression runs on every atom read,
+ * which at 10k transactions takes ~50ms per read. With memoization,
+ * decompression only runs when the compressed data actually changes.
+ */
+let cachedDecompressedTxs: Transaction[] | null = null;
+let cachedCompressedString: string | null = null;
+
 export const decompressedAcctTxsAtom = atom((get) => {
   const acctTxs = get(acctTxsAtom);
-  if (!acctTxs) return [];
+
+  // Handle empty input
+  if (!acctTxs) {
+    cachedCompressedString = null;
+    cachedDecompressedTxs = null;
+    return [];
+  }
+
+  // Return cached result if compressed data hasn't changed
+  if (acctTxs === cachedCompressedString && cachedDecompressedTxs !== null) {
+    return cachedDecompressedTxs;
+  }
+
+  // Decompress and cache
   try {
     const decompressedTxs: Transaction[] = JSON.parse(
       LZString.decompress(acctTxs)
     );
+    cachedCompressedString = acctTxs;
+    cachedDecompressedTxs = decompressedTxs;
     return decompressedTxs;
   } catch (error) {
     console.error("Failed to decompress transactions", error);
+    cachedCompressedString = null;
+    cachedDecompressedTxs = null;
     return [];
   }
 });
@@ -387,6 +422,14 @@ async function getBlockHeights(): Promise<BlockHeights | undefined> {
   }
 }
 
+/**
+ * Local sleep helper for exponential backoff on consecutive errors.
+ * Note: Normal request spacing is handled by hiroFetch queue.
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function getAllTxs(
   address: string,
   existingTxs: Transaction[],
@@ -414,15 +457,52 @@ async function getAllTxs(
   const saveProgress = () => {
     const txs = getTransactions();
     const compressedTxs = LZString.compress(JSON.stringify(txs));
-    atomSetter(acctTxsAtom, compressedTxs);
+
+    // Check storage before saving - calculate delta vs existing data
+    const newSize = getStringByteSize(compressedTxs);
+    const existingData = localStorage.getItem("citycoins-stacks-acctTxs") || "";
+    const existingSize = getStringByteSize(existingData);
+    const deltaSize = newSize - existingSize; // Can be negative if shrinking
+    const storageCheck = canSaveData(Math.max(0, deltaSize));
+
+    // Emit warning at warning/critical levels
+    if (storageCheck.level === "warning" || storageCheck.level === "critical") {
+      emitStorageWarning(storageCheck.level, storageCheck.info);
+    }
+
+    // Skip save if quota would be exceeded
+    if (!storageCheck.ok) {
+      console.warn(
+        `Storage quota exceeded. Cannot save ${txs.length} transactions.`
+      );
+      emitStorageWarning("exceeded", storageCheck.info);
+      return;
+    }
+
+    // Attempt save with graceful error handling
+    try {
+      atomSetter(acctTxsAtom, compressedTxs);
+    } catch (error) {
+      if (isQuotaExceededError(error)) {
+        console.warn("localStorage quota exceeded during save");
+        emitStorageWarning("exceeded", getStorageInfo());
+      } else {
+        // Re-throw non-quota errors
+        throw error;
+      }
+    }
   };
 
   try {
     // Get initial response for transaction total
-    const initialResponse =
-      await fancyFetch<AddressTransactionsListResponse>(
-        `${endpoint}?limit=${limit}`
-      );
+    // hiroFetch handles rate limiting via header-aware queue
+    const initialResult = await hiroFetch<AddressTransactionsListResponse>(
+      `${endpoint}?limit=${limit}`
+    );
+    if (!initialResult.ok || !initialResult.data) {
+      throw new Error(initialResult.error || "Failed to fetch initial transactions");
+    }
+    const initialResponse = initialResult.data;
     totalTransactions = initialResponse.total;
 
     // Return if all transactions are already loaded
@@ -454,51 +534,18 @@ async function getAllTxs(
     }
 
     // Loop to fetch remaining transactions
+    // No manual sleep needed - hiroFetch queue handles rate limiting
     while (offset + limit < totalTransactions) {
-      await sleep(1500); // Rate limiting
       offset += limit;
 
-      try {
-        const response =
-          await fancyFetch<AddressTransactionsListResponse>(
-            `${endpoint}?limit=${limit}&offset=${offset}`
-          );
+      // hiroFetch handles rate limiting via header-aware queue
+      const result = await hiroFetch<AddressTransactionsListResponse>(
+        `${endpoint}?limit=${limit}&offset=${offset}`
+      );
 
-        consecutiveErrors = 0; // Reset on success
-
-        // v1 returns transactions directly in results
-        const additionalTransactions = response.results as Transaction[];
-
-        // Add unique transactions to map
-        for (const tx of additionalTransactions) {
-          if (tx?.tx_id && !txMap.has(tx.tx_id)) {
-            txMap.set(tx.tx_id, tx);
-          }
-        }
-
-        // Update progress based on offset
-        const progress = Math.min(
-          Math.round((offset + limit) / totalTransactions * 100),
-          100
-        );
-        atomSetter(transactionFetchStatusAtom, (prev) => ({
-          ...prev,
-          progress,
-        }));
-
-        // Save every 500 transactions
-        if (offset % 500 === 0) {
-          saveProgress();
-        }
-
-        // Stop if API returned fewer than requested (end of data)
-        if (additionalTransactions.length < limit) {
-          break;
-        }
-      } catch (fetchError) {
+      if (!result.ok || !result.data) {
+        // Treat as fetch error for retry logic
         consecutiveErrors++;
-
-        // Save progress on error
         saveProgress();
 
         if (consecutiveErrors >= maxConsecutiveErrors) {
@@ -509,6 +556,39 @@ async function getAllTxs(
         const backoffTime = 5000 * Math.pow(2, consecutiveErrors - 1);
         await sleep(backoffTime);
         offset -= limit; // Retry same offset
+        continue;
+      }
+
+      consecutiveErrors = 0; // Reset on success
+
+      // v1 returns transactions directly in results
+      const additionalTransactions = result.data.results as Transaction[];
+
+      // Add unique transactions to map
+      for (const tx of additionalTransactions) {
+        if (tx?.tx_id && !txMap.has(tx.tx_id)) {
+          txMap.set(tx.tx_id, tx);
+        }
+      }
+
+      // Update progress based on offset
+      const progress = Math.min(
+        Math.round((offset + limit) / totalTransactions * 100),
+        100
+      );
+      atomSetter(transactionFetchStatusAtom, (prev) => ({
+        ...prev,
+        progress,
+      }));
+
+      // Save every 500 transactions
+      if (offset % 500 === 0) {
+        saveProgress();
+      }
+
+      // Stop if API returned fewer than requested (end of data)
+      if (additionalTransactions.length < limit) {
+        break;
       }
     }
 

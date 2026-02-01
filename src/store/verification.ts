@@ -18,6 +18,15 @@ import {
 } from "../utilities/claim-verification";
 import { stxAddressAtom, userIdsAtom } from "./stacks";
 import { MiningEntry, StackingEntry } from "./claims";
+import {
+  broadcastVerificationUpdate,
+  subscribeToBroadcasts,
+  mergeVerificationEntries,
+  isVerificationUpdateMessage,
+  VerificationUpdatePayload,
+  BroadcastMessage,
+  Unsubscribe,
+} from "../utilities/broadcast-sync";
 
 // =============================================================================
 // TYPES
@@ -78,23 +87,38 @@ function createCacheKey(entry: EntryKey): string {
 }
 
 /**
- * Parse a cache key back to entry key
+ * Determine verification status from mining claim result
+ *
+ * Status logic:
+ * - isClaimed: Already claimed the reward
+ * - canClaim: Won and eligible to claim
+ * - !isWinner: Did not win the mining lottery
+ * - isWinner but !canClaim && !isClaimed: Should not happen, treat as not-won
  */
-function parseCacheKey(key: string): EntryKey | null {
-  const parts = key.split("-");
-  if (parts.length !== 4) return null;
+function getMiningStatusFromResult(result: {
+  canClaim: boolean;
+  isClaimed: boolean;
+  isWinner: boolean;
+}): VerificationStatus {
+  const { canClaim, isClaimed, isWinner } = result;
 
-  const [city, version, type, id] = parts;
-  if (!["mia", "nyc"].includes(city)) return null;
-  if (!["legacyV1", "legacyV2", "daoV1", "daoV2"].includes(version)) return null;
-  if (!["mining", "stacking"].includes(type)) return null;
+  if (isClaimed) {
+    return "claimed";
+  }
+  if (canClaim) {
+    return "claimable";
+  }
+  // Not a winner or unexpected state
+  return "not-won";
+}
 
-  return {
-    city: city as CityName,
-    version: version as Version,
-    type: type as "mining" | "stacking",
-    id: parseInt(id, 10),
-  };
+/**
+ * Determine verification status from stacking claim result
+ */
+function getStackingStatusFromResult(result: {
+  canClaim: boolean;
+}): VerificationStatus {
+  return result.canClaim ? "claimable" : "no-reward";
 }
 
 // =============================================================================
@@ -117,6 +141,8 @@ export const verificationCacheByAddressAtom = atomWithStorage<
 /**
  * Derived atom that provides the verification cache for the current address
  * This is the main atom used by the rest of the app
+ *
+ * The setter automatically broadcasts updates to other tabs via BroadcastChannel.
  */
 export const verificationCacheAtom = atom(
   (get) => {
@@ -128,13 +154,131 @@ export const verificationCacheAtom = atom(
   (get, set, newCache: Record<string, VerificationResult>) => {
     const address = get(stxAddressAtom);
     if (!address) return;
+
+    // Get old cache to determine what changed
     const cacheByAddress = get(verificationCacheByAddressAtom);
+    const oldCache = cacheByAddress[address] || {};
+
+    // Update the cache
     set(verificationCacheByAddressAtom, {
       ...cacheByAddress,
       [address]: newCache,
     });
+
+    // Find entries that changed (for broadcasting)
+    const changedEntries: Record<string, VerificationResult> = {};
+    for (const [key, result] of Object.entries(newCache)) {
+      const oldResult = oldCache[key];
+      // Broadcast if entry is new or status changed (not just verifying -> verifying)
+      if (
+        !oldResult ||
+        oldResult.status !== result.status ||
+        result.verifiedAt > oldResult.verifiedAt
+      ) {
+        // Only broadcast final states, not "verifying" progress updates
+        if (result.status !== "verifying") {
+          changedEntries[key] = result;
+        }
+      }
+    }
+
+    // Broadcast changes to other tabs (if any)
+    if (Object.keys(changedEntries).length > 0) {
+      broadcastVerificationUpdate(address, changedEntries);
+    }
   }
 );
+
+/**
+ * Action atom to handle incoming broadcast messages from other tabs.
+ *
+ * This merges verification results from other tabs into the local cache
+ * using a "newer wins" strategy based on verifiedAt timestamps.
+ *
+ * Note: Updates are written directly to verificationCacheByAddressAtom
+ * (bypassing verificationCacheAtom setter) to avoid re-broadcasting
+ * incoming messages back to other tabs.
+ */
+export const handleBroadcastMessageAtom = atom(
+  null,
+  (get, set, message: BroadcastMessage<VerificationUpdatePayload>) => {
+    const address = get(stxAddressAtom);
+    if (!address) return;
+
+    // Only process messages for the current address
+    if (message.address !== address) {
+      return;
+    }
+
+    // Validate message structure
+    if (!isVerificationUpdateMessage(message)) {
+      return;
+    }
+
+    const currentCache = get(verificationCacheAtom);
+    const incomingEntries = message.payload.entries;
+
+    // Merge incoming entries with current cache
+    const mergedCache = mergeVerificationEntries(currentCache, incomingEntries);
+
+    // Only update if there were actual changes
+    if (mergedCache !== currentCache) {
+      // Update directly to storage atom to avoid triggering broadcast
+      // (verificationCacheAtom setter broadcasts, but we're receiving, not sending)
+      const cacheByAddress = get(verificationCacheByAddressAtom);
+      set(verificationCacheByAddressAtom, {
+        ...cacheByAddress,
+        [address]: mergedCache,
+      });
+    }
+  }
+);
+
+/**
+ * Subscription management for broadcast sync.
+ * Store the unsubscribe function so we can clean up on disconnect.
+ */
+let broadcastUnsubscribe: Unsubscribe | null = null;
+
+/**
+ * Action atom to initialize cross-tab synchronization.
+ *
+ * Call this once when the app mounts or when a wallet connects.
+ * It subscribes to broadcast messages from other tabs and merges
+ * incoming verification updates into the local cache.
+ *
+ * @returns true if subscription was set up, false if already subscribed
+ */
+export const initBroadcastSyncAtom = atom(null, (get, set) => {
+  // Already subscribed
+  if (broadcastUnsubscribe) {
+    return false;
+  }
+
+  broadcastUnsubscribe = subscribeToBroadcasts((message) => {
+    // Type guard for verification updates
+    if (isVerificationUpdateMessage(message)) {
+      set(
+        handleBroadcastMessageAtom,
+        message as BroadcastMessage<VerificationUpdatePayload>
+      );
+    }
+  });
+
+  return true;
+});
+
+/**
+ * Action atom to clean up cross-tab synchronization.
+ *
+ * Call this when the app unmounts or when a wallet disconnects.
+ */
+export const cleanupBroadcastSyncAtom = atom(null, () => {
+  if (broadcastUnsubscribe) {
+    broadcastUnsubscribe();
+    broadcastUnsubscribe = null;
+  }
+});
 
 /**
  * Current verification progress
@@ -233,19 +377,7 @@ export const verifySingleMiningAtom = atom(
       const updatedCache = get(verificationCacheAtom);
 
       if (result.success) {
-        const { canClaim, isClaimed, isWinner } = result.data;
-        let status: VerificationStatus;
-
-        if (isClaimed) {
-          status = "claimed";
-        } else if (canClaim) {
-          status = "claimable";
-        } else if (!isWinner) {
-          status = "not-won";
-        } else {
-          status = "not-won"; // Winner but can't claim = already claimed
-        }
-
+        const status = getMiningStatusFromResult(result.data);
         set(verificationCacheAtom, {
           ...updatedCache,
           [key]: { status, verifiedAt: Date.now() },
@@ -285,6 +417,12 @@ export const verifySingleMiningAtom = atom(
 
 /**
  * Verify all unverified mining entries for a city
+ *
+ * Uses batch cache updates: collects all verification results during processing,
+ * then applies a single cache update at the end. This reduces complexity from
+ * O(n*k) to O(n+k) where n = entries to verify, k = cache size.
+ *
+ * Note: "verifying" status is still set per-entry for UI feedback during long operations.
  */
 export const verifyAllMiningAtom = atom(
   null,
@@ -311,7 +449,6 @@ export const verifyAllMiningAtom = atom(
       return;
     }
 
-
     set(verificationProgressAtom, {
       isRunning: true,
       type: "mining",
@@ -321,7 +458,10 @@ export const verifyAllMiningAtom = atom(
       currentItem: "",
     });
 
-    // Process entries one by one (rate limited)
+    // Collect all verification results for batch cache update
+    const batchUpdates: Record<string, VerificationResult> = {};
+
+    // Process entries one by one (rate limited by hiroFetch)
     for (let i = 0; i < unverified.length; i++) {
       const entry = unverified[i];
       const key = createCacheKey({
@@ -331,14 +471,14 @@ export const verifyAllMiningAtom = atom(
         id: entry.block,
       });
 
-      // Update progress
+      // Update progress for UI feedback
       set(verificationProgressAtom, (prev) => ({
         ...prev,
         current: i + 1,
         currentItem: `Block ${entry.block}`,
       }));
 
-      // Mark as verifying
+      // Mark as verifying for UI indication (individual update for real-time feedback)
       const currentCache = get(verificationCacheAtom);
       set(verificationCacheAtom, {
         ...currentCache,
@@ -353,48 +493,28 @@ export const verifyAllMiningAtom = atom(
           entry.block
         );
 
-        const updatedCache = get(verificationCacheAtom);
-
         if (result.success) {
-          const { canClaim, isClaimed, isWinner } = result.data;
-          let status: VerificationStatus;
-
-          if (isClaimed) {
-            status = "claimed";
-          } else if (canClaim) {
-            status = "claimable";
-          } else if (!isWinner) {
-            status = "not-won";
-          } else {
-            status = "not-won";
-          }
-
-          set(verificationCacheAtom, {
-            ...updatedCache,
-            [key]: { status, verifiedAt: Date.now() },
-          });
+          const status = getMiningStatusFromResult(result.data);
+          batchUpdates[key] = { status, verifiedAt: Date.now() };
         } else {
-          set(verificationCacheAtom, {
-            ...updatedCache,
-            [key]: {
-              status: "error",
-              verifiedAt: Date.now(),
-              error: result.error.message,
-            },
-          });
-        }
-      } catch (error) {
-        const updatedCache = get(verificationCacheAtom);
-        set(verificationCacheAtom, {
-          ...updatedCache,
-          [key]: {
+          batchUpdates[key] = {
             status: "error",
             verifiedAt: Date.now(),
-            error: error instanceof Error ? error.message : String(error),
-          },
-        });
+            error: result.error.message,
+          };
+        }
+      } catch (error) {
+        batchUpdates[key] = {
+          status: "error",
+          verifiedAt: Date.now(),
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
     }
+
+    // Apply all results in a single batch cache update - O(k) instead of O(n*k)
+    const finalCache = get(verificationCacheAtom);
+    set(verificationCacheAtom, { ...finalCache, ...batchUpdates });
 
     set(verificationProgressAtom, {
       isRunning: false,
@@ -404,7 +524,6 @@ export const verifyAllMiningAtom = atom(
       total: 0,
       currentItem: "",
     });
-
   }
 );
 
@@ -462,9 +581,7 @@ export const verifySingleStackingAtom = atom(
       const updatedCache = get(verificationCacheAtom);
 
       if (result.success) {
-        const { reward, canClaim } = result.data;
-        const status: VerificationStatus = canClaim ? "claimable" : "no-reward";
-
+        const status = getStackingStatusFromResult(result.data);
         set(verificationCacheAtom, {
           ...updatedCache,
           [key]: { status, verifiedAt: Date.now() },
@@ -504,6 +621,12 @@ export const verifySingleStackingAtom = atom(
 
 /**
  * Verify all unverified stacking entries for a city
+ *
+ * Uses batch cache updates: collects all verification results during processing,
+ * then applies a single cache update at the end. This reduces complexity from
+ * O(n*k) to O(n+k) where n = entries to verify, k = cache size.
+ *
+ * Note: "verifying" status is still set per-entry for UI feedback during long operations.
  */
 export const verifyAllStackingAtom = atom(
   null,
@@ -535,7 +658,6 @@ export const verifyAllStackingAtom = atom(
       return;
     }
 
-
     set(verificationProgressAtom, {
       isRunning: true,
       type: "stacking",
@@ -545,7 +667,10 @@ export const verifyAllStackingAtom = atom(
       currentItem: "",
     });
 
-    // Process entries one by one (rate limited)
+    // Collect all verification results for batch cache update
+    const batchUpdates: Record<string, VerificationResult> = {};
+
+    // Process entries one by one (rate limited by hiroFetch)
     for (let i = 0; i < unverified.length; i++) {
       const entry = unverified[i];
       const userId = getUserIdForVersion(userIds, entry.city, entry.version)!;
@@ -556,14 +681,14 @@ export const verifyAllStackingAtom = atom(
         id: entry.cycle,
       });
 
-      // Update progress
+      // Update progress for UI feedback
       set(verificationProgressAtom, (prev) => ({
         ...prev,
         current: i + 1,
         currentItem: `Cycle ${entry.cycle}`,
       }));
 
-      // Mark as verifying
+      // Mark as verifying for UI indication (individual update for real-time feedback)
       const currentCache = get(verificationCacheAtom);
       set(verificationCacheAtom, {
         ...currentCache,
@@ -578,38 +703,28 @@ export const verifyAllStackingAtom = atom(
           entry.cycle
         );
 
-        const updatedCache = get(verificationCacheAtom);
-
         if (result.success) {
-          const { reward, canClaim } = result.data;
-          const status: VerificationStatus = canClaim ? "claimable" : "no-reward";
-
-          set(verificationCacheAtom, {
-            ...updatedCache,
-            [key]: { status, verifiedAt: Date.now() },
-          });
+          const status = getStackingStatusFromResult(result.data);
+          batchUpdates[key] = { status, verifiedAt: Date.now() };
         } else {
-          set(verificationCacheAtom, {
-            ...updatedCache,
-            [key]: {
-              status: "error",
-              verifiedAt: Date.now(),
-              error: result.error.message,
-            },
-          });
-        }
-      } catch (error) {
-        const updatedCache = get(verificationCacheAtom);
-        set(verificationCacheAtom, {
-          ...updatedCache,
-          [key]: {
+          batchUpdates[key] = {
             status: "error",
             verifiedAt: Date.now(),
-            error: error instanceof Error ? error.message : String(error),
-          },
-        });
+            error: result.error.message,
+          };
+        }
+      } catch (error) {
+        batchUpdates[key] = {
+          status: "error",
+          verifiedAt: Date.now(),
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
     }
+
+    // Apply all results in a single batch cache update - O(k) instead of O(n*k)
+    const finalCache = get(verificationCacheAtom);
+    set(verificationCacheAtom, { ...finalCache, ...batchUpdates });
 
     set(verificationProgressAtom, {
       isRunning: false,
@@ -619,7 +734,6 @@ export const verifyAllStackingAtom = atom(
       total: 0,
       currentItem: "",
     });
-
   }
 );
 
