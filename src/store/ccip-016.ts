@@ -1,5 +1,3 @@
-import { atom } from "jotai";
-import { atomWithStorage } from "jotai/utils";
 import {
   ClarityType,
   cvToJSON,
@@ -10,6 +8,8 @@ import {
   UIntCV,
   validateStacksAddress,
 } from "@stacks/transactions";
+import { atom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import { stxAddressAtom } from "./stacks";
 
 /////////////////////////
