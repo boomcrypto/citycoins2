@@ -9,6 +9,9 @@ interface VoteProgressBarV2Props {
 function VoteProgressBarV2({ props }: VoteProgressBarV2Props) {
   const totalVotes = props.totals.totalAmountYes + props.totals.totalAmountNo;
   const yesVotePercentage = (props.totals.totalAmountYes / totalVotes) * 100;
+  if (isNaN(yesVotePercentage)) {
+    return <Text>No votes yet</Text>;
+  }
 
   return (
     <Box width="100%">

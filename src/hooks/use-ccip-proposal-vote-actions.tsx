@@ -1,5 +1,5 @@
-import { openContractCall } from "@stacks/connect";
-import { boolCV, PostConditionMode } from "@stacks/transactions";
+import { request } from "@stacks/connect";
+import { boolCV } from "@stacks/transactions";
 import { useSetAtom } from "jotai";
 import {
     CcipProposalConfig,
@@ -12,20 +12,13 @@ export const useCcipProposalVoteActions = (config: CcipProposalConfig) => {
 
     const voteYes = async () => {
         try {
-            await openContractCall({
-                contractAddress: config.contractAddress,
-                contractName: config.contractName,
+            await request("stx_callContract", {
+                contract: `${config.contractAddress}.${config.contractName}`,
                 functionName: "vote-on-proposal",
                 functionArgs: [boolCV(true)],
-                postConditionMode: PostConditionMode.Deny,
-                onFinish: (data) => {
-                    console.log("Vote Yes transaction submitted:", data.txId);
-                    setHasVoted(true);
-                },
-                onCancel: () => {
-                    console.log("Vote Yes transaction cancelled");
-                },
             });
+            console.log("Vote Yes transaction submitted");
+            setHasVoted(true);
         } catch (error) {
             console.error(`Error voting Yes on ${config.contractName}:`, error);
         }
@@ -33,20 +26,13 @@ export const useCcipProposalVoteActions = (config: CcipProposalConfig) => {
 
     const voteNo = async () => {
         try {
-            await openContractCall({
-                contractAddress: config.contractAddress,
-                contractName: config.contractName,
+            await request("stx_callContract", {
+                contract: `${config.contractAddress}.${config.contractName}`,
                 functionName: "vote-on-proposal",
                 functionArgs: [boolCV(false)],
-                postConditionMode: PostConditionMode.Deny,
-                onFinish: (data) => {
-                    console.log("Vote No transaction submitted:", data.txId);
-                    setHasVoted(true);
-                },
-                onCancel: () => {
-                    console.log("Vote No transaction cancelled");
-                },
             });
+            console.log("Vote No transaction submitted");
+            setHasVoted(true);
         } catch (error) {
             console.error(`Error voting No on ${config.contractName}:`, error);
         }
