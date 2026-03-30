@@ -1,12 +1,22 @@
 import { atomWithStorage } from "jotai/utils";
 import {
   AddressTransactionsWithTransfersListResponse,
+  AddressTransactionsListResponse,
   Transaction,
 } from "@stacks/stacks-blockchain-api-types";
-import { HIRO_API, fancyFetch, sleep } from "./common";
+import { HIRO_API } from "./common";
+import { hiroFetch } from "../utilities/hiro-client";
 import { Setter, atom } from "jotai";
 import LZString from "lz-string";
 import { decodeTxArgs, isValidMiningTxArgs, isValidMiningClaimTxArgs, isValidStackingTxArgs, isValidStackingClaimTxArgs } from "../utilities/transactions";
+import { fetchAllUserIds, UserIds } from "../utilities/claim-verification";
+import {
+  canSaveData,
+  emitStorageWarning,
+  getStorageInfo,
+  getStringByteSize,
+  isQuotaExceededError,
+} from "../utilities/storage-monitor";
 
 /////////////////////////
 // TYPES
@@ -51,6 +61,19 @@ export const acctBalancesAtom = atomWithStorage(
   null
 );
 
+/**
+ * User IDs across all contract versions.
+ *
+ * - Legacy: Per-city, per-version IDs from each core contract
+ * - DAO: Shared ID from ccd003-user-registry
+ *
+ * Cached indefinitely (clear data button resets all atoms).
+ */
+export const userIdsAtom = atomWithStorage<UserIds | null>(
+  "citycoins-user-ids",
+  null
+);
+
 export const stacksLocalStorageAtoms = [
   blockHeightsAtom,
   stxAddressAtom,
@@ -58,22 +81,119 @@ export const stacksLocalStorageAtoms = [
   acctTxsAtom,
   acctMempoolTxsAtom,
   acctBalancesAtom,
+  userIdsAtom,
 ];
+
+/////////////////////////
+// USER ID FETCH STATUS
+/////////////////////////
+
+export type UserIdFetchStatus = {
+  isLoading: boolean;
+  error: string | null;
+  lastFetched: number | null;
+};
+
+export const userIdFetchStatusAtom = atom<UserIdFetchStatus>({
+  isLoading: false,
+  error: null,
+  lastFetched: null,
+});
+
+/**
+ * Action atom to fetch all user IDs for the current address.
+ *
+ * This fetches user IDs from:
+ * - Legacy API: Per-city, per-version (MIA v1/v2, NYC v1/v2)
+ * - Protocol API: Shared DAO ID from ccd003
+ *
+ * All requests go through the rate-limited fetch utility.
+ * Results are cached indefinitely in localStorage.
+ */
+export const fetchUserIdsAtom = atom(
+  null,
+  async (get, set) => {
+    const address = get(stxAddressAtom);
+    if (!address) {
+      return;
+    }
+
+    // Check if we already have user IDs cached
+    const existingIds = get(userIdsAtom);
+    if (existingIds) {
+      return;
+    }
+
+    set(userIdFetchStatusAtom, {
+      isLoading: true,
+      error: null,
+      lastFetched: null,
+    });
+
+    try {
+      const result = await fetchAllUserIds(address);
+
+      if (!result.success) {
+        throw new Error(result.error.message);
+      }
+
+      set(userIdsAtom, result.data);
+      set(userIdFetchStatusAtom, {
+        isLoading: false,
+        error: null,
+        lastFetched: Date.now(),
+      });
+    } catch (error) {
+      set(userIdFetchStatusAtom, {
+        isLoading: false,
+        error: error instanceof Error ? error.message : String(error),
+        lastFetched: null,
+      });
+    }
+  }
+);
 
 /////////////////////////
 // DERIVED ATOMS
 /////////////////////////
 
+/**
+ * Memoization cache for decompressed transactions.
+ *
+ * Without memoization, LZ-string decompression runs on every atom read,
+ * which at 10k transactions takes ~50ms per read. With memoization,
+ * decompression only runs when the compressed data actually changes.
+ */
+let cachedDecompressedTxs: Transaction[] | null = null;
+let cachedCompressedString: string | null = null;
+
 export const decompressedAcctTxsAtom = atom((get) => {
   const acctTxs = get(acctTxsAtom);
-  if (!acctTxs) return [];
+
+  // Handle empty input
+  if (!acctTxs) {
+    cachedCompressedString = null;
+    cachedDecompressedTxs = null;
+    return [];
+  }
+
+  // Return cached result if compressed data hasn't changed
+  if (acctTxs === cachedCompressedString && cachedDecompressedTxs !== null) {
+    return cachedDecompressedTxs;
+  }
+
+  // Decompress and cache
   try {
     const decompressedTxs: Transaction[] = JSON.parse(
       LZString.decompress(acctTxs)
     );
+    cachedCompressedString = acctTxs;
+    cachedDecompressedTxs = decompressedTxs;
     return decompressedTxs;
   } catch (error) {
     console.error("Failed to decompress transactions", error);
+    cachedCompressedString = null;
+    cachedDecompressedTxs = null;
     return [];
   }
 });
@@ -89,7 +209,6 @@ export const transactionsAtom = atom(
   async (get, set, update: Transaction[]) => {
     const address = get(stxAddressAtom);
     if (!address) return;
-    console.log("starting fetch of all txs");
     set(transactionFetchStatusAtom, {
       isLoading: true,
       error: null,
@@ -97,7 +216,6 @@ export const transactionsAtom = atom(
     });
     try {
       const newTxs = await getAllTxs(address, update, set);
-      console.log("fetch complete, setting acctTxsAtom");
       set(transactionFetchStatusAtom, {
         isLoading: false,
         error: null,
@@ -106,7 +224,13 @@ export const transactionsAtom = atom(
       const compressedTxs = LZString.compress(JSON.stringify(newTxs));
       set(acctTxsAtom, compressedTxs);
     } catch (error) {
-      throw error;
+      // Save whatever transactions we have so far
+      set(transactionFetchStatusAtom, {
+        isLoading: false,
+        error: error instanceof Error ? error.message : String(error),
+        progress: 0,
+      });
+      // Don't throw - we want to keep partial results
     }
   }
 );
@@ -193,12 +317,88 @@ export const transactionFetchStatusAtom = atom<FetchStatus>({
 });
 
 /////////////////////////
+// BLOCK HEIGHT FETCH STATUS
+/////////////////////////
+
+export type BlockHeightFetchStatus = {
+  isLoading: boolean;
+  error: string | null;
+  lastFetched: number | null;
+};
+
+export const blockHeightFetchStatusAtom = atom<BlockHeightFetchStatus>({
+  isLoading: false,
+  error: null,
+  lastFetched: null,
+});
+
+// Cache duration for block heights (30 seconds)
+const BLOCK_HEIGHT_CACHE_DURATION = 30 * 1000;
+
+/////////////////////////
 // LOADABLE ASYNC ATOMS
 /////////////////////////
 
 export const blockHeightsQueryAtom = atom(async () => {
   return await getBlockHeights();
 });
+
+/**
+ * Action atom to fetch block heights with deduplication.
+ *
+ * - Checks if a fetch is already in progress
+ * - Checks if cached data is still fresh (within BLOCK_HEIGHT_CACHE_DURATION)
+ * - Only fetches if needed
+ */
+export const fetchBlockHeightsAtom = atom(
+  null,
+  async (get, set) => {
+    const status = get(blockHeightFetchStatusAtom);
+    const existingHeights = get(blockHeightsAtom);
+
+    // Skip if already loading (deduplication)
+    if (status.isLoading) {
+      return existingHeights;
+    }
+
+    // Skip if cache is still fresh
+    const now = Date.now();
+    if (
+      status.lastFetched &&
+      existingHeights &&
+      now - status.lastFetched < BLOCK_HEIGHT_CACHE_DURATION
+    ) {
+      return existingHeights;
+    }
+
+    set(blockHeightFetchStatusAtom, {
+      isLoading: true,
+      error: null,
+      lastFetched: status.lastFetched,
+    });
+
+    try {
+      const blockHeights = await getBlockHeights();
+      if (blockHeights) {
+        set(blockHeightsAtom, blockHeights);
+        set(blockHeightFetchStatusAtom, {
+          isLoading: false,
+          error: null,
+          lastFetched: Date.now(),
+        });
+        return blockHeights;
+      }
+      throw new Error("Failed to fetch block heights");
+    } catch (error) {
+      set(blockHeightFetchStatusAtom, {
+        isLoading: false,
+        error: error instanceof Error ? error.message : String(error),
+        lastFetched: status.lastFetched,
+      });
+      return existingHeights;
+    }
+  }
+);
 
 /////////////////////////
 // HELPER FUNCTIONS
@@ -208,7 +408,7 @@ async function getBlockHeights(): Promise<BlockHeights | undefined> {
   try {
     const v2InfoResponse = await fetch(`${HIRO_API}/v2/info`);
     const v2Info = await v2InfoResponse.json();
-    if (!v2Info.burn_block_height || !v2Info.stacks_tip_height) {
+    if (v2Info.burn_block_height && v2Info.stacks_tip_height) {
       const blockHeights: BlockHeights = {
         btc: v2Info.burn_block_height,
         stx: v2Info.stacks_tip_height,
@@ -222,86 +422,180 @@ async function getBlockHeights(): Promise<BlockHeights | undefined> {
   }
 }
 
+/**
+ * Local sleep helper for exponential backoff on consecutive errors.
+ * Note: Normal request spacing is handled by hiroFetch queue.
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function getAllTxs(
   address: string,
   existingTxs: Transaction[],
   atomSetter: Setter
 ) {
-  try {
-    // set fetch parameters and vars
-    const endpoint = `${HIRO_API}/extended/v2/addresses/${address}/transactions`;
-    const limit = 50;
-    let offset = 0;
-    let totalTransactions = 0;
-    // get initial response for transaction total
-    const initialResponse =
-      await fancyFetch<AddressTransactionsWithTransfersListResponse>(
-        `${endpoint}?limit=${limit}`
+  // Use v1 endpoint which supports offset pagination (v2 uses cursor-based)
+  const endpoint = `${HIRO_API}/extended/v1/address/${address}/transactions`;
+  const limit = 50;
+  let offset = 0;
+  let totalTransactions = 0;
+  let consecutiveErrors = 0;
+  const maxConsecutiveErrors = 3;
+
+  // Use a Map for O(1) deduplication (tx_id -> transaction)
+  const txMap = new Map<string, Transaction>();
+
+  // Add existing transactions to map
+  for (const tx of existingTxs) {
+    if (tx?.tx_id) txMap.set(tx.tx_id, tx);
+  }
+  const existingCount = txMap.size;
+
+  // Helper to get array from map and save
+  const getTransactions = () => Array.from(txMap.values());
+  const saveProgress = () => {
+    const txs = getTransactions();
+    const compressedTxs = LZString.compress(JSON.stringify(txs));
+
+    // Check storage before saving - calculate delta vs existing data
+    const newSize = getStringByteSize(compressedTxs);
+    const existingData = localStorage.getItem("citycoins-stacks-acctTxs") || "";
+    const existingSize = getStringByteSize(existingData);
+    const deltaSize = newSize - existingSize; // Can be negative if shrinking
+    const storageCheck = canSaveData(Math.max(0, deltaSize));
+
+    // Emit warning at warning/critical levels
+    if (storageCheck.level === "warning" || storageCheck.level === "critical") {
+      emitStorageWarning(storageCheck.level, storageCheck.info);
+    }
+
+    // Skip save if quota would be exceeded
+    if (!storageCheck.ok) {
+      console.warn(
+        `Storage quota exceeded. Cannot save ${txs.length} transactions.`
       );
+      emitStorageWarning("exceeded", storageCheck.info);
+      return;
+    }
+
+    // Attempt save with graceful error handling
+    try {
+      atomSetter(acctTxsAtom, compressedTxs);
+    } catch (error) {
+      if (isQuotaExceededError(error)) {
+        console.warn("localStorage quota exceeded during save");
+        emitStorageWarning("exceeded", getStorageInfo());
+      } else {
+        // Re-throw non-quota errors
+        throw error;
+      }
+    }
+  };
+
+  try {
+    // Get initial response for transaction total
+    // hiroFetch handles rate limiting via header-aware queue
+    const initialResult = await hiroFetch<AddressTransactionsListResponse>(
+      `${endpoint}?limit=${limit}`
+    );
+    if (!initialResult.ok || !initialResult.data) {
+      throw new Error(initialResult.error || "Failed to fetch initial transactions");
+    }
+    const initialResponse = initialResult.data;
     totalTransactions = initialResponse.total;
-    console.log(totalTransactions, "total transactions");
-    // return if all transactions are already loaded
-    if (existingTxs.length === totalTransactions) {
-      console.log("all transactions already loaded");
+
+    // Return if all transactions are already loaded
+    if (existingCount === totalTransactions) {
       return existingTxs;
     }
-    // create array of new transactions
-    // console.log("initialResponse", initialResponse);
-    const newTransactions = initialResponse.results.map(
-      (txRecord) => txRecord.tx
-    );
-    console.log(newTransactions.length, "new transactions");
-    // console.log(newTransactions);
-    // create array of unique transactions
-    const uniqueTransactions = [
-      ...existingTxs,
-      ...newTransactions.filter(
-        (tx) => !existingTxs.some((knownTx) => knownTx?.tx_id === tx.tx_id)
-      ),
-    ];
-    console.log(uniqueTransactions.length, "unique transactions");
-    // return if all transactions are now loaded
-    if (uniqueTransactions.length === totalTransactions) {
-      console.log("all transactions now loaded");
-      return uniqueTransactions;
+
+    // Process initial fetch - v1 returns transactions directly in results
+    const newTransactions = initialResponse.results as Transaction[];
+
+    for (const tx of newTransactions) {
+      if (tx?.tx_id && !txMap.has(tx.tx_id)) {
+        txMap.set(tx.tx_id, tx);
+      }
     }
-    // loop until all transactions are loaded
-    while (uniqueTransactions.length < totalTransactions) {
-      await sleep(500); // rate limiting
+
+    // Update progress
+    atomSetter(transactionFetchStatusAtom, (prev) => ({
+      ...prev,
+      progress: Math.round(limit / totalTransactions * 100),
+    }));
+
+    // Save after initial fetch
+    saveProgress();
+
+    // Return if we've fetched everything or API returned less than limit
+    if (newTransactions.length < limit || limit >= totalTransactions) {
+      return getTransactions();
+    }
+
+    // Loop to fetch remaining transactions
+    // No manual sleep needed - hiroFetch queue handles rate limiting
+    while (offset + limit < totalTransactions) {
       offset += limit;
-      console.log("new loop, offset:", offset);
-      const response =
-        await fancyFetch<AddressTransactionsWithTransfersListResponse>(
-          `${endpoint}?limit=${limit}&offset=${offset}`
-        );
-      // get transactions from response
-      const additionalTransactions = response.results.map(
-        (txRecord) => txRecord.tx
+
+      // hiroFetch handles rate limiting via header-aware queue
+      const result = await hiroFetch<AddressTransactionsListResponse>(
+        `${endpoint}?limit=${limit}&offset=${offset}`
       );
-      console.log(additionalTransactions.length, "additional transactions");
-      // filter out transactions already known
-      const uniqueAdditionalTransactions = additionalTransactions.filter(
-        (tx) =>
-          !uniqueTransactions.some((knownTx) => knownTx?.tx_id === tx.tx_id)
-      );
-      console.log(
-        uniqueAdditionalTransactions.length,
-        "unique additional transactions"
-      );
-      // add new transactions to uniqueTransactions
-      uniqueTransactions.push(...uniqueAdditionalTransactions);
-      console.log(uniqueTransactions.length, "total unique transactions");
-      // update progress for front-end
-      const progress = Math.round(
-        (uniqueTransactions.length / totalTransactions) * 100
+
+      if (!result.ok || !result.data) {
+        // Treat as fetch error for retry logic
+        consecutiveErrors++;
+        saveProgress();
+
+        if (consecutiveErrors >= maxConsecutiveErrors) {
+          return getTransactions();
+        }
+
+        // Exponential backoff: 5s, 10s, 20s
+        const backoffTime = 5000 * Math.pow(2, consecutiveErrors - 1);
+        await sleep(backoffTime);
+        offset -= limit; // Retry same offset
+        continue;
+      }
+
+      consecutiveErrors = 0; // Reset on success
+
+      // v1 returns transactions directly in results
+      const additionalTransactions = result.data.results as Transaction[];
+
+      // Add unique transactions to map
+      for (const tx of additionalTransactions) {
+        if (tx?.tx_id && !txMap.has(tx.tx_id)) {
+          txMap.set(tx.tx_id, tx);
+        }
+      }
+
+      // Update progress based on offset
+      const progress = Math.min(
+        Math.round((offset + limit) / totalTransactions * 100),
+        100
       );
       atomSetter(transactionFetchStatusAtom, (prev) => ({
         ...prev,
         progress,
       }));
+
+      // Save every 500 transactions
+      if (offset % 500 === 0) {
+        saveProgress();
+      }
+
+      // Stop if API returned fewer than requested (end of data)
+      if (additionalTransactions.length < limit) {
+        break;
+      }
     }
-    // return all transactions
-    return uniqueTransactions;
+
+    // Final save
+    saveProgress();
+    return getTransactions();
+
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to fetch transactions: ${error.message}`);

@@ -1,11 +1,18 @@
-// DERIVED ATOMS FOR TRANSACTIONS
+/**
+ * CityCoins Transaction Type Atoms
+ *
+ * Provides derived atoms for filtering transactions by type.
+ * Uses single-pass processing for better performance.
+ */
 
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { transactionsAtom } from "./stacks";
 import { atom } from "jotai";
-import { CONTRACTS, CoinType, VOTING_CONTRACTS } from "../config/contracts";
+import { CONTRACTS, CoinType, ContractConfig, VOTING_CONTRACTS } from "../config/city-config";
 
-// helpers for selecting specific transaction types
+// =============================================================================
+// TYPES
+// =============================================================================
 
 export type TransactionTypes =
   | "all"
@@ -15,58 +22,13 @@ export type TransactionTypes =
   | "stacking-claims"
   | "voting";
 
-export const selectedTransactionTypeAtom = atom<TransactionTypes>("all");
-export const selectedTransactionsAtom = atom<Transaction[]>((get) => {
-  const selectedTransactionType = get(selectedTransactionTypeAtom);
-
-  switch (selectedTransactionType) {
-    case "mining":
-      const miningTransactions = get(miningTransactionsAtom);
-      return miningTransactions;
-    case "mining-claims":
-      const miningClaimTransactions = get(miningClaimTransactionsAtom);
-      return miningClaimTransactions;
-    case "stacking":
-      const stackingTransactions = get(stackingTransactionsAtom);
-      return stackingTransactions;
-    case "stacking-claims":
-      const stackingClaimTransactions = get(stackingClaimTransactionsAtom);
-      return stackingClaimTransactions;
-    case "voting":
-      const votingTransactions = get(votingTransactionsAtom);
-      return votingTransactions;
-    case "all":
-    default:
-      const existingTransactions = get(transactionsAtom);
-      return existingTransactions;
-  }
-});
-
-// helpers for identifying specific contract calls
-
 type ContractFunctionMap = {
   [contract: string]: string | string[];
 };
 
-function checkContract(
-  contractName: string,
-  contractCallsMap: ContractFunctionMap
-) {
-  return contractCallsMap.hasOwnProperty(contractName);
-}
-
-function checkFunctionName(
-  contractId: string,
-  functionName: string,
-  transactionCalls: ContractFunctionMap
-): boolean {
-  const expectedFunctionName = transactionCalls[contractId];
-  if (Array.isArray(expectedFunctionName)) {
-    return expectedFunctionName.includes(functionName);
-  } else {
-    return functionName === expectedFunctionName;
-  }
-}
+// =============================================================================
+// PRE-COMPUTED CONTRACT MAPS (computed once at module load)
+// =============================================================================
 
 function getContractFunctionMap(type: keyof ContractConfig['functions'], coin?: CoinType): ContractFunctionMap {
   const map: ContractFunctionMap = {};
@@ -96,99 +58,138 @@ function getContractFunctionMap(type: keyof ContractConfig['functions'], coin?: 
   return map;
 }
 
-// MINING TRANSACTIONS
+// Pre-compute contract maps once at module load (not on every iteration)
+const MINING_CONTRACT_MAP = getContractFunctionMap('mining');
+const MINING_CLAIMS_CONTRACT_MAP = getContractFunctionMap('miningClaims');
+const STACKING_CONTRACT_MAP = getContractFunctionMap('stacking');
+const STACKING_CLAIMS_CONTRACT_MAP = getContractFunctionMap('stackingClaims');
 
-export const miningTransactionsAtom = atom(
-  // read from current known txs
-  (get) => {
-    const transactions = get(transactionsAtom);
-    const miningTransactionCalls = getContractFunctionMap('mining');
-    return transactions.filter(
-      (tx) =>
-        tx.tx_type === "contract_call" &&
-        checkContract(tx.contract_call.contract_id, miningTransactionCalls) &&
-        checkFunctionName(
-          tx.contract_call.contract_id,
-          tx.contract_call.function_name,
-          miningTransactionCalls
-        )
-    );
-  }
-);
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
 
-export const miningClaimTransactionsAtom = atom(
-  // read from current known txs
-  (get) => {
-    const transactions = get(transactionsAtom);
-    const miningClaimTransactionCalls = getContractFunctionMap('miningClaims');
-    return transactions.filter(
-      (tx) =>
-        tx.tx_type === "contract_call" &&
-        checkContract(
-          tx.contract_call.contract_id,
-          miningClaimTransactionCalls
-        ) &&
-        checkFunctionName(
-          tx.contract_call.contract_id,
-          tx.contract_call.function_name,
-          miningClaimTransactionCalls
-        )
-    );
-  }
-);
+function checkContract(
+  contractName: string,
+  contractCallsMap: ContractFunctionMap
+) {
+  return contractCallsMap.hasOwnProperty(contractName);
+}
 
-export const stackingTransactionsAtom = atom(
-  // read from current known txs
-  (get) => {
-    const transactions = get(transactionsAtom);
-    const stackingTransactionCalls = getContractFunctionMap('stacking');
-    return transactions.filter(
-      (tx) =>
-        tx.tx_type === "contract_call" &&
-        checkContract(tx.contract_call.contract_id, stackingTransactionCalls) &&
-        checkFunctionName(
-          tx.contract_call.contract_id,
-          tx.contract_call.function_name,
-          stackingTransactionCalls
-        )
-    );
+function checkFunctionName(
+  contractId: string,
+  functionName: string,
+  transactionCalls: ContractFunctionMap
+): boolean {
+  const expectedFunctionName = transactionCalls[contractId];
+  if (Array.isArray(expectedFunctionName)) {
+    return expectedFunctionName.includes(functionName);
+  } else {
+    return functionName === expectedFunctionName;
   }
-);
+}
 
-export const stackingClaimTransactionsAtom = atom(
-  // read from current known txs
-  (get) => {
-    const transactions = get(transactionsAtom);
-    const stackingClaimTransactionCalls = getContractFunctionMap('stackingClaims');
-    return transactions.filter(
-      (tx) =>
-        tx.tx_type === "contract_call" &&
-        checkContract(
-          tx.contract_call.contract_id,
-          stackingClaimTransactionCalls
-        ) &&
-        checkFunctionName(
-          tx.contract_call.contract_id,
-          tx.contract_call.function_name,
-          stackingClaimTransactionCalls
-        )
-    );
-  }
-);
+// =============================================================================
+// CATEGORIZED TRANSACTIONS ATOM (Single-pass processing)
+// =============================================================================
 
-export const votingTransactionsAtom = atom(
-  // read from current known txs
-  (get) => {
-    const transactions = get(transactionsAtom);
-    return transactions.filter(
-      (tx) =>
-        tx.tx_type === "contract_call" &&
-        checkContract(tx.contract_call.contract_id, VOTING_CONTRACTS) &&
-        checkFunctionName(
-          tx.contract_call.contract_id,
-          tx.contract_call.function_name,
-          VOTING_CONTRACTS
-        )
-    );
+interface CategorizedTransactions {
+  mining: Transaction[];
+  miningClaims: Transaction[];
+  stacking: Transaction[];
+  stackingClaims: Transaction[];
+  voting: Transaction[];
+}
+
+/**
+ * Single-pass categorization of all transactions.
+ * This is more efficient than having each atom filter the full list separately.
+ */
+const categorizedTransactionsAtom = atom<CategorizedTransactions>((get) => {
+  const transactions = get(transactionsAtom);
+
+  const result: CategorizedTransactions = {
+    mining: [],
+    miningClaims: [],
+    stacking: [],
+    stackingClaims: [],
+    voting: [],
+  };
+
+  // Single pass through all transactions
+  for (const tx of transactions) {
+    if (tx.tx_type !== "contract_call") continue;
+
+    const contractId = tx.contract_call.contract_id;
+    const functionName = tx.contract_call.function_name;
+
+    // Check each category (a transaction can match multiple categories if needed)
+    if (checkContract(contractId, MINING_CONTRACT_MAP) &&
+        checkFunctionName(contractId, functionName, MINING_CONTRACT_MAP)) {
+      result.mining.push(tx);
+    } else if (checkContract(contractId, MINING_CLAIMS_CONTRACT_MAP) &&
+        checkFunctionName(contractId, functionName, MINING_CLAIMS_CONTRACT_MAP)) {
+      result.miningClaims.push(tx);
+    } else if (checkContract(contractId, STACKING_CONTRACT_MAP) &&
+        checkFunctionName(contractId, functionName, STACKING_CONTRACT_MAP)) {
+      result.stacking.push(tx);
+    } else if (checkContract(contractId, STACKING_CLAIMS_CONTRACT_MAP) &&
+        checkFunctionName(contractId, functionName, STACKING_CLAIMS_CONTRACT_MAP)) {
+      result.stackingClaims.push(tx);
+    } else if (checkContract(contractId, VOTING_CONTRACTS) &&
+        checkFunctionName(contractId, functionName, VOTING_CONTRACTS)) {
+      result.voting.push(tx);
+    }
   }
-);
+
+  return result;
+});
+
+// =============================================================================
+// INDIVIDUAL TRANSACTION TYPE ATOMS
+// =============================================================================
+
+export const miningTransactionsAtom = atom((get) => {
+  return get(categorizedTransactionsAtom).mining;
+});
+
+export const miningClaimTransactionsAtom = atom((get) => {
+  return get(categorizedTransactionsAtom).miningClaims;
+});
+
+export const stackingTransactionsAtom = atom((get) => {
+  return get(categorizedTransactionsAtom).stacking;
+});
+
+export const stackingClaimTransactionsAtom = atom((get) => {
+  return get(categorizedTransactionsAtom).stackingClaims;
+});
+
+export const votingTransactionsAtom = atom((get) => {
+  return get(categorizedTransactionsAtom).voting;
+});
+
+// =============================================================================
+// SELECTED TRANSACTION TYPE ATOMS
+// =============================================================================
+
+export const selectedTransactionTypeAtom = atom<TransactionTypes>("all");
+
+export const selectedTransactionsAtom = atom<Transaction[]>((get) => {
+  const selectedTransactionType = get(selectedTransactionTypeAtom);
+
+  switch (selectedTransactionType) {
+    case "mining":
+      return get(miningTransactionsAtom);
+    case "mining-claims":
+      return get(miningClaimTransactionsAtom);
+    case "stacking":
+      return get(stackingTransactionsAtom);
+    case "stacking-claims":
+      return get(stackingClaimTransactionsAtom);
+    case "voting":
+      return get(votingTransactionsAtom);
+    case "all":
+    default:
+      return get(transactionsAtom);
+  }
+});

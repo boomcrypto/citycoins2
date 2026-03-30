@@ -124,7 +124,6 @@ export const ccip016IsVoteActiveQueryAtom = atom(async () => {
 export const ccip016VoteTotalsQueryAtom = atom(async () => {
   try {
     const voteTotals = await getVoteTotals();
-    console.log(voteTotals, "voteTotals");
     return voteTotals;
   } catch (error) {
     throw new Error(

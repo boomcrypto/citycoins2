@@ -14,7 +14,7 @@ To run locally:
 
 ```
 npm install
-npm start
+npm run dev
 ```
 
 Deployed via Cloudflare Pages.

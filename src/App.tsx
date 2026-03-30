@@ -3,46 +3,44 @@ import Content from "./components/layout/page-content";
 import Footer from "./components/layout/page-footer";
 import Header from "./components/layout/page-header";
 import { Provider } from "./components/ui/provider";
-import { useState } from "react";
-import TransactionDetailsDialog from "./components/transaction-details-dialog";
-import { Transaction } from "@stacks/stacks-blockchain-api-types";
+import { Toaster } from "./components/ui/toaster";
+import { useStorageMonitor } from "./hooks/use-storage-monitor";
+import { useBroadcastSync } from "./hooks/use-broadcast-sync";
 
-export const App = () => {
-  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
+/**
+ * Inner app content with storage monitoring and cross-tab sync
+ */
+const AppContent = () => {
+  // Monitor localStorage usage and show warnings
+  useStorageMonitor();
 
-  const onOpenDetails = (tx: Transaction) => {
-    setSelectedTx(tx);
-    setIsOpen(true);
-  };
-
-  const onClose = () => {
-    setIsOpen(false);
-    setSelectedTx(null);
-  };
+  // Enable cross-tab synchronization for verification cache
+  useBroadcastSync();
 
   return (
-    <Provider>
-      <Flex direction="column" minH="100vh">
-        <Header />
-        <Separator />
-        <Flex
-          flex="1"
-          alignItems="flex-start"
-          justifyContent="center"
-          my={16}
-          mx={[2, 8]}
-        >
-          <Content onOpenDetails={onOpenDetails} />
-        </Flex>
-        <Separator />
-        <Footer />
+    <Flex direction="column" minH="100vh">
+      <Header />
+      <Separator />
+      <Flex
+        flex="1"
+        alignItems="flex-start"
+        justifyContent="center"
+        my={16}
+        mx={[2, 8]}
+      >
+        <Content />
       </Flex>
-      <TransactionDetailsDialog
-        tx={selectedTx}
-        isOpen={isOpen}
-        onClose={onClose}
-      />
+      <Separator />
+      <Footer />
+    </Flex>
+  );
+};
+
+export const App = () => {
+  return (
+    <Provider>
+      <AppContent />
+      <Toaster />
     </Provider>
   );
 };

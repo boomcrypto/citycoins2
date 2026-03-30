@@ -13,9 +13,7 @@ function SignIn(props: { variant?: string }) {
       onClick={async () => {
         await connect();
         const userData = getLocalStorage();
-        const stxAddress = userData?.addresses.stx[0].address
-        //console.log("User Data:", userData);
-        //console.log("STX Address:", stxAddress);
+        const stxAddress = userData?.addresses.stx[0].address;
         setStxAddress(stxAddress || null);
         if (stxAddress) {
           await updateTransactions([]);

@@ -26,5 +26,6 @@ yarn-debug.log*
 yarn-error.log*
 .aider*
 .env
+.planning/
 
 dist

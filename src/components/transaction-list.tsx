@@ -18,7 +18,8 @@ import { useAtom, useAtomValue } from "jotai";
 import { transactionFetchStatusAtom, transactionsAtom } from "../store/stacks";
 import { formatDate } from "../store/common";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
-import { useState } from "react";
+import { useState, useMemo, useCallback, memo, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -93,6 +94,141 @@ const filterStatusCollection = createListCollection({
   ],
 });
 
+// Memoized table row component to prevent unnecessary re-renders
+const TransactionRow = memo(function TransactionRow({
+  tx,
+  onOpenDetails,
+}: {
+  tx: Transaction;
+  onOpenDetails: (tx: Transaction) => void;
+}) {
+  const category = getCategory(tx);
+
+  return (
+    <Table.Row>
+      <Table.Cell>
+        <Link
+          href={`https://explorer.hiro.so/tx/${tx.tx_id}`}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {shortenTxId(tx.tx_id)}
+        </Link>
+      </Table.Cell>
+      <Table.Cell>
+        <Badge colorScheme={getCategoryColor(category)}>
+          {category}
+        </Badge>
+      </Table.Cell>
+      <Table.Cell>
+        <Badge
+          colorScheme={
+            tx.tx_status === "success"
+              ? "green"
+              : tx.tx_status === "failed"
+              ? "red"
+              : "gray"
+          }
+        >
+          {tx.tx_status}
+        </Badge>
+      </Table.Cell>
+      <Table.Cell>{formatDate(tx.block_time_iso)}</Table.Cell>
+      <Table.Cell>
+        <Button size="sm" onClick={() => onOpenDetails(tx)}>
+          Details
+        </Button>
+      </Table.Cell>
+    </Table.Row>
+  );
+});
+
+// Virtualized table body for large datasets
+function VirtualizedTableBody({
+  transactions,
+  onOpenDetails,
+}: {
+  transactions: Transaction[];
+  onOpenDetails: (tx: Transaction) => void;
+}) {
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: transactions.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 48, // Approximate row height
+    overscan: 10, // Render 10 extra rows above/below viewport
+  });
+
+  if (transactions.length === 0) {
+    return (
+      <Table.Body>
+        <Table.Row>
+          <Table.Cell colSpan={5} textAlign="center">
+            No transactions found.
+          </Table.Cell>
+        </Table.Row>
+      </Table.Body>
+    );
+  }
+
+  // For small lists (< 100), render normally without virtualization overhead
+  if (transactions.length < 100) {
+    return (
+      <Table.Body>
+        {transactions.map((tx) => (
+          <TransactionRow
+            key={tx.tx_id}
+            tx={tx}
+            onOpenDetails={onOpenDetails}
+          />
+        ))}
+      </Table.Body>
+    );
+  }
+
+  return (
+    <Box
+      ref={parentRef}
+      style={{
+        height: "500px",
+        overflow: "auto",
+      }}
+    >
+      <Box
+        style={{
+          height: `${rowVirtualizer.getTotalSize()}px`,
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        <Table.Root variant="outline" size="sm">
+          <Table.Body>
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const tx = transactions[virtualRow.index];
+              return (
+                <Box
+                  key={tx.tx_id}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: `${virtualRow.size}px`,
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <TransactionRow tx={tx} onOpenDetails={onOpenDetails} />
+                </Box>
+              );
+            })}
+          </Table.Body>
+        </Table.Root>
+      </Box>
+    </Box>
+  );
+}
+
 function TransactionList({
   transactions,
   onOpenDetails,
@@ -106,44 +242,51 @@ function TransactionList({
   const [filterStatus, setFilterStatus] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredTransactions = transactions.filter((tx) => {
-    if (
-      searchTerm &&
-      !tx.tx_id.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-      return false;
-    if (filterStatus !== "All" && tx.tx_status !== filterStatus) return false;
-    const category = getCategory(tx);
-    if (filterType !== "All" && category !== filterType) return false;
-    return true;
-  });
+  // Memoize filtered transactions to prevent recalculation on every render
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((tx) => {
+      if (
+        searchTerm &&
+        !tx.tx_id.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+        return false;
+      if (filterStatus !== "All" && tx.tx_status !== filterStatus) return false;
+      const category = getCategory(tx);
+      if (filterType !== "All" && category !== filterType) return false;
+      return true;
+    });
+  }, [transactions, searchTerm, filterStatus, filterType]);
 
-  const fetchTransactions = async () => {
+  // Memoize summaries calculation
+  const summaries = useMemo(() => {
+    return filteredTransactions.reduce(
+      (acc, tx) => {
+        const category = getCategory(tx);
+        if (category === "Mining") acc.mining++;
+        else if (category === "Mining Claim") acc.miningClaims++;
+        else if (category === "Stacking") acc.stacking++;
+        else if (category === "Stacking Claim") acc.stackingClaims++;
+        else if (category === "Transfer") acc.transfers++;
+        return acc;
+      },
+      { mining: 0, miningClaims: 0, stacking: 0, stackingClaims: 0, transfers: 0 }
+    );
+  }, [filteredTransactions]);
+
+  // Memoize fetch handler
+  const fetchTransactions = useCallback(async () => {
     if (isLoading) return;
     try {
       await updateTransactions(allTransactions);
     } catch (error) {
       console.error("Failed to fetch transactions:", error);
     }
-  };
+  }, [isLoading, updateTransactions, allTransactions]);
 
-  const handleOpenDetails = (tx: Transaction) => {
+  // Memoize open details handler
+  const handleOpenDetails = useCallback((tx: Transaction) => {
     onOpenDetails(tx);
-  };
-
-  // Compute summaries
-  const summaries = filteredTransactions.reduce(
-    (acc, tx) => {
-      const category = getCategory(tx);
-      if (category === "Mining") acc.mining++;
-      else if (category === "Mining Claim") acc.miningClaims++;
-      else if (category === "Stacking") acc.stacking++;
-      else if (category === "Stacking Claim") acc.stackingClaims++;
-      else if (category === "Transfer") acc.transfers++;
-      return acc;
-    },
-    { mining: 0, miningClaims: 0, stacking: 0, stackingClaims: 0, transfers: 0 }
-  );
+  }, [onOpenDetails]);
 
   // Helper component for status indicator
   const StatusIndicator = () => (
@@ -282,79 +425,51 @@ function TransactionList({
     </Stack>
   );
 
-  // Helper component for transaction table
-  const TransactionTable = () => (
-    <Box overflowX="auto">
-      <Table.Root variant="outline">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader>TXID</Table.ColumnHeader>
-            <Table.ColumnHeader>Type</Table.ColumnHeader>
-            <Table.ColumnHeader>Status</Table.ColumnHeader>
-            <Table.ColumnHeader>Date</Table.ColumnHeader>
-            <Table.ColumnHeader>Actions</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {filteredTransactions.length === 0 ? (
-            <Table.Row>
-              <Table.Cell colSpan={5} textAlign="center">
-                No transactions found.
-              </Table.Cell>
-            </Table.Row>
-          ) : (
-            filteredTransactions.map((tx) => {
-              const category = getCategory(tx);
-              return (
-                <Table.Row key={tx.tx_id}>
-                  <Table.Cell>
-                    <Link
-                      href={`https://explorer.hiro.so/tx/${tx.tx_id}`}
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      {shortenTxId(tx.tx_id)}
-                    </Link>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge colorScheme={getCategoryColor(category)}>
-                      {category}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge
-                      colorScheme={
-                        tx.tx_status === "success"
-                          ? "green"
-                          : tx.tx_status === "failed"
-                          ? "red"
-                          : "gray"
-                      }
-                    >
-                      {tx.tx_status}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell>{formatDate(tx.block_time_iso)}</Table.Cell>
-                  <Table.Cell>
-                    <Button size="sm" onClick={() => handleOpenDetails(tx)}>
-                      Details
-                    </Button>
-                  </Table.Cell>
-                </Table.Row>
-              );
-            })
-          )}
-        </Table.Body>
-      </Table.Root>
-    </Box>
-  );
+  // Use virtualized or standard table based on count
+  const useVirtualization = filteredTransactions.length >= 100;
 
   return (
     <Stack gap={4}>
       <StatusIndicator />
       <Summaries />
       <Filters />
-      <TransactionTable />
+      {useVirtualization ? (
+        <VirtualizedTableBody
+          transactions={filteredTransactions}
+          onOpenDetails={handleOpenDetails}
+        />
+      ) : (
+        <Box overflowX="auto">
+          <Table.Root variant="outline">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>TXID</Table.ColumnHeader>
+                <Table.ColumnHeader>Type</Table.ColumnHeader>
+                <Table.ColumnHeader>Status</Table.ColumnHeader>
+                <Table.ColumnHeader>Date</Table.ColumnHeader>
+                <Table.ColumnHeader>Actions</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {filteredTransactions.length === 0 ? (
+                <Table.Row>
+                  <Table.Cell colSpan={5} textAlign="center">
+                    No transactions found.
+                  </Table.Cell>
+                </Table.Row>
+              ) : (
+                filteredTransactions.map((tx) => (
+                  <TransactionRow
+                    key={tx.tx_id}
+                    tx={tx}
+                    onOpenDetails={handleOpenDetails}
+                  />
+                ))
+              )}
+            </Table.Body>
+          </Table.Root>
+        </Box>
+      )}
     </Stack>
   );
 }

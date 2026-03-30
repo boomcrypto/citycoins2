@@ -1,22 +1,18 @@
 import {
   Flex,
   Heading,
-  IconButton,
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { getLocalStorage } from "@stacks/connect";
-import { FaMoon, FaSun } from "react-icons/fa";
 import ClearData from "../auth/clear-data";
 import SignIn from "../auth/sign-in";
 import SignOut from "../auth/sign-out";
 import CityCoinsLogo from "./citycoins-logo";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtomValue } from "jotai";
 import { stxAddressAtom } from "../../store/stacks";
 
 function Header() {
   const stxAddress = useAtomValue(stxAddressAtom);
-  //console.log("STX Address:", stxAddress);
   return (
     <Stack align="center" direction={["column", "row"]} p={4}>
       <Flex flexGrow="1" align="center">
