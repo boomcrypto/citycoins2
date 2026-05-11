@@ -2,10 +2,20 @@ import { ClarityValue, deserializeCV } from "@stacks/transactions";
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { decodeClarityValues, safeConvertToBigint } from "./clarity";
 import { Buffer } from "buffer";
-import { getAllMiningContracts, getAllStackingContracts, getAllStackingClaimContracts } from "../config/city-config";
+import {
+  getAllMiningContracts,
+  getAllRedemptionContracts,
+  getAllStackingContracts,
+  getAllStackingClaimContracts,
+} from "../config/city-config";
+
+const CCIP_026_MIA_REDEMPTION_CONTRACT =
+  "SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.ccd013-burn-to-exit-mia";
 
 // Set of all valid CityCoins contract IDs for quick lookup
-// Includes mining, stacking, AND stacking claim contracts (which differ for DAO versions)
+// Includes user-facing mining, stacking, stacking claim, and redemption contracts.
+// Admin, DAO auth, treasury, token-direct, and vote calls are intentionally out of
+// scope for claims decoding; see docs/architecture/contract-coverage.md.
 const CITYCOINS_CONTRACTS = new Set([
   ...getAllMiningContracts('mia'),
   ...getAllMiningContracts('nyc'),
@@ -13,6 +23,9 @@ const CITYCOINS_CONTRACTS = new Set([
   ...getAllStackingContracts('nyc'),
   ...getAllStackingClaimContracts('mia'),
   ...getAllStackingClaimContracts('nyc'),
+  ...getAllRedemptionContracts('mia'),
+  ...getAllRedemptionContracts('nyc'),
+  CCIP_026_MIA_REDEMPTION_CONTRACT,
 ]);
 
 export interface MiningTxArgs {
@@ -37,6 +50,11 @@ export interface MiningClaimTxArgs {
 export interface StackingClaimTxArgs {
   functionName: "claim-stacking-reward";
   rewardCycle: bigint;
+}
+
+export interface RedemptionTxArgs {
+  functionName: "redeem-mia" | "redeem-nyc";
+  amountToken?: bigint;
 }
 
 export function isValidMiningTxArgs(decoded: any): decoded is MiningTxArgs {
@@ -85,6 +103,25 @@ export function isValidStackingClaimTxArgs(
     decoded.functionName === "claim-stacking-reward" &&
     typeof decoded.rewardCycle === "bigint" &&
     decoded.rewardCycle > 0n
+  );
+}
+
+export function isValidRedemptionTxArgs(decoded: any): decoded is RedemptionTxArgs {
+  if (
+    typeof decoded !== "object" ||
+    decoded === null ||
+    (decoded.functionName !== "redeem-mia" && decoded.functionName !== "redeem-nyc")
+  ) {
+    return false;
+  }
+
+  if (decoded.functionName === "redeem-nyc") {
+    return decoded.amountToken === undefined;
+  }
+
+  return (
+    decoded.amountToken === undefined ||
+    (typeof decoded.amountToken === "bigint" && decoded.amountToken > 0n)
   );
 }
 
@@ -204,6 +241,15 @@ export function decodeTxArgs(tx: Transaction, debug = false): any | null {
       } else {
         structured.rewardCycle = safeConvertToBigint(decodedArgs[0]);
       }
+      break;
+    case "redeem-mia":
+      if (decodedArgs.length > 1) return null;
+      if (decodedArgs.length === 1) {
+        structured.amountToken = safeConvertToBigint(decodedArgs[0]);
+      }
+      break;
+    case "redeem-nyc":
+      if (decodedArgs.length !== 0) return null;
       break;
     default:
       return null;

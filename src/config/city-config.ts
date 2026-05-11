@@ -634,7 +634,7 @@ export function isStackingClaimEligible(
  */
 export function findContractInfo(
   contractId: string
-): { city: CityName; version: Version; module: 'mining' | 'stacking' | 'stacking-claim' | 'token' } | undefined {
+): { city: CityName; version: Version; module: 'mining' | 'stacking' | 'stacking-claim' | 'token' | 'redemption' } | undefined {
   for (const city of ['mia', 'nyc'] as CityName[]) {
     for (const version of VERSIONS) {
       const config = CITY_CONFIG[city][version];
@@ -653,6 +653,9 @@ export function findContractInfo(
       }
       if (config.token.contractId === contractId) {
         return { city, version, module: 'token' };
+      }
+      if (config.redemption.contractId === contractId) {
+        return { city, version, module: 'redemption' };
       }
     }
   }
@@ -707,6 +710,13 @@ export function getAllStackingClaimFunctions(): string[] {
  */
 export function getAllStackingClaimContracts(city: CityName): string[] {
   return VERSIONS.map((v) => CITY_CONFIG[city][v].stacking.claimContractId);
+}
+
+/**
+ * Get all redemption contract IDs for a city (across all versions)
+ */
+export function getAllRedemptionContracts(city: CityName): string[] {
+  return VERSIONS.map((v) => CITY_CONFIG[city][v].redemption.contractId);
 }
 
 // =============================================================================
