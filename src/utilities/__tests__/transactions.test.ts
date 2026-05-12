@@ -17,6 +17,7 @@ import type { Transaction, ContractCallTransaction } from "@stacks/stacks-blockc
 import {
   decodeTxArgs,
   isValidMiningTxArgs,
+  isValidRedemptionTxArgs,
   isValidStackingTxArgs,
   isValidMiningClaimTxArgs,
   isValidStackingClaimTxArgs,
@@ -86,11 +87,16 @@ const MIA_DAO_V2_MINING = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd006-cityc
 const MIA_DAO_STACKING = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd007-citycoin-stacking";
 // MIA DAO treasury stacking claim contract
 const MIA_DAO_TREASURY_STACKING = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd002-treasury-mia-stacking";
+// MIA redemption contracts
+const MIA_REDEMPTION_LEGACY = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd012-redemption-mia";
+const MIA_REDEMPTION_CCIP_026 = "SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.ccd013-burn-to-exit-mia";
 
 // NYC Legacy V1 contracts
 const NYC_LEGACY_V1_CORE = "SP2H8PY27SEZ03MWRKS5XABZYQN17ETGQS3527SA5.newyorkcitycoin-core-v1";
 // NYC DAO treasury stacking claim contract
 const NYC_DAO_TREASURY_STACKING = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd002-treasury-nyc-stacking";
+// NYC redemption contract
+const NYC_REDEMPTION = "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd013-redemption-nyc";
 
 // Non-CityCoins contract (should be ignored)
 const UNRELATED_CONTRACT = "SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.some-random-contract";
@@ -318,6 +324,47 @@ describe("isValidStackingClaimTxArgs", () => {
   });
 });
 
+describe("isValidRedemptionTxArgs", () => {
+  it("should validate legacy MIA redemption without an amount", () => {
+    expect(isValidRedemptionTxArgs({ functionName: "redeem-mia" })).toBe(true);
+  });
+
+  it("should validate CCIP-026 MIA redemption with an amount", () => {
+    expect(
+      isValidRedemptionTxArgs({
+        functionName: "redeem-mia",
+        amountToken: 1000000n,
+      })
+    ).toBe(true);
+  });
+
+  it("should validate NYC redemption without an amount", () => {
+    expect(isValidRedemptionTxArgs({ functionName: "redeem-nyc" })).toBe(true);
+  });
+
+  it("should reject NYC redemption with an amount", () => {
+    expect(
+      isValidRedemptionTxArgs({
+        functionName: "redeem-nyc",
+        amountToken: 1000000n,
+      })
+    ).toBe(false);
+  });
+
+  it("should reject zero MIA redemption amount", () => {
+    expect(
+      isValidRedemptionTxArgs({
+        functionName: "redeem-mia",
+        amountToken: 0n,
+      })
+    ).toBe(false);
+  });
+
+  it("should handle null input gracefully", () => {
+    expect(isValidRedemptionTxArgs(null)).toBe(false);
+  });
+});
+
 // =============================================================================
 // DECODE TX ARGS TESTS
 // =============================================================================
@@ -541,6 +588,45 @@ describe("decodeTxArgs", () => {
       expect(decoded).not.toBeNull();
       expect(decoded.functionName).toBe("claim-stacking-reward");
       expect(decoded.rewardCycle).toBe(45n);
+    });
+  });
+
+  describe("Redemption transactions", () => {
+    it("should decode legacy MIA redeem-mia without an amount", () => {
+      const tx = createMockContractCallTx(MIA_REDEMPTION_LEGACY, "redeem-mia", []);
+      const decoded = decodeTxArgs(tx);
+      expect(decoded).not.toBeNull();
+      expect(decoded.functionName).toBe("redeem-mia");
+      expect(decoded.amountToken).toBeUndefined();
+    });
+
+    it("should decode CCIP-026 MIA redeem-mia with an amount", () => {
+      const tx = createMockContractCallTx(
+        MIA_REDEMPTION_CCIP_026,
+        "redeem-mia",
+        [{ name: "amount-umia", hex: toHex(uintCV(1000000)) }]
+      );
+      const decoded = decodeTxArgs(tx);
+      expect(decoded).not.toBeNull();
+      expect(decoded.functionName).toBe("redeem-mia");
+      expect(decoded.amountToken).toBe(1000000n);
+    });
+
+    it("should decode NYC redeem-nyc without an amount", () => {
+      const tx = createMockContractCallTx(NYC_REDEMPTION, "redeem-nyc", []);
+      const decoded = decodeTxArgs(tx);
+      expect(decoded).not.toBeNull();
+      expect(decoded.functionName).toBe("redeem-nyc");
+      expect(decoded.amountToken).toBeUndefined();
+    });
+
+    it("should return null for NYC redeem-nyc with unexpected args", () => {
+      const tx = createMockContractCallTx(
+        NYC_REDEMPTION,
+        "redeem-nyc",
+        [{ name: "amount", hex: toHex(uintCV(1000000)) }]
+      );
+      expect(decodeTxArgs(tx)).toBeNull();
     });
   });
 
