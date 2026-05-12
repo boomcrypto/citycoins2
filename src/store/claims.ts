@@ -32,7 +32,10 @@ import {
   CITY_CONFIG,
   findContractInfo,
   getBlockCycle,
+  getDaoStackingStartCycle,
+  getVersionByCycle,
   isMiningClaimEligible,
+  isDaoStackingClaimEligible,
   isStackingClaimEligible,
   getAllMiningFunctions,
   getAllMiningClaimFunctions,
@@ -70,6 +73,7 @@ export type StackingStatus =
   | "claimable"    // Verified: has reward to claim
   | "claimed"      // Already claimed (from transaction history)
   | "no-reward"    // Verified: no reward available
+  | "unpaid"       // Verified: DAO cycle has not been paid out
   | "unavailable"; // Failed claim attempt
 
 export interface MiningEntry {
@@ -187,13 +191,71 @@ const MINING_CLAIM_FUNCTIONS = new Set(getAllMiningClaimFunctions());
 const STACKING_FUNCTIONS = new Set(getAllStackingFunctions());
 const STACKING_CLAIM_FUNCTIONS = new Set(getAllStackingClaimFunctions());
 
+function isDaoVersion(version: Version): boolean {
+  return version === "daoV1" || version === "daoV2";
+}
+
+function getStackingStartCycle(
+  city: CityName,
+  version: Version,
+  tx: Transaction
+): number {
+  if (isDaoVersion(version) && tx.burn_block_height) {
+    return getDaoStackingStartCycle(tx.burn_block_height);
+  }
+  return getBlockCycle(city, version, tx.block_height);
+}
+
+function getStackingEntryStatus(
+  city: CityName,
+  version: Version,
+  cycle: number,
+  currentStxBlock: number,
+  currentBurnBlock: number
+): StackingStatus {
+  if (isDaoVersion(version)) {
+    return isDaoStackingClaimEligible(cycle, currentBurnBlock)
+      ? "unverified"
+      : "locked";
+  }
+  return isStackingClaimEligible(city, version, cycle, currentStxBlock)
+    ? "unverified"
+    : "locked";
+}
+
+function getStackingCycleVersion(
+  city: CityName,
+  originalVersion: Version,
+  cycle: number
+): Version | null {
+  if (!isDaoVersion(originalVersion)) {
+    const { endCycle } = CITY_CONFIG[city][originalVersion].stacking;
+    if (endCycle !== undefined && cycle > endCycle) return null;
+    return originalVersion;
+  }
+  return getVersionByCycle(city, cycle) ?? originalVersion;
+}
+
+function getStackingClaimVersion(
+  city: CityName,
+  originalVersion: Version,
+  cycle: number
+): Version {
+  if (!isDaoVersion(originalVersion)) {
+    return originalVersion;
+  }
+  return getVersionByCycle(city, cycle) ?? originalVersion;
+}
+
 /**
  * Processes all transactions in a single pass, caching decoded args.
  * This is the foundation for all claims-related atoms.
  */
 const processedTransactionsAtom = atom((get) => {
   const transactions = get(transactionsAtom);
-  const currentBlock = get(blockHeightsAtom)?.stx ?? 0;
+  const blockHeights = get(blockHeightsAtom);
+  const currentStxBlock = blockHeights?.stx ?? 0;
+  const currentBurnBlock = blockHeights?.btc ?? 0;
 
   // Cache for decoded transaction arguments
   const decodedCache: DecodedTxCache = new Map();
@@ -234,7 +296,7 @@ const processedTransactionsAtom = atom((get) => {
               contractId,
               functionName,
               amountUstx: decoded.amountsUstx[i],
-              status: isMiningClaimEligible(block, currentBlock) ? "unverified" : "pending",
+              status: isMiningClaimEligible(block, currentStxBlock) ? "unverified" : "pending",
             });
           }
         }
@@ -265,27 +327,31 @@ const processedTransactionsAtom = atom((get) => {
       if (decoded && isValidStackingTxArgs(decoded)) {
         const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
         if (cityVersion) {
-          const { city, version } = cityVersion;
+          const { city } = cityVersion;
           const lockPeriod = Number(decoded.lockPeriod);
           const amountTokens = decoded.amountToken;
-          const startCycle = getBlockCycle(city, version, tx.block_height);
-          const { endCycle } = CITY_CONFIG[city][version].stacking;
+          const startCycle = getStackingStartCycle(city, cityVersion.version, tx);
 
           for (let i = 0; i < lockPeriod; i++) {
             const cycle = startCycle + i;
-            if (endCycle !== undefined && cycle > endCycle) continue;
+            const cycleVersion = getStackingCycleVersion(city, cityVersion.version, cycle);
+            if (cycleVersion === null) continue;
 
             result.stackingEntries.push({
               txId: tx.tx_id,
               cycle,
               city,
-              version,
+              version: cycleVersion,
               contractId,
               functionName,
               amountTokens,
-              status: isStackingClaimEligible(city, version, cycle, currentBlock)
-                ? "unverified"
-                : "locked",
+              status: getStackingEntryStatus(
+                city,
+                cycleVersion,
+                cycle,
+                currentStxBlock,
+                currentBurnBlock
+              ),
             });
           }
         }
@@ -299,7 +365,12 @@ const processedTransactionsAtom = atom((get) => {
         const cityVersion = getCityVersionFromContractAndArgs(contractId, decoded);
         if (cityVersion) {
           const cycle = Number(decoded.rewardCycle);
-          const key = `${cityVersion.city}-${cityVersion.version}-${cycle}`;
+          const version = getStackingClaimVersion(
+            cityVersion.city,
+            cityVersion.version,
+            cycle
+          );
+          const key = `${cityVersion.city}-${version}-${cycle}`;
 
           if (tx.tx_status === "success") {
             result.claimedStackingCycles.set(key, tx.tx_id);
@@ -375,6 +446,7 @@ function mapVerificationToMiningStatus(
       return "unverified"; // Still show as unverified while checking
     case "unverified":
     case "no-reward":
+    case "unpaid":
     default:
       return "unverified";
   }
@@ -393,6 +465,8 @@ function mapVerificationToStackingStatus(
       return "claimed";
     case "no-reward":
       return "no-reward";
+    case "unpaid":
+      return "unpaid";
     case "error":
       return "unavailable";
     case "verifying":
@@ -612,6 +686,7 @@ export interface CitySummary {
   stackingLocked: number;
   stackingUnverified: number;
   stackingNoReward: number;
+  stackingUnpaid: number;
   stackingUnavailable: number;
 }
 
@@ -634,6 +709,7 @@ const emptySummary = (): CitySummary => ({
   stackingLocked: 0,
   stackingUnverified: 0,
   stackingNoReward: 0,
+  stackingUnpaid: 0,
   stackingUnavailable: 0,
 });
 
@@ -673,6 +749,7 @@ export const claimsSummaryAtom = atom<ClaimsSummary>((get) => {
       case "locked": summary.stackingLocked++; break;
       case "unverified": summary.stackingUnverified++; break;
       case "no-reward": summary.stackingNoReward++; break;
+      case "unpaid": summary.stackingUnpaid++; break;
       case "unavailable": summary.stackingUnavailable++; break;
     }
   }

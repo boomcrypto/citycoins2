@@ -325,6 +325,7 @@ describe("Verification Status Mapping", () => {
       "claimable",
       "not-won",
       "no-reward",
+      "unpaid",
       "claimed",
       "error",
     ];

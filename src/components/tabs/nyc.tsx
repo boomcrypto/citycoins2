@@ -506,7 +506,9 @@ function Nyc() {
                 <Text fontSize="sm">
                   {stackingSummary.claimable} claimable, {stackingSummary.unverified} unverified,
                   {stackingSummary.error > 0 && ` ${stackingSummary.error} failed,`}
-                  {" "}{stackingSummary.noReward} no reward, {stackingSummary.claimed} claimed
+                  {" "}{stackingSummary.noReward} no reward,
+                  {stackingSummary.unpaid > 0 && ` ${stackingSummary.unpaid} unpaid,`}
+                  {" "}{stackingSummary.claimed} claimed
                 </Text>
                 {cityUnverifiedStacking > 0 && (
                   <Button

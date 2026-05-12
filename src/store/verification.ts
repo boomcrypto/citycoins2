@@ -41,6 +41,7 @@ export type VerificationStatus =
   | "claimable" // Verified: can claim reward
   | "not-won" // Verified: didn't win mining lottery
   | "no-reward" // Verified: no stacking reward available
+  | "unpaid" // Verified: stacking cycle has not been paid out
   | "claimed" // Already claimed
   | "error"; // Verification failed
 
@@ -117,8 +118,11 @@ function getMiningStatusFromResult(result: {
  */
 function getStackingStatusFromResult(result: {
   canClaim: boolean;
+  isPaid?: boolean;
 }): VerificationStatus {
-  return result.canClaim ? "claimable" : "no-reward";
+  if (result.canClaim) return "claimable";
+  if (result.isPaid === false) return "unpaid";
+  return "no-reward";
 }
 
 // =============================================================================
@@ -915,6 +919,7 @@ export const stackingVerificationSummaryAtom = atom((get) => {
     let verifying = 0;
     let claimable = 0;
     let noReward = 0;
+    let unpaid = 0;
     let claimed = 0;
     let error = 0;
 
@@ -951,6 +956,9 @@ export const stackingVerificationSummaryAtom = atom((get) => {
           case "no-reward":
             noReward++;
             break;
+          case "unpaid":
+            unpaid++;
+            break;
           case "claimed":
             claimed++;
             break;
@@ -961,6 +969,6 @@ export const stackingVerificationSummaryAtom = atom((get) => {
       }
     }
 
-    return { locked, unverified, verifying, claimable, noReward, claimed, error, total: entries.length };
+    return { locked, unverified, verifying, claimable, noReward, unpaid, claimed, error, total: entries.length };
   };
 });

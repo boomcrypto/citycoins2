@@ -9,6 +9,7 @@ const STATUS_COLOR_MAP: Record<string, string> = {
   locked: "blue",
   "not-won": "red",
   "no-reward": "orange",
+  unpaid: "yellow",
   unavailable: "red",
   error: "red",
 };
@@ -21,6 +22,7 @@ const STATUS_DISPLAY_MAP: Record<string, string> = {
   locked: "locked",
   "not-won": "not won",
   "no-reward": "no reward",
+  unpaid: "unpaid",
   unavailable: "unavailable",
   error: "error",
 };
