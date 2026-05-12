@@ -89,6 +89,7 @@ export interface CityInfo {
 export const VERSIONS: Version[] = ['legacyV1', 'legacyV2', 'daoV1', 'daoV2'];
 export const CYCLE_LENGTH = 2100;
 export const MINING_CLAIM_MATURITY = 100; // blocks after mining before claim eligible
+export const DAO_STACKING_FIRST_BURN_BLOCK = 666050;
 
 export const CITY_IDS: Record<CityName, number> = {
   mia: 1,
@@ -593,6 +594,31 @@ export function getBlockCycle(city: CityName, version: Version, blockHeight: num
   if (blockHeight < genesisBlock) return 0;
   // Use startCycle offset so cycle numbers are absolute across versions
   return startCycle + Math.floor((blockHeight - genesisBlock) / cycleLength);
+}
+
+/**
+ * Calculate the DAO stacking reward cycle for a burn block height.
+ *
+ * Mirrors ccd007-citycoin-stacking:
+ * - get-reward-cycle = (burnHeight - FIRST_STACKING_BLOCK) / REWARD_CYCLE_LENGTH
+ * - stack starts at current reward cycle + 1
+ */
+export function getDaoStackingStartCycle(burnBlockHeight: number): number {
+  if (burnBlockHeight < DAO_STACKING_FIRST_BURN_BLOCK) return 0;
+  return 1 + Math.floor((burnBlockHeight - DAO_STACKING_FIRST_BURN_BLOCK) / CYCLE_LENGTH);
+}
+
+/**
+ * Check if a DAO stacking cycle is complete using burn-chain cycle math.
+ *
+ * The DAO contract allows claiming only when cycle < get-reward-cycle(burn-block-height).
+ */
+export function isDaoStackingClaimEligible(cycle: number, currentBurnBlock: number): boolean {
+  if (currentBurnBlock < DAO_STACKING_FIRST_BURN_BLOCK) return false;
+  const currentRewardCycle = Math.floor(
+    (currentBurnBlock - DAO_STACKING_FIRST_BURN_BLOCK) / CYCLE_LENGTH
+  );
+  return cycle < currentRewardCycle;
 }
 
 /**

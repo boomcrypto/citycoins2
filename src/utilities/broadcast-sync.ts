@@ -322,7 +322,7 @@ export function mergeVerificationEntries(
  *
  * Status priority (most to least definitive):
  * 1. claimed (final state)
- * 2. claimable, not-won, no-reward (verified states)
+ * 2. claimable, not-won, no-reward, unpaid (verified states)
  * 3. error (failed but attempted)
  * 4. verifying (in progress)
  * 5. unverified (not started)
@@ -333,6 +333,7 @@ function isMoreDefinitiveStatus(a: string, b: string): boolean {
     claimable: 4,
     "not-won": 4,
     "no-reward": 4,
+    unpaid: 4,
     error: 3,
     verifying: 2,
     unverified: 1,

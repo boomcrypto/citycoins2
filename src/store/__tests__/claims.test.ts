@@ -23,9 +23,13 @@ import type { VerificationStatus, VerificationResult } from "../verification";
 
 // City config imports for testing eligibility
 import {
+  CITY_CONFIG,
   isMiningClaimEligible,
   isStackingClaimEligible,
   getBlockCycle,
+  getDaoStackingStartCycle,
+  getVersionByCycle,
+  isDaoStackingClaimEligible,
   getCycleFirstBlock,
   MINING_CLAIM_MATURITY,
 } from "../../config/city-config";
@@ -214,6 +218,26 @@ describe("getBlockCycle", () => {
   });
 });
 
+describe("DAO stacking cycle helpers", () => {
+  it("should calculate DAO stack start cycle from burn block height", () => {
+    expect(getDaoStackingStartCycle(666050)).toBe(1);
+    expect(getDaoStackingStartCycle(668150)).toBe(2);
+    expect(getDaoStackingStartCycle(779336)).toBe(54);
+  });
+
+  it("should use configured cycle ranges to classify DAO staking cycles", () => {
+    expect(getVersionByCycle("mia", 53)).toBe("daoV1");
+    expect(getVersionByCycle("mia", 54)).toBe("daoV2");
+    expect(getVersionByCycle("nyc", 53)).toBe("daoV1");
+    expect(getVersionByCycle("nyc", 54)).toBe("daoV2");
+  });
+
+  it("should treat DAO cycles as claimable only after the contract reward cycle advances", () => {
+    expect(isDaoStackingClaimEligible(54, 779336)).toBe(false);
+    expect(isDaoStackingClaimEligible(54, 781550)).toBe(true);
+  });
+});
+
 // =============================================================================
 // CYCLE FIRST BLOCK CALCULATION TESTS
 // =============================================================================
@@ -302,6 +326,7 @@ function mapVerificationToMiningStatus(verificationStatus: VerificationStatus): 
     case "verifying":
     case "unverified":
     case "no-reward":
+    case "unpaid":
     default:
       return "unverified";
   }
@@ -315,6 +340,8 @@ function mapVerificationToStackingStatus(verificationStatus: VerificationStatus)
       return "claimed";
     case "no-reward":
       return "no-reward";
+    case "unpaid":
+      return "unpaid";
     case "error":
       return "unavailable";
     case "verifying":
@@ -362,6 +389,10 @@ describe("mapVerificationToStackingStatus", () => {
 
   it('should map "no-reward" to "no-reward"', () => {
     expect(mapVerificationToStackingStatus("no-reward")).toBe("no-reward");
+  });
+
+  it('should map "unpaid" to "unpaid"', () => {
+    expect(mapVerificationToStackingStatus("unpaid")).toBe("unpaid");
   });
 
   it('should map "error" to "unavailable"', () => {
@@ -713,6 +744,7 @@ describe("Summary Computation", () => {
       locked: 0,
       unverified: 0,
       noReward: 0,
+      unpaid: 0,
       unavailable: 0,
     };
 
@@ -733,6 +765,9 @@ describe("Summary Computation", () => {
           break;
         case "no-reward":
           summary.noReward++;
+          break;
+        case "unpaid":
+          summary.unpaid++;
           break;
         case "unavailable":
           summary.unavailable++;
@@ -775,17 +810,19 @@ describe("Summary Computation", () => {
       createStackingEntry(21, "locked"),
       createStackingEntry(22, "unverified"),
       createStackingEntry(23, "no-reward"),
-      createStackingEntry(24, "unavailable"),
+      createStackingEntry(24, "unpaid"),
+      createStackingEntry(25, "unavailable"),
     ];
 
     const summary = computeStackingSummary(entries);
 
-    expect(summary.total).toBe(8);
+    expect(summary.total).toBe(9);
     expect(summary.claimed).toBe(1);
     expect(summary.claimable).toBe(2);
     expect(summary.locked).toBe(2);
     expect(summary.unverified).toBe(1);
     expect(summary.noReward).toBe(1);
+    expect(summary.unpaid).toBe(1);
     expect(summary.unavailable).toBe(1);
   });
 
@@ -893,9 +930,11 @@ describe("Multi-cycle Stacking Entry Creation", () => {
   ): StackingEntry[] {
     const startCycle = getBlockCycle(city, version, txBlockHeight);
     const entries: StackingEntry[] = [];
+    const { endCycle } = CITY_CONFIG[city][version].stacking;
 
     for (let i = 0; i < lockPeriod; i++) {
       const cycle = startCycle + i;
+      if (endCycle !== undefined && cycle > endCycle) continue;
       entries.push({
         txId: "0xtest",
         cycle,
@@ -989,5 +1028,25 @@ describe("Multi-cycle Stacking Entry Creation", () => {
     expect(entries[1].cycle).toBe(2);
     expect(entries[0].status).toBe("unverified");
     expect(entries[1].status).toBe("unverified");
+  });
+
+  it("should not create legacy stacking entries past the legacy contract end cycle", () => {
+    const txBlockHeight = 74189; // MIA legacyV2 cycle 24
+    const lockPeriod = 25;
+    const amountTokens = 1000000000n;
+    const currentBlock = 100000;
+
+    const entries = createStackingEntriesFromTx(
+      txBlockHeight,
+      lockPeriod,
+      amountTokens,
+      currentBlock,
+      "mia",
+      "legacyV2"
+    );
+
+    expect(entries[0].cycle).toBe(24);
+    expect(entries.at(-1)?.cycle).toBe(34);
+    expect(entries.some((entry) => entry.cycle > 34)).toBe(false);
   });
 });

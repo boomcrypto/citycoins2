@@ -23,6 +23,8 @@ export interface MiningClaimVerification {
 
 export interface StackingClaimVerification {
   reward: number;
+  claimable?: number;
+  isPaid?: boolean;
   canClaim: boolean;
 }
 
@@ -194,20 +196,40 @@ export async function verifyStackingClaim(
     }
 
     if (protocolApi.isDaoVersion(version)) {
-      const result = await protocolApi.getStackingReward(city, userId, cycle);
+      const [rewardResult, stackerResult, paidResult] = await Promise.all([
+        protocolApi.getStackingReward(city, userId, cycle),
+        protocolApi.getStacker(city, userId, cycle),
+        protocolApi.isCyclePaid(city, cycle),
+      ]);
 
-      if (!result.ok) {
+      if (!rewardResult.ok) {
         return {
           success: false,
-          error: { message: result.error || "API request failed", status: result.status },
+          error: { message: rewardResult.error || "API request failed", status: rewardResult.status },
         };
       }
 
-      const reward = result.data?.reward ?? 0;
+      if (!stackerResult.ok) {
+        return {
+          success: false,
+          error: { message: stackerResult.error || "API request failed", status: stackerResult.status },
+        };
+      }
+
+      if (!paidResult.ok) {
+        return {
+          success: false,
+          error: { message: paidResult.error || "API request failed", status: paidResult.status },
+        };
+      }
+
+      const reward = rewardResult.data?.reward ?? 0;
+      const claimable = stackerResult.data?.claimable ?? 0;
+      const isPaid = paidResult.data ?? false;
 
       return {
         success: true,
-        data: { reward, canClaim: reward > 0 },
+        data: { reward, claimable, isPaid, canClaim: reward > 0 || claimable > 0 },
       };
     }
 
