@@ -32,3 +32,17 @@ export {
 } from "./dao-stacking";
 
 export { getUserId as daoGetUserId } from "./dao-user-registry";
+
+export {
+  getCcd013RedemptionInfo,
+  getCcd013UserRedemptionInfo,
+  buildMiaRedeemPostConditions,
+  mapCcd013RedemptionInfo,
+  mapCcd013UserRedemptionInfo,
+  CCD013_REDEMPTION_CONTRACT,
+  MIA_REWARDS_TREASURY,
+  MAX_MIA_REDEMPTION_PER_TX_UMIA,
+  type Ccd013RedemptionInfo,
+  type Ccd013UserRedemptionInfo,
+  type MiaRedeemPostConditionInputs,
+} from "./ccd013-redemption";
