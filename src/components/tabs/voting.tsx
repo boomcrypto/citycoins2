@@ -14,6 +14,7 @@ import Ccip024 from "../votes/ccip-024";
 import Ccip025 from "../votes/ccip-025";
 import Ccip026 from "../votes/ccip-026";
 import CCIP016 from "../votes/ccip-016";
+import { getProposalDateLabel } from "../votes/proposal-dates";
 
 function Voting() {
   const voteItems = [
@@ -105,7 +106,11 @@ function Voting() {
         {voteItems.map((item) => (
           <Accordion.Item key={item.id} value={item.id}>
             <Accordion.ItemTrigger>
-              <VoteTitle title={item.title} status={item.status} />
+              <VoteTitle
+                title={item.title}
+                status={item.status}
+                dateLabel={getProposalDateLabel(item.id)}
+              />
               <Accordion.ItemIndicator />
             </Accordion.ItemTrigger>
             <Accordion.ItemContent>
