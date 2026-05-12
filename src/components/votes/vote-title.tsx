@@ -16,7 +16,11 @@ function getStatusColor(status: VoteStatus) {
   }
 }
 
-function VoteTitle(props: { title: string; status: VoteStatus }) {
+function VoteTitle(props: {
+  title: string;
+  status: VoteStatus;
+  dateLabel?: string;
+}) {
   return (
     <Box
       as="span"
@@ -25,15 +29,31 @@ function VoteTitle(props: { title: string; status: VoteStatus }) {
       display="flex"
       flexDirection={["column", "row"]}
       justifyContent="space-between"
-      alignItems={["left", "center"]}
+      alignItems={["flex-start", "center"]}
+      gap={[3, 6]}
       textAlign="left"
       py={[8, 4]}
     >
-      <Text mb={[4, 0]} fontSize="xl">
-        {props.title}
-      </Text>
+      <Box as="span" minW={0}>
+        <Text as="span" display="block" fontSize="xl">
+          {props.title}
+        </Text>
+        {props.dateLabel && (
+          <Text
+            as="span"
+            display="block"
+            color="fg.muted"
+            fontSize="sm"
+            fontWeight="medium"
+            mt={1}
+          >
+            {props.dateLabel}
+          </Text>
+        )}
+      </Box>
       <Badge
         minW={100}
+        flexShrink={0}
         fontWeight="bold"
         colorPalette={getStatusColor(props.status)}
         justifyContent="center"
