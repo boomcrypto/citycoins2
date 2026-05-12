@@ -13,7 +13,7 @@ export const CITY_CLAIMS_CONFIG: Record<CityName, CityClaimsConfig> = {
     assetId: "miamicoin",
     v1Contract: "SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token",
     v2Contract: "SP1H1733V5MZ3SZ9XRW9FKYGEZT0JDGEB8Y634C7R.miamicoin-token-v2",
-    redemptionContract: "SP8A9HZ3PKST0S42VM9523Z9NV42SZ026V4K39WH.ccd012-redemption-mia",
+    redemptionContract: "SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.ccd013-burn-to-exit-mia",
     redemptionFunction: "redeem-mia",
     ccipLink: {
       text: "CCIP-026",
