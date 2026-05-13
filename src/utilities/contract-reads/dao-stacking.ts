@@ -123,7 +123,7 @@ export interface StackerInfo {
 /**
  * Get stacker info for a user in a specific cycle.
  *
- * Contract function: (get-stacker (city-id uint) (user-id uint) (cycle uint))
+ * Contract function: (get-stacker (city-id uint) (cycle uint) (user-id uint))
  * Returns: (optional { stacked: uint, claimable: uint })
  *
  * @param city - City name (mia or nyc)
@@ -142,7 +142,7 @@ export async function getStacker(
     contractAddress,
     contractName,
     "get-stacker",
-    [uintCV(cityId), uintCV(userId), uintCV(cycle)],
+    [uintCV(cityId), uintCV(cycle), uintCV(userId)],
     contractAddress
   );
 

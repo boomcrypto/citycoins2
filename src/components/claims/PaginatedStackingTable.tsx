@@ -11,7 +11,6 @@ import {
 } from "@chakra-ui/react";
 import { useState, useEffect, useMemo } from "react";
 import { StackingRow } from "./StackingRow";
-import { VirtualizedStackingTable } from "./VirtualizedStackingTable";
 import type { StackingEntry } from "./types";
 
 const ITEMS_PER_PAGE = 50;
@@ -71,9 +70,6 @@ export function PaginatedStackingTable({
     setPage(0);
   }, [statusFilter, searchCycle]);
 
-  // Use virtualization for large filtered lists
-  const useVirtualization = filteredEntries.length > 100;
-
   if (entries.length === 0) {
     return <Text color="fg.muted">No stacking history found.</Text>;
   }
@@ -124,44 +120,33 @@ export function PaginatedStackingTable({
       </HStack>
 
       {/* Table */}
-      {useVirtualization ? (
-        <VirtualizedStackingTable
-          entries={filteredEntries}
-          onClaim={onClaim}
-          onVerify={onVerify}
-          claimingId={claimingId}
-          isVerifying={isVerifying}
-          hasUserIds={hasUserIds}
-        />
-      ) : (
-        <Table.Root size="sm" width="100%">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>Cycle</Table.ColumnHeader>
-              <Table.ColumnHeader>Version</Table.ColumnHeader>
-              <Table.ColumnHeader>Stacked</Table.ColumnHeader>
-              <Table.ColumnHeader>Status</Table.ColumnHeader>
-              <Table.ColumnHeader>Action</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {paginatedEntries.map((entry) => (
-              <StackingRow
-                key={`${entry.txId}-${entry.cycle}`}
-                entry={entry}
-                onClaim={onClaim}
-                onVerify={onVerify}
-                claimingId={claimingId}
-                isVerifying={isVerifying}
-                hasUserIds={hasUserIds}
-              />
-            ))}
-          </Table.Body>
-        </Table.Root>
-      )}
+      <Table.Root size="sm" width="100%">
+        <Table.Header>
+          <Table.Row>
+            <Table.ColumnHeader>Cycle</Table.ColumnHeader>
+            <Table.ColumnHeader>Version</Table.ColumnHeader>
+            <Table.ColumnHeader>Stacked</Table.ColumnHeader>
+            <Table.ColumnHeader>Status</Table.ColumnHeader>
+            <Table.ColumnHeader>Action</Table.ColumnHeader>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {paginatedEntries.map((entry) => (
+            <StackingRow
+              key={`${entry.txId}-${entry.cycle}`}
+              entry={entry}
+              onClaim={onClaim}
+              onVerify={onVerify}
+              claimingId={claimingId}
+              isVerifying={isVerifying}
+              hasUserIds={hasUserIds}
+            />
+          ))}
+        </Table.Body>
+      </Table.Root>
 
       {/* Pagination */}
-      {totalPages > 1 && !useVirtualization && (
+      {totalPages > 1 && (
         <HStack gap={2} justify="center">
           <Button
             size="xs"
