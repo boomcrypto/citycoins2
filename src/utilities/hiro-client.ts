@@ -25,7 +25,10 @@ const HIRO_API_BASE = "https://api.hiro.so";
 const DEFAULT_DELAY_MS = 200;
 const MIN_DELAY_MS = 50;
 const SLOW_DELAY_MS = 500;
-const MAX_DELAY_MS = 2000; // Cap to prevent unbounded delays
+const CONTRACT_READ_DELAY_MS = 1100;
+const MAX_NORMAL_DELAY_MS = 5000;
+const MAX_RATE_LIMIT_DELAY_MS = 65000;
+const RATE_LIMIT_BUFFER_MS = 500;
 
 // =============================================================================
 // RATE LIMIT STATE
@@ -34,7 +37,8 @@ const MAX_DELAY_MS = 2000; // Cap to prevent unbounded delays
 interface RateLimitState {
   remainingSecond: number | null;
   remainingMinute: number | null;
-  reset: number | null;
+  resetAt: number | null;
+  cooldownUntil: number | null;
   cost: number | null;
   lastRequest: number;
 }
@@ -42,7 +46,8 @@ interface RateLimitState {
 const state: RateLimitState = {
   remainingSecond: null,
   remainingMinute: null,
-  reset: null,
+  resetAt: null,
+  cooldownUntil: null,
   cost: null,
   lastRequest: 0,
 };
@@ -57,6 +62,33 @@ function safeParseInt(value: string | null): number | null {
 }
 
 /**
+ * Parse rate limit reset headers into an absolute timestamp.
+ *
+ * Hiro may return a relative second count or an epoch timestamp depending on
+ * the gateway. This accepts both forms so we can avoid retrying during a known
+ * exhausted window.
+ */
+function parseResetAt(value: string | null): number | null {
+  if (!value) return null;
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+
+  if (parsed > 1_000_000_000_000) {
+    return parsed;
+  }
+  if (parsed > 1_000_000_000) {
+    return parsed * 1000;
+  }
+  return Date.now() + parsed * 1000;
+}
+
+function getResetDelay(): number | null {
+  if (!state.resetAt) return null;
+  return Math.max(0, state.resetAt - Date.now() + RATE_LIMIT_BUFFER_MS);
+}
+
+/**
  * Update rate limit state from response headers
  */
 function updateRateLimitState(headers: Headers): void {
@@ -66,7 +98,7 @@ function updateRateLimitState(headers: Headers): void {
   state.remainingMinute = safeParseInt(
     headers.get("x-ratelimit-remaining-stacks-minute")
   );
-  state.reset = safeParseInt(headers.get("ratelimit-reset"));
+  state.resetAt = parseResetAt(headers.get("ratelimit-reset"));
   state.cost = safeParseInt(headers.get("x-ratelimit-cost-stacks"));
   state.lastRequest = Date.now();
 }
@@ -74,28 +106,59 @@ function updateRateLimitState(headers: Headers): void {
 /**
  * Calculate delay before next request based on rate limit state
  */
-function calculateDelay(): number {
+function calculateDelay(minDelayMs = MIN_DELAY_MS): number {
+  if (state.cooldownUntil !== null) {
+    const cooldownDelay = state.cooldownUntil - Date.now();
+    if (cooldownDelay > 0) {
+      return Math.min(MAX_RATE_LIMIT_DELAY_MS, cooldownDelay);
+    }
+    state.cooldownUntil = null;
+  }
+
   // If we have no state, use conservative default
   if (state.remainingSecond === null && state.remainingMinute === null) {
-    return DEFAULT_DELAY_MS;
+    return Math.max(DEFAULT_DELAY_MS, minDelayMs);
   }
 
   // If per-second quota is exhausted, wait until next second
   if (state.remainingSecond !== null && state.remainingSecond <= 0) {
     const elapsed = Date.now() - state.lastRequest;
-    return Math.min(MAX_DELAY_MS, Math.max(0, 1000 - elapsed));
+    return Math.min(
+      MAX_RATE_LIMIT_DELAY_MS,
+      Math.max(minDelayMs, 1000 - elapsed)
+    );
   }
 
-  // If per-minute quota is low or exhausted, slow down proportionally
-  if (state.remainingMinute !== null && state.remainingMinute < 10) {
-    // When minute quota is low, spread remaining requests across time
-    // Lower quota = longer delay, but cap at MAX_DELAY_MS
-    const quotaDelay = Math.max(0, 10 - state.remainingMinute) * 100;
-    return Math.min(MAX_DELAY_MS, SLOW_DELAY_MS + quotaDelay);
+  if (state.remainingMinute !== null && state.remainingMinute <= 0) {
+    const resetDelay = getResetDelay() ?? 60_000;
+    return Math.min(MAX_RATE_LIMIT_DELAY_MS, Math.max(minDelayMs, resetDelay));
+  }
+
+  // If per-minute quota is getting low, spread remaining requests across the
+  // current reset window instead of waiting until the bucket is empty.
+  if (state.remainingMinute !== null && state.remainingMinute < 25) {
+    const resetDelay = getResetDelay();
+    if (resetDelay !== null) {
+      const spreadDelay = Math.ceil(
+        resetDelay / Math.max(1, state.remainingMinute)
+      );
+      return Math.min(
+        MAX_RATE_LIMIT_DELAY_MS,
+        Math.max(minDelayMs, spreadDelay)
+      );
+    }
+
+    return Math.min(
+      MAX_NORMAL_DELAY_MS,
+      Math.max(
+        minDelayMs,
+        SLOW_DELAY_MS + Math.max(0, 25 - state.remainingMinute) * 200
+      )
+    );
   }
 
   // Otherwise use minimal delay
-  return MIN_DELAY_MS;
+  return minDelayMs;
 }
 
 // =============================================================================
@@ -103,7 +166,8 @@ function calculateDelay(): number {
 // =============================================================================
 
 interface QueuedRequest {
-  resolve: () => void;
+  run: () => Promise<void>;
+  minDelayMs: number;
 }
 
 class HiroRequestQueue {
@@ -111,9 +175,18 @@ class HiroRequestQueue {
   private processing = false;
   private processingPromise: Promise<void> | null = null;
 
-  async waitForTurn(): Promise<void> {
-    return new Promise((resolve) => {
-      this.queue.push({ resolve });
+  async run<T>(minDelayMs: number, task: () => Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      this.queue.push({
+        minDelayMs,
+        run: async () => {
+          try {
+            resolve(await task());
+          } catch (error) {
+            reject(error);
+          }
+        },
+      });
       this.startProcessing();
     });
   }
@@ -131,7 +204,10 @@ class HiroRequestQueue {
 
   private async processQueue(): Promise<void> {
     while (this.queue.length > 0) {
-      const delay = calculateDelay();
+      const next = this.queue.shift();
+      if (!next) continue;
+
+      const delay = calculateDelay(next.minDelayMs);
       if (delay > 0) {
         await sleep(delay);
       }
@@ -139,8 +215,7 @@ class HiroRequestQueue {
       // Update lastRequest timestamp when request is allowed to proceed
       state.lastRequest = Date.now();
 
-      const next = this.queue.shift();
-      next?.resolve();
+      await next.run();
     }
   }
 
@@ -169,7 +244,8 @@ export function resetHiroClientForTesting(): void {
   hiroQueue.reset();
   state.remainingSecond = null;
   state.remainingMinute = null;
-  state.reset = null;
+  state.resetAt = null;
+  state.cooldownUntil = null;
   state.cost = null;
   state.lastRequest = 0;
 }
@@ -214,6 +290,7 @@ export interface HiroClientResult<T> {
 
 export interface HiroClientOptions {
   maxRetries?: number;
+  minDelayMs?: number;
 }
 
 // =============================================================================
@@ -227,61 +304,66 @@ export async function hiroFetch<T = unknown>(
   url: string,
   options: HiroClientOptions & RequestInit = {}
 ): Promise<HiroClientResult<T>> {
-  const { maxRetries = 3, ...fetchOptions } = options;
+  const { maxRetries = 3, minDelayMs = MIN_DELAY_MS, ...fetchOptions } = options;
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    await hiroQueue.waitForTurn();
+  return hiroQueue.run(minDelayMs, async () => {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(url, fetchOptions);
 
-    try {
-      const response = await fetch(url, fetchOptions);
+        // Update rate limit state from headers
+        updateRateLimitState(response.headers);
 
-      // Update rate limit state from headers
-      updateRateLimitState(response.headers);
+        // Handle rate limiting
+        if (response.status === 429) {
+          const retryAfter = parseRetryAfter(response.headers.get("Retry-After"));
+          const resetDelay = getResetDelay();
+          const waitMs = Math.min(
+            MAX_RATE_LIMIT_DELAY_MS,
+            retryAfter ?? resetDelay ?? 1000 * Math.pow(2, attempt + 1)
+          );
+          state.cooldownUntil = Date.now() + waitMs;
+          await sleep(waitMs);
+          continue;
+        }
 
-      // Handle rate limiting
-      if (response.status === 429) {
-        const retryAfter = parseRetryAfter(response.headers.get("Retry-After"));
-        const waitMs = retryAfter || 1000 * Math.pow(2, attempt + 1);
-        await sleep(waitMs);
-        continue;
-      }
+        // Handle non-OK responses
+        if (!response.ok) {
+          return {
+            ok: false,
+            status: response.status,
+            error: `HTTP ${response.status}: ${response.statusText}`,
+          };
+        }
 
-      // Handle non-OK responses
-      if (!response.ok) {
+        // Parse JSON response
+        const data = await response.json();
+
         return {
-          ok: false,
+          ok: true,
           status: response.status,
-          error: `HTTP ${response.status}: ${response.statusText}`,
+          data: data as T,
         };
+      } catch (error) {
+        if (attempt === maxRetries) {
+          return {
+            ok: false,
+            status: 0,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+
+        const waitMs = 1000 * Math.pow(2, attempt);
+        await sleep(waitMs);
       }
-
-      // Parse JSON response
-      const data = await response.json();
-
-      return {
-        ok: true,
-        status: response.status,
-        data: data as T,
-      };
-    } catch (error) {
-      if (attempt === maxRetries) {
-        return {
-          ok: false,
-          status: 0,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
-
-      const waitMs = 1000 * Math.pow(2, attempt);
-      await sleep(waitMs);
     }
-  }
 
-  return {
-    ok: false,
-    status: 0,
-    error: `Max retries (${maxRetries}) exceeded for ${url}`,
-  };
+    return {
+      ok: false,
+      status: 0,
+      error: `Max retries (${maxRetries}) exceeded for ${url}`,
+    };
+  });
 }
 
 // =============================================================================
@@ -332,6 +414,7 @@ export async function callReadOnlyFunction<T = string>(
 
   const result = await hiroFetch<ReadOnlyResponse>(url, {
     method: "POST",
+    minDelayMs: CONTRACT_READ_DELAY_MS,
     headers: {
       "Content-Type": "application/json",
     },
