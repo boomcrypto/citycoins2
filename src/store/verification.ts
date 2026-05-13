@@ -28,6 +28,8 @@ import {
   Unsubscribe,
 } from "../utilities/broadcast-sync";
 
+const VERIFICATION_CACHE_FLUSH_SIZE = 10;
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -422,9 +424,9 @@ export const verifySingleMiningAtom = atom(
 /**
  * Verify all unverified mining entries for a city
  *
- * Uses batch cache updates: collects all verification results during processing,
- * then applies a single cache update at the end. This reduces complexity from
- * O(n*k) to O(n+k) where n = entries to verify, k = cache size.
+ * Uses periodic batch cache updates: collects verification results during
+ * processing, then flushes them in small groups so long runs survive refreshes
+ * without writing the full cache after every request.
  *
  * Note: "verifying" status is still set per-entry for UI feedback during long operations.
  */
@@ -462,8 +464,16 @@ export const verifyAllMiningAtom = atom(
       currentItem: "",
     });
 
-    // Collect all verification results for batch cache update
-    const batchUpdates: Record<string, VerificationResult> = {};
+    // Collect verification results for periodic batch cache updates.
+    let batchUpdates: Record<string, VerificationResult> = {};
+
+    const flushBatchUpdates = () => {
+      if (Object.keys(batchUpdates).length === 0) return;
+
+      const currentCache = get(verificationCacheAtom);
+      set(verificationCacheAtom, { ...currentCache, ...batchUpdates });
+      batchUpdates = {};
+    };
 
     // Process entries one by one (rate limited by hiroFetch)
     for (let i = 0; i < unverified.length; i++) {
@@ -514,11 +524,14 @@ export const verifyAllMiningAtom = atom(
           error: error instanceof Error ? error.message : String(error),
         };
       }
+
+      if (Object.keys(batchUpdates).length >= VERIFICATION_CACHE_FLUSH_SIZE) {
+        flushBatchUpdates();
+      }
     }
 
-    // Apply all results in a single batch cache update - O(k) instead of O(n*k)
-    const finalCache = get(verificationCacheAtom);
-    set(verificationCacheAtom, { ...finalCache, ...batchUpdates });
+    // Persist any remaining results so long verification runs survive refreshes.
+    flushBatchUpdates();
 
     set(verificationProgressAtom, {
       isRunning: false,
@@ -626,9 +639,9 @@ export const verifySingleStackingAtom = atom(
 /**
  * Verify all unverified stacking entries for a city
  *
- * Uses batch cache updates: collects all verification results during processing,
- * then applies a single cache update at the end. This reduces complexity from
- * O(n*k) to O(n+k) where n = entries to verify, k = cache size.
+ * Uses periodic batch cache updates: collects verification results during
+ * processing, then flushes them in small groups so long runs survive refreshes
+ * without writing the full cache after every request.
  *
  * Note: "verifying" status is still set per-entry for UI feedback during long operations.
  */
@@ -671,8 +684,16 @@ export const verifyAllStackingAtom = atom(
       currentItem: "",
     });
 
-    // Collect all verification results for batch cache update
-    const batchUpdates: Record<string, VerificationResult> = {};
+    // Collect verification results for periodic batch cache updates.
+    let batchUpdates: Record<string, VerificationResult> = {};
+
+    const flushBatchUpdates = () => {
+      if (Object.keys(batchUpdates).length === 0) return;
+
+      const currentCache = get(verificationCacheAtom);
+      set(verificationCacheAtom, { ...currentCache, ...batchUpdates });
+      batchUpdates = {};
+    };
 
     // Process entries one by one (rate limited by hiroFetch)
     for (let i = 0; i < unverified.length; i++) {
@@ -724,11 +745,14 @@ export const verifyAllStackingAtom = atom(
           error: error instanceof Error ? error.message : String(error),
         };
       }
+
+      if (Object.keys(batchUpdates).length >= VERIFICATION_CACHE_FLUSH_SIZE) {
+        flushBatchUpdates();
+      }
     }
 
-    // Apply all results in a single batch cache update - O(k) instead of O(n*k)
-    const finalCache = get(verificationCacheAtom);
-    set(verificationCacheAtom, { ...finalCache, ...batchUpdates });
+    // Persist any remaining results so long verification runs survive refreshes.
+    flushBatchUpdates();
 
     set(verificationProgressAtom, {
       isRunning: false,

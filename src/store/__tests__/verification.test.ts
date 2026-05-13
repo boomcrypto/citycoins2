@@ -12,6 +12,8 @@
 import { describe, it, expect } from "vitest";
 import type { VerificationStatus, VerificationResult, EntryKey } from "../verification";
 
+const TEST_VERIFICATION_CACHE_FLUSH_SIZE = 10;
+
 // =============================================================================
 // TEST FIXTURES
 // =============================================================================
@@ -58,29 +60,41 @@ function createVerificationResult(
 }
 
 /**
- * Simulate batch cache update (as implemented in verifyAllMiningAtom/verifyAllStackingAtom)
+ * Simulate periodic batch cache updates (as implemented in verifyAllMiningAtom/verifyAllStackingAtom)
  *
- * This simulates collecting results during batch processing and applying once.
+ * This simulates collecting results during batch processing and flushing them
+ * every TEST_VERIFICATION_CACHE_FLUSH_SIZE entries.
  */
-function simulateBatchCacheUpdate(
+function simulatePeriodicBatchCacheUpdate(
   initialCache: Record<string, VerificationResult>,
   entries: Array<{ key: string; status: VerificationStatus; error?: string }>
 ): {
   finalCache: Record<string, VerificationResult>;
   spreadOperations: number;
 } {
-  // Collect all updates
-  const batchUpdates: Record<string, VerificationResult> = {};
+  let cache = initialCache;
+  let batchUpdates: Record<string, VerificationResult> = {};
+  let spreadOperations = 0;
+
+  const flush = () => {
+    if (Object.keys(batchUpdates).length === 0) return;
+    cache = { ...cache, ...batchUpdates };
+    batchUpdates = {};
+    spreadOperations++;
+  };
+
   for (const entry of entries) {
     batchUpdates[entry.key] = createVerificationResult(entry.status, entry.error);
+    if (Object.keys(batchUpdates).length >= TEST_VERIFICATION_CACHE_FLUSH_SIZE) {
+      flush();
+    }
   }
 
-  // Single spread operation to apply all updates
-  const finalCache = { ...initialCache, ...batchUpdates };
+  flush();
 
   return {
-    finalCache,
-    spreadOperations: 1, // Always 1 with batch updates
+    finalCache: cache,
+    spreadOperations,
   };
 }
 
@@ -211,11 +225,10 @@ describe("Cache Key Parsing", () => {
 // =============================================================================
 
 describe("Batch Cache Updates", () => {
-  it("should use constant spread operations regardless of entry count", () => {
+  it("should flush results in bounded batches", () => {
     const initialCache: Record<string, VerificationResult> = {};
 
-    // Simulate 100 entries
-    const entries = Array.from({ length: 100 }, (_, i) => ({
+    const entries = Array.from({ length: 25 }, (_, i) => ({
       key: createCacheKey({
         city: "mia" as const,
         version: "legacyV2" as const,
@@ -225,8 +238,12 @@ describe("Batch Cache Updates", () => {
       status: "claimable" as VerificationStatus,
     }));
 
-    const { spreadOperations } = simulateBatchCacheUpdate(initialCache, entries);
-    expect(spreadOperations).toBe(1);
+    const { finalCache, spreadOperations } = simulatePeriodicBatchCacheUpdate(
+      initialCache,
+      entries
+    );
+    expect(spreadOperations).toBe(3);
+    expect(Object.keys(finalCache)).toHaveLength(25);
   });
 
   it("should produce same final result as per-entry updates", () => {
@@ -240,7 +257,7 @@ describe("Batch Cache Updates", () => {
       { key: "nyc-daoV1-stacking-10", status: "no-reward" as VerificationStatus },
     ];
 
-    const batchResult = simulateBatchCacheUpdate(initialCache, entries);
+    const batchResult = simulatePeriodicBatchCacheUpdate(initialCache, entries);
     const perEntryResult = simulatePerEntryCacheUpdate(initialCache, entries);
 
     // Same keys in final cache
@@ -264,7 +281,7 @@ describe("Batch Cache Updates", () => {
       { key: "mia-legacyV2-mining-200", status: "not-won" as VerificationStatus },
     ];
 
-    const { finalCache } = simulateBatchCacheUpdate(initialCache, entries);
+    const { finalCache } = simulatePeriodicBatchCacheUpdate(initialCache, entries);
 
     // Original entries preserved
     expect(finalCache["mia-legacyV2-mining-100"].status).toBe("claimed");
@@ -283,7 +300,7 @@ describe("Batch Cache Updates", () => {
       { key: "mia-legacyV2-mining-100", status: "claimable" as VerificationStatus },
     ];
 
-    const { finalCache } = simulateBatchCacheUpdate(initialCache, entries);
+    const { finalCache } = simulatePeriodicBatchCacheUpdate(initialCache, entries);
 
     expect(finalCache["mia-legacyV2-mining-100"].status).toBe("claimable");
     expect(finalCache["mia-legacyV2-mining-100"].error).toBeUndefined();
@@ -291,7 +308,7 @@ describe("Batch Cache Updates", () => {
 });
 
 describe("Per-Entry vs Batch Performance Comparison", () => {
-  it("should show O(n) vs O(1) spread operations", () => {
+  it("should show bounded batch writes instead of per-entry writes", () => {
     const initialCache: Record<string, VerificationResult> = {};
     const entryCounts = [10, 50, 100];
 
@@ -301,14 +318,18 @@ describe("Per-Entry vs Batch Performance Comparison", () => {
         status: "claimable" as VerificationStatus,
       }));
 
-      const batchResult = simulateBatchCacheUpdate(initialCache, entries);
+      const batchResult = simulatePeriodicBatchCacheUpdate(initialCache, entries);
       const perEntryResult = simulatePerEntryCacheUpdate(initialCache, entries);
 
-      // Batch always 1
-      expect(batchResult.spreadOperations).toBe(1);
+      expect(batchResult.spreadOperations).toBe(
+        Math.ceil(count / TEST_VERIFICATION_CACHE_FLUSH_SIZE)
+      );
 
       // Per-entry equals count
       expect(perEntryResult.spreadOperations).toBe(count);
+      expect(batchResult.spreadOperations).toBeLessThanOrEqual(
+        perEntryResult.spreadOperations
+      );
     }
   });
 });
@@ -364,10 +385,10 @@ describe("Edge Cases", () => {
       "mia-legacyV2-mining-100": createVerificationResult("claimed"),
     };
 
-    const { finalCache, spreadOperations } = simulateBatchCacheUpdate(initialCache, []);
+    const { finalCache, spreadOperations } = simulatePeriodicBatchCacheUpdate(initialCache, []);
 
     expect(Object.keys(finalCache)).toEqual(Object.keys(initialCache));
-    expect(spreadOperations).toBe(1);
+    expect(spreadOperations).toBe(0);
   });
 
   it("should handle batch update on empty cache", () => {
@@ -375,7 +396,7 @@ describe("Edge Cases", () => {
       { key: "mia-legacyV2-mining-100", status: "claimable" as VerificationStatus },
     ];
 
-    const { finalCache } = simulateBatchCacheUpdate({}, entries);
+    const { finalCache } = simulatePeriodicBatchCacheUpdate({}, entries);
 
     expect(Object.keys(finalCache)).toHaveLength(1);
     expect(finalCache["mia-legacyV2-mining-100"].status).toBe("claimable");
@@ -387,10 +408,10 @@ describe("Edge Cases", () => {
       status: "claimable" as VerificationStatus,
     }));
 
-    const { finalCache, spreadOperations } = simulateBatchCacheUpdate({}, entries);
+    const { finalCache, spreadOperations } = simulatePeriodicBatchCacheUpdate({}, entries);
 
     expect(Object.keys(finalCache)).toHaveLength(1000);
-    expect(spreadOperations).toBe(1);
+    expect(spreadOperations).toBe(100);
   });
 
   it("should handle mixed status batch", () => {
@@ -401,7 +422,7 @@ describe("Edge Cases", () => {
       { key: "mia-legacyV2-mining-103", status: "error" as VerificationStatus, error: "Failed" },
     ];
 
-    const { finalCache } = simulateBatchCacheUpdate({}, entries);
+    const { finalCache } = simulatePeriodicBatchCacheUpdate({}, entries);
 
     expect(finalCache["mia-legacyV2-mining-100"].status).toBe("claimable");
     expect(finalCache["mia-legacyV2-mining-101"].status).toBe("not-won");
