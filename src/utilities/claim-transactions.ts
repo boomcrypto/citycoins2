@@ -46,8 +46,8 @@ export function buildMiningClaimTx(
   let functionArgs: string[];
 
   if (isDao) {
-    // DAO: (cityName: (string-utf8 10), claimHeight: uint)
-    const cityArg = Cl.stringUtf8(city);
+    // DAO: (cityName: (string-ascii 10), claimHeight: uint)
+    const cityArg = Cl.stringAscii(city);
     const blockArg = Cl.uint(blockHeight);
     functionArgs = [Cl.serialize(cityArg), Cl.serialize(blockArg)];
   } else {
@@ -98,8 +98,8 @@ export function buildStackingClaimTx(
   let functionArgs: string[];
 
   if (isDao) {
-    // DAO: (cityName: (string-utf8 10), targetCycle: uint)
-    const cityArg = Cl.stringUtf8(city);
+    // DAO: (cityName: (string-ascii 10), targetCycle: uint)
+    const cityArg = Cl.stringAscii(city);
     const cycleArg = Cl.uint(cycle);
     functionArgs = [Cl.serialize(cityArg), Cl.serialize(cycleArg)];
   } else {
