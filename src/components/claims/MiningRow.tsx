@@ -35,6 +35,8 @@ export const MiningRow = memo(function MiningRow({
           >
             {isClaiming ? "..." : "Claim"}
           </Button>
+        ) : entry.status === "submitted" ? (
+          <Box minH="24px" fontSize="xs" color="fg.muted">Submitted</Box>
         ) : entry.status === "unverified" ? (
           <Button
             size="xs"

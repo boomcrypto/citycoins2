@@ -20,6 +20,10 @@ export interface ClaimTransactionParams {
   functionArgs: string[]; // Hex-encoded Clarity values
 }
 
+interface ClaimTransactionResponse {
+  txid?: string;
+}
+
 function isDaoVersion(version: Version): boolean {
   return version === "daoV1" || version === "daoV2";
 }
@@ -116,13 +120,15 @@ export function buildStackingClaimTx(
  */
 export async function executeClaimTransaction(
   params: ClaimTransactionParams
-): Promise<void> {
+): Promise<string | undefined> {
   const [address, name] = params.contract.split(".");
 
-  await request("stx_callContract", {
+  const response = await request("stx_callContract", {
     contract: `${address}.${name}`,
     functionName: params.functionName,
     functionArgs: params.functionArgs,
     postConditionMode: "allow", // Claims don't send tokens, just receive
-  });
+  }) as ClaimTransactionResponse;
+
+  return response.txid;
 }

@@ -13,8 +13,9 @@
  */
 
 import { atom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import { ContractCallTransaction, Transaction } from "@stacks/stacks-blockchain-api-types";
-import { transactionsAtom, blockHeightsAtom } from "./stacks";
+import { transactionsAtom, blockHeightsAtom, stxAddressAtom } from "./stacks";
 import {
   decodeTxArgs,
   isValidMiningTxArgs,
@@ -57,6 +58,7 @@ export type MiningStatus =
   | "pending"      // Not yet matured (< 100 blocks)
   | "unverified"   // Matured, needs verification (user must trigger)
   | "claimable"    // Verified: won, not yet claimed
+  | "submitted"    // Claim tx was submitted and is waiting for chain confirmation
   | "claimed"      // Won and claimed (from transaction history)
   | "not-won"      // Verified: didn't win lottery (or failed claim attempt)
   | "error";       // Verification failed
@@ -71,6 +73,7 @@ export type StackingStatus =
   | "locked"       // Cycle not yet complete
   | "unverified"   // Cycle complete, needs verification
   | "claimable"    // Verified: has reward to claim
+  | "submitted"    // Claim tx was submitted and is waiting for chain confirmation
   | "claimed"      // Already claimed (from transaction history)
   | "no-reward"    // Verified: no reward available
   | "unpaid"       // Verified: DAO cycle has not been paid out
@@ -183,6 +186,47 @@ interface ProcessedTransactions {
   failedStackingCycles: Map<string, string>;
 }
 
+export interface PendingClaimTransaction {
+  address: string;
+  city: CityName;
+  version: Version;
+  type: "mining" | "stacking";
+  id: number;
+  txId: string;
+  submittedAt: number;
+}
+
+export const pendingClaimTransactionsAtom = atomWithStorage<PendingClaimTransaction[]>(
+  "citycoins-pending-claim-transactions",
+  []
+);
+
+export const addPendingClaimTransactionAtom = atom(
+  null,
+  (get, set, claim: Omit<PendingClaimTransaction, "address" | "submittedAt">) => {
+    const address = get(stxAddressAtom);
+    if (!address) return;
+
+    const pendingClaims = get(pendingClaimTransactionsAtom);
+    const key = createClaimKey(claim.city, claim.version, claim.type, claim.id);
+    const nextClaim: PendingClaimTransaction = {
+      ...claim,
+      address,
+      submittedAt: Date.now(),
+    };
+
+    set(pendingClaimTransactionsAtom, [
+      nextClaim,
+      ...pendingClaims.filter((pending) => {
+        return (
+          pending.address !== address ||
+          createClaimKey(pending.city, pending.version, pending.type, pending.id) !== key
+        );
+      }),
+    ]);
+  }
+);
+
 /**
  * Pre-compute function sets once (not on every iteration)
  */
@@ -193,6 +237,33 @@ const STACKING_CLAIM_FUNCTIONS = new Set(getAllStackingClaimFunctions());
 
 function isDaoVersion(version: Version): boolean {
   return version === "daoV1" || version === "daoV2";
+}
+
+function createClaimKey(
+  city: CityName,
+  version: Version,
+  type: "mining" | "stacking",
+  id: number
+): string {
+  return `${city}-${version}-${type}-${id}`;
+}
+
+function hasPendingClaim(
+  pendingClaims: PendingClaimTransaction[],
+  address: string | null,
+  city: CityName,
+  version: Version,
+  type: "mining" | "stacking",
+  id: number
+): boolean {
+  if (!address) return false;
+  const key = createClaimKey(city, version, type, id);
+  return pendingClaims.some((claim) => {
+    return (
+      claim.address === address &&
+      createClaimKey(claim.city, claim.version, claim.type, claim.id) === key
+    );
+  });
 }
 
 function getStackingStartCycle(
@@ -494,6 +565,8 @@ function mapVerificationToStackingStatus(
 export const verifiedMiningEntriesAtom = atom((get) => {
   const baseEntries = get(miningEntriesAtom);
   const verificationCache = get(verificationCacheAtom);
+  const pendingClaims = get(pendingClaimTransactionsAtom);
+  const address = get(stxAddressAtom);
 
   return baseEntries.map((entry) => {
     // If already claimed/not-won from transaction history, use that
@@ -511,7 +584,21 @@ export const verifiedMiningEntriesAtom = atom((get) => {
     const cachedResult = verificationCache[key];
 
     if (cachedResult) {
-      return { ...entry, status: mapVerificationToMiningStatus(cachedResult.status) };
+      const status = mapVerificationToMiningStatus(cachedResult.status);
+      if (
+        status === "claimable" &&
+        hasPendingClaim(
+          pendingClaims,
+          address,
+          entry.city,
+          entry.version,
+          "mining",
+          entry.block
+        )
+      ) {
+        return { ...entry, status: "submitted" as MiningStatus };
+      }
+      return { ...entry, status };
     }
 
     // No verification result yet, keep as "unverified"
@@ -541,9 +628,25 @@ export const miningEntriesNeedingVerificationAtom = atom((get) => {
 export const stackingEntriesAtom = atom((get) => {
   const processed = get(processedTransactionsAtom);
   const { stackingEntries, claimedStackingCycles, failedStackingCycles } = processed;
+  const entriesByCycle = new Map<string, StackingEntry>();
+
+  for (const entry of stackingEntries) {
+    const key = `${entry.city}-${entry.version}-${entry.cycle}`;
+    const existing = entriesByCycle.get(key);
+
+    if (!existing) {
+      entriesByCycle.set(key, entry);
+      continue;
+    }
+
+    entriesByCycle.set(key, {
+      ...existing,
+      amountTokens: existing.amountTokens + entry.amountTokens,
+    });
+  }
 
   // Update entries with claim status
-  return stackingEntries.map((entry) => {
+  return Array.from(entriesByCycle.values()).map((entry) => {
     const key = `${entry.city}-${entry.version}-${entry.cycle}`;
     const claimTxId = claimedStackingCycles.get(key);
     const failedTxId = failedStackingCycles.get(key);
@@ -573,6 +676,8 @@ export const stackingEntriesAtom = atom((get) => {
 export const verifiedStackingEntriesAtom = atom((get) => {
   const baseEntries = get(stackingEntriesAtom);
   const verificationCache = get(verificationCacheAtom);
+  const pendingClaims = get(pendingClaimTransactionsAtom);
+  const address = get(stxAddressAtom);
 
   return baseEntries.map((entry) => {
     // If already claimed/unavailable from transaction history, use that
@@ -590,7 +695,21 @@ export const verifiedStackingEntriesAtom = atom((get) => {
     const cachedResult = verificationCache[key];
 
     if (cachedResult) {
-      return { ...entry, status: mapVerificationToStackingStatus(cachedResult.status) };
+      const status = mapVerificationToStackingStatus(cachedResult.status);
+      if (
+        status === "claimable" &&
+        hasPendingClaim(
+          pendingClaims,
+          address,
+          entry.city,
+          entry.version,
+          "stacking",
+          entry.cycle
+        )
+      ) {
+        return { ...entry, status: "submitted" as StackingStatus };
+      }
+      return { ...entry, status };
     }
 
     // No verification result yet, keep as "unverified"
@@ -737,6 +856,7 @@ export const claimsSummaryAtom = atom<ClaimsSummary>((get) => {
     switch (entry.status) {
       case "claimed": summary.miningClaimed++; break;
       case "claimable": summary.miningClaimable++; break;
+      case "submitted": break;
       case "pending": summary.miningPending++; break;
       case "unverified": summary.miningUnverified++; break;
       case "not-won": summary.miningNotWon++; break;
@@ -751,6 +871,7 @@ export const claimsSummaryAtom = atom<ClaimsSummary>((get) => {
     switch (entry.status) {
       case "claimed": summary.stackingClaimed++; break;
       case "claimable": summary.stackingClaimable++; break;
+      case "submitted": break;
       case "locked": summary.stackingLocked++; break;
       case "unverified": summary.stackingUnverified++; break;
       case "no-reward": summary.stackingNoReward++; break;
