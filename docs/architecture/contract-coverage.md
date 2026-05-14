@@ -26,7 +26,7 @@ Admin, DAO auth, treasury management, token-direct, proposal execution, and voti
 | Deployed CCIP-026 uses `ccd013-burn-to-exit-mia`. | Added explicit decoder allow-list coverage for `SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.ccd013-burn-to-exit-mia`. |
 | DAO `stack` source uses `(cityName, amount, lockPeriod)`. | Decoder supports the current three-argument shape and keeps legacy list-shape tolerance for historical safety. |
 | DAO stacking uses the same contract across v1/v2, so contract ID alone cannot identify the version. | Stacking entries and claims resolve `daoV1`/`daoV2` from the reward cycle range. |
-| CCIP-020 gracefully shut down stacking after cycle 83. | DAO v2 stacking is capped at cycle 83; later cycles are ignored for claim entry creation. |
+| CCIP-020 made the final DAO v2 stacked principal claimable once cycle 86 was reached. | DAO v2 stacking entries are capped at cycle 85, the final cycle that can hold stacked principal; cycle 86 is the point at which that final cycle can be claimed. |
 | Token contracts expose `transfer`, `burn`, and `send-many`. | Left out of `decodeTxArgs` because token-direct calls are not mining, stacking, claim, or redemption actions. |
 
 ## Cycle Continuity
