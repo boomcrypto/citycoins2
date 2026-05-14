@@ -11,12 +11,17 @@ import {
   CityName,
   Version,
   CITY_CONFIG,
+  getVersionByCycle,
 } from "../config/city-config";
 
 export interface ClaimTransactionParams {
   contract: string;
   functionName: string;
   functionArgs: string[]; // Hex-encoded Clarity values
+}
+
+function isDaoVersion(version: Version): boolean {
+  return version === "daoV1" || version === "daoV2";
 }
 
 /**
@@ -65,11 +70,26 @@ export function buildStackingClaimTx(
   version: Version,
   cycle: number
 ): ClaimTransactionParams {
+  const requestedDao = isDaoVersion(version);
+  const cycleVersion = getVersionByCycle(city, cycle);
+
+  if (!cycleVersion) {
+    throw new Error(`No stacking contract handles ${city.toUpperCase()} cycle ${cycle}.`);
+  }
+
+  if (requestedDao && isDaoVersion(cycleVersion)) {
+    version = cycleVersion;
+  } else if (cycleVersion !== version) {
+    throw new Error(
+      `${city.toUpperCase()} cycle ${cycle} belongs to ${cycleVersion}, not ${version}.`
+    );
+  }
+
   const config = CITY_CONFIG[city][version];
   // For legacy, stacking claims go to the core contract
   // For DAO, they go to ccd007-citycoin-stacking
   const { contractId } = config.stacking;
-  const isDao = version === "daoV1" || version === "daoV2";
+  const isDao = isDaoVersion(version);
 
   let functionArgs: string[];
 

@@ -25,6 +25,8 @@ Admin, DAO auth, treasury management, token-direct, proposal execution, and voti
 | `ccd012-redemption-nyc` exists in the protocol source tree but did not ship. | Left the existing NYC redemption config unchanged and did not treat `ccd012-redemption-nyc` as canonical deployed coverage. |
 | Deployed CCIP-026 uses `ccd013-burn-to-exit-mia`. | Added explicit decoder allow-list coverage for `SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.ccd013-burn-to-exit-mia`. |
 | DAO `stack` source uses `(cityName, amount, lockPeriod)`. | Decoder supports the current three-argument shape and keeps legacy list-shape tolerance for historical safety. |
+| DAO stacking uses the same contract across v1/v2, so contract ID alone cannot identify the version. | Stacking entries and claims resolve `daoV1`/`daoV2` from the reward cycle range. |
+| CCIP-020 gracefully shut down stacking after cycle 83. | DAO v2 stacking is capped at cycle 83; later cycles are ignored for claim entry creation. |
 | Token contracts expose `transfer`, `burn`, and `send-many`. | Left out of `decodeTxArgs` because token-direct calls are not mining, stacking, claim, or redemption actions. |
 
 ## Cycle Continuity
@@ -33,8 +35,8 @@ Configured stacking cycle ranges are continuous:
 
 | City | Ranges |
 | --- | --- |
-| MIA | `1-16`, `17-34`, `35-53`, `54+` |
-| NYC | `1-10`, `11-28`, `29-53`, `54+` |
+| MIA | `1-16`, `17-34`, `35-53`, `54-83` |
+| NYC | `1-10`, `11-28`, `29-53`, `54-83` |
 
 `getBlockCycle` and `getCycleFirstBlock` both use `startCycle`, so each version maps absolute cycle numbers without gaps or overlaps.
 
@@ -78,6 +80,6 @@ Configured stacking cycle ranges are continuous:
 | `stack-tokens` | Legacy core contracts | Covered |
 | `stack` | `ccd007-citycoin-stacking` | Covered |
 | `claim-mining-reward` | Legacy core contracts, DAO mining contracts | Covered |
-| `claim-stacking-reward` | Legacy core contracts, DAO stacking treasury contracts | Covered |
+| `claim-stacking-reward` | Legacy core contracts, DAO stacking contract, DAO stacking treasury contracts | Covered |
 | `redeem-mia` | `ccd012-redemption-mia`, `ccd013-burn-to-exit-mia` | Covered |
 | `redeem-nyc` | Existing configured NYC redemption contract | Covered if encountered through config; `ccd012-redemption-nyc` is not treated as shipped. |

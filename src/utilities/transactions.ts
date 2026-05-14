@@ -45,11 +45,13 @@ export interface StackingTxArgs {
 export interface MiningClaimTxArgs {
   functionName: "claim-mining-reward";
   minerBlockHeight: bigint;
+  cityName?: string; // For DAO claim-mining-reward
 }
 
 export interface StackingClaimTxArgs {
   functionName: "claim-stacking-reward";
   rewardCycle: bigint;
+  cityName?: string; // For DAO claim-stacking-reward
 }
 
 export interface RedemptionTxArgs {
