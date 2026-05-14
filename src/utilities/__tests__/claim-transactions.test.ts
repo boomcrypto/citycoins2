@@ -31,7 +31,7 @@ describe("claim transaction builders", () => {
     });
 
     it("allows valid DAO v2 final-cycle claims", () => {
-      const params = buildStackingClaimTx("mia", "daoV2", 83);
+      const params = buildStackingClaimTx("mia", "daoV2", 86);
 
       expect(params.contract).toBe(CITY_CONFIG.mia.daoV2.stacking.contractId);
       expect(params.functionName).toBe("claim-stacking-reward");
