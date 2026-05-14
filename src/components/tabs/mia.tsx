@@ -48,6 +48,11 @@ import {
   stackingVerificationSummaryAtom,
 } from "../../store/verification";
 import {
+  checkStackingRecoveryAtom,
+  miaStackingRecoveryEntriesAtom,
+  miaStackingRecoveryStatusAtom,
+} from "../../store/stacking-recovery";
+import {
   buildMiningClaimTx,
   buildStackingClaimTx,
   executeClaimTransaction,
@@ -116,6 +121,8 @@ function Mia() {
   const stackingEntries = useAtomValue(miaStackingEntriesAtom);
   const unclaimedMining = useAtomValue(miaUnclaimedMiningAtom);
   const unclaimedStacking = useAtomValue(miaUnclaimedStackingAtom);
+  const stackingRecoveryEntries = useAtomValue(miaStackingRecoveryEntriesAtom);
+  const stackingRecoveryStatus = useAtomValue(miaStackingRecoveryStatusAtom);
 
   // Entries needing verification
   const miningNeedingVerification = useAtomValue(miningEntriesNeedingVerificationAtom);
@@ -128,6 +135,7 @@ function Mia() {
   const verifySingleStacking = useSetAtom(verifySingleStackingAtom);
   const retryFailedMining = useSetAtom(retryFailedMiningAtom);
   const retryFailedStacking = useSetAtom(retryFailedStackingAtom);
+  const checkStackingRecovery = useSetAtom(checkStackingRecoveryAtom);
 
   // Verification progress and summaries
   const verificationProgress = useAtomValue(verificationProgressAtom);
@@ -143,6 +151,16 @@ function Mia() {
     () => getStackingVerificationSummary(stackingEntries),
     [getStackingVerificationSummary, stackingEntries]
   );
+  const visibleUnclaimedStacking = useMemo(() => {
+    const recoveryKeys = new Set(
+      stackingRecoveryEntries.map((entry) => `${entry.city}-${entry.version}-${entry.cycle}`)
+    );
+    return unclaimedStacking.filter((entry) => {
+      return !recoveryKeys.has(`${entry.city}-${entry.version}-${entry.cycle}`);
+    });
+  }, [stackingRecoveryEntries, unclaimedStacking]);
+  const unclaimedFundsCount =
+    unclaimedMining.length + visibleUnclaimedStacking.length + stackingRecoveryEntries.length;
 
   // Redemption state
   const [redemptionInfo, setRedemptionInfo] = useState<Ccd013RedemptionInfo | null>(null);
@@ -220,6 +238,10 @@ function Mia() {
   const handleVerifyStacking = useCallback((entry: StackingEntry) => {
     verifySingleStacking(entry);
   }, [verifySingleStacking]);
+
+  const handleCheckStackingRecovery = useCallback(() => {
+    checkStackingRecovery(config.cityName);
+  }, [checkStackingRecovery]);
 
   const loadRedemptionPreview = useCallback(async () => {
     if (!stxAddress) return;
@@ -386,16 +408,39 @@ function Mia() {
           <Accordion.ItemTrigger>
             <Heading size="xl">
               Unclaimed Funds
-              {(unclaimedMining.length > 0 || unclaimedStacking.length > 0) && (
+              {unclaimedFundsCount > 0 && (
                 <Badge colorPalette="green" ml={2}>
-                  {unclaimedMining.length + unclaimedStacking.length}
+                  {unclaimedFundsCount}
                 </Badge>
               )}
             </Heading>
             <Accordion.ItemIndicator />
           </Accordion.ItemTrigger>
           <Accordion.ItemContent p={4}>
-            {unclaimedMining.length === 0 && unclaimedStacking.length === 0 ? (
+            <Stack gap={3} mb={4}>
+              <HStack gap={3} align="center">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCheckStackingRecovery}
+                  disabled={stackingRecoveryStatus.isChecking || !userIds}
+                >
+                  {stackingRecoveryStatus.isChecking ? "Checking..." : `Check ${config.symbol} Recovery`}
+                </Button>
+                {stackingRecoveryStatus.checkedAt && (
+                  <Text fontSize="sm" color="fg.muted">
+                    {stackingRecoveryEntries.length > 0
+                      ? `${stackingRecoveryEntries.length} recovery claim found`
+                      : "No stacked token recovery found"}
+                  </Text>
+                )}
+              </HStack>
+              {stackingRecoveryStatus.error && (
+                <Text fontSize="sm" color="red.500">{stackingRecoveryStatus.error}</Text>
+              )}
+            </Stack>
+
+            {unclaimedMining.length === 0 && visibleUnclaimedStacking.length === 0 && stackingRecoveryEntries.length === 0 ? (
               <Stack gap={4}>
                 <Text color="fg.muted">No verified claimable funds yet.</Text>
                 {(cityUnverifiedMining > 0 || cityUnverifiedStacking > 0) && (
@@ -445,10 +490,48 @@ function Mia() {
                   </Box>
                 )}
 
-                {/* Unclaimed Stacking */}
-                {unclaimedStacking.length > 0 && (
+                {/* Stacked Token Recovery */}
+                {stackingRecoveryEntries.length > 0 && (
                   <Box>
-                    <Heading size="md" mb={2}>Stacking Rewards ({unclaimedStacking.length})</Heading>
+                    <Heading size="md" mb={2}>Stacked Token Recovery ({stackingRecoveryEntries.length})</Heading>
+                    <Text fontSize="sm" color="fg.muted" mb={2}>
+                      Recover {config.symbol} principal still held in finished stacking contracts.
+                    </Text>
+                    <Table.Root size="sm" width="100%">
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.ColumnHeader>Cycle</Table.ColumnHeader>
+                          <Table.ColumnHeader>Version</Table.ColumnHeader>
+                          <Table.ColumnHeader>Recoverable</Table.ColumnHeader>
+                          <Table.ColumnHeader>Action</Table.ColumnHeader>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {stackingRecoveryEntries.map((entry) => (
+                          <Table.Row key={`${entry.txId}-${entry.cycle}`}>
+                            <Table.Cell>{entry.cycle}</Table.Cell>
+                            <Table.Cell>{entry.version}</Table.Cell>
+                            <Table.Cell>{formatStackedAmount(entry.amountTokens, entry.version)}</Table.Cell>
+                            <Table.Cell>
+                              <Button
+                                size="xs"
+                                onClick={() => handleStackingClaim(entry)}
+                                disabled={claimingId === `stacking-${entry.cycle}`}
+                              >
+                                {claimingId === `stacking-${entry.cycle}` ? "Claiming..." : "Recover"}
+                              </Button>
+                            </Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table.Root>
+                  </Box>
+                )}
+
+                {/* Unclaimed Stacking */}
+                {visibleUnclaimedStacking.length > 0 && (
+                  <Box>
+                    <Heading size="md" mb={2}>Stacking Rewards ({visibleUnclaimedStacking.length})</Heading>
                     <Text fontSize="sm" color="fg.muted" mb={2}>
                       Claim STX rewards for cycles you stacked. Final cycle also returns your {config.symbol}.
                     </Text>
@@ -462,7 +545,7 @@ function Mia() {
                         </Table.Row>
                       </Table.Header>
                       <Table.Body>
-                        {unclaimedStacking.map((entry) => (
+                        {visibleUnclaimedStacking.map((entry) => (
                           <Table.Row key={`${entry.txId}-${entry.cycle}`}>
                             <Table.Cell>{entry.cycle}</Table.Cell>
                             <Table.Cell>{entry.version}</Table.Cell>

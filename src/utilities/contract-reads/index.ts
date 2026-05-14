@@ -11,7 +11,11 @@ export {
   isBlockWinner as legacyIsBlockWinner,
 } from "./legacy-mining";
 
-export { getStackingReward as legacyGetStackingReward } from "./legacy-stacking";
+export {
+  getStackingReward as legacyGetStackingReward,
+  getStackerAtCycle as legacyGetStackerAtCycle,
+  type LegacyStackerInfo,
+} from "./legacy-stacking";
 
 export { getUserId as legacyGetUserId } from "./legacy-user-registry";
 
