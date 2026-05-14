@@ -5,7 +5,7 @@
  * Replaces calls to api.citycoins.co
  */
 
-import { ClarityType, uintCV, hexToCV, UIntCV } from "@stacks/transactions";
+import { ClarityType, uintCV, hexToCV, TupleCV, UIntCV } from "@stacks/transactions";
 import { CityName, CITY_CONFIG } from "../../config/city-config";
 import { callReadOnlyFunction, ContractCallResult } from "../hiro-client";
 
@@ -28,6 +28,11 @@ function safeNumberFromBigInt(
 }
 
 type LegacyVersion = "legacyV1" | "legacyV2";
+
+export interface LegacyStackerInfo {
+  amountStacked: number;
+  toReturn: number;
+}
 
 /**
  * Get contract address and name for legacy stacking
@@ -110,6 +115,76 @@ export async function getStackingReward(
     }
 
     return { ok: false, error: `Unexpected response type: ${cv.type}` };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Get stacker info for a user in a specific legacy cycle.
+ *
+ * Contract function: (get-stacker-at-cycle-or-default (rewardCycle uint) (userId uint))
+ * Returns: { amountStacked: uint, toReturn: uint }
+ *
+ * `toReturn` is the stacked CityCoins principal returned when claiming the final
+ * cycle of a lock period.
+ */
+export async function getStackerAtCycle(
+  city: CityName,
+  version: LegacyVersion,
+  userId: number,
+  cycle: number
+): Promise<ContractCallResult<LegacyStackerInfo>> {
+  const { address: contractAddress, name: contractName } = getStackingContract(
+    city,
+    version
+  );
+
+  const result = await callReadOnlyFunction(
+    contractAddress,
+    contractName,
+    "get-stacker-at-cycle-or-default",
+    [uintCV(cycle), uintCV(userId)],
+    contractAddress
+  );
+
+  if (!result.ok || !result.data) {
+    return { ok: false, error: result.error || "No result" };
+  }
+
+  try {
+    const cv = hexToCV(result.data);
+
+    if (cv.type !== ClarityType.Tuple) {
+      return { ok: false, error: `Unexpected response type: ${cv.type}` };
+    }
+
+    const tuple = cv as TupleCV;
+    const amountStacked = tuple.value.amountStacked as UIntCV | undefined;
+    const toReturn = tuple.value.toReturn as UIntCV | undefined;
+
+    const amountStackedConversion = safeNumberFromBigInt(
+      amountStacked?.value ?? 0n,
+      "Amount stacked"
+    );
+    if (!amountStackedConversion.ok) return amountStackedConversion;
+
+    const toReturnConversion = safeNumberFromBigInt(
+      toReturn?.value ?? 0n,
+      "Amount to return"
+    );
+    if (!toReturnConversion.ok) return toReturnConversion;
+
+    return {
+      ok: true,
+      data: {
+        amountStacked: amountStackedConversion.data,
+        toReturn: toReturnConversion.data,
+      },
+    };
   } catch (error) {
     return {
       ok: false,
