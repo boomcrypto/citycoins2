@@ -76,6 +76,8 @@ export function VirtualizedStackingTable({
                     >
                       {claimingId === `stacking-${entry.cycle}` ? "..." : "Claim"}
                     </Button>
+                  ) : entry.status === "submitted" ? (
+                    <Text fontSize="xs" color="fg.muted">Submitted</Text>
                   ) : entry.status === "unverified" ? (
                     <Button
                       size="xs"

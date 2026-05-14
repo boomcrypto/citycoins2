@@ -73,6 +73,8 @@ export function VirtualizedMiningTable({
                     >
                       {claimingId === `mining-${entry.block}` ? "..." : "Claim"}
                     </Button>
+                  ) : entry.status === "submitted" ? (
+                    <Box minH="24px" fontSize="xs" color="fg.muted">Submitted</Box>
                   ) : entry.status === "unverified" ? (
                     <Button
                       size="xs"

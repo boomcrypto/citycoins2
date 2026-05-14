@@ -38,6 +38,8 @@ export const StackingRow = memo(function StackingRow({
           >
             {isClaiming ? "..." : "Claim"}
           </Button>
+        ) : entry.status === "submitted" ? (
+          <Text fontSize="xs" color="fg.muted">Submitted</Text>
         ) : entry.status === "unverified" ? (
           <Button
             size="xs"

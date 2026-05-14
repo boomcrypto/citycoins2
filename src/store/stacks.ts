@@ -505,9 +505,13 @@ async function getAllTxs(
     const initialResponse = initialResult.data;
     totalTransactions = initialResponse.total;
 
-    // Return if all transactions are already loaded
-    if (existingCount === totalTransactions) {
-      return existingTxs;
+    // Return if all transactions are already loaded, but keep the Map result so
+    // older cached arrays with duplicate tx IDs get compacted on refresh.
+    if (existingCount >= totalTransactions) {
+      if (existingTxs.length !== existingCount) {
+        saveProgress();
+      }
+      return getTransactions();
     }
 
     // Process initial fetch - v1 returns transactions directly in results

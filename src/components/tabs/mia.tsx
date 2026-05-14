@@ -34,6 +34,7 @@ import {
   miaUnclaimedStackingAtom,
   miningEntriesNeedingVerificationAtom,
   stackingEntriesNeedingVerificationAtom,
+  addPendingClaimTransactionAtom,
 } from "../../store/claims";
 import {
   verificationProgressAtom,
@@ -151,6 +152,7 @@ function Mia() {
   const [redemptionError, setRedemptionError] = useState<string | null>(null);
   const [redemptionTxid, setRedemptionTxid] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
+  const addPendingClaimTransaction = useSetAtom(addPendingClaimTransactionAtom);
 
   // Fetch block heights on mount and when address changes
   useEffect(() => {
@@ -172,26 +174,44 @@ function Mia() {
     setClaimingId(id);
     try {
       const params = buildMiningClaimTx(entry.city, entry.version, entry.block);
-      await executeClaimTransaction(params);
+      const txId = await executeClaimTransaction(params);
+      if (txId) {
+        addPendingClaimTransaction({
+          city: entry.city,
+          version: entry.version,
+          type: "mining",
+          id: entry.block,
+          txId,
+        });
+      }
     } catch (error) {
       console.error("Mining claim failed:", error);
     } finally {
       setClaimingId(null);
     }
-  }, []);
+  }, [addPendingClaimTransaction]);
 
   const handleStackingClaim = useCallback(async (entry: StackingEntry) => {
     const id = `stacking-${entry.cycle}`;
     setClaimingId(id);
     try {
       const params = buildStackingClaimTx(entry.city, entry.version, entry.cycle);
-      await executeClaimTransaction(params);
+      const txId = await executeClaimTransaction(params);
+      if (txId) {
+        addPendingClaimTransaction({
+          city: entry.city,
+          version: entry.version,
+          type: "stacking",
+          id: entry.cycle,
+          txId,
+        });
+      }
     } catch (error) {
       console.error("Stacking claim failed:", error);
     } finally {
       setClaimingId(null);
     }
-  }, []);
+  }, [addPendingClaimTransaction]);
 
   const handleVerifyMining = useCallback((entry: MiningEntry) => {
     verifySingleMining(entry);
