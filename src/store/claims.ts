@@ -33,6 +33,7 @@ import {
   findContractInfo,
   getBlockCycle,
   getDaoStackingStartCycle,
+  getVersionByCycle,
   isMiningClaimEligible,
   isDaoStackingClaimEligible,
   isStackingClaimEligible,
@@ -228,7 +229,8 @@ function getStackingCycleVersion(
   cycle: number
 ): Version | null {
   if (isDaoVersion(originalVersion)) {
-    return originalVersion;
+    const cycleVersion = getVersionByCycle(city, cycle);
+    return cycleVersion && isDaoVersion(cycleVersion) ? cycleVersion : null;
   }
 
   const { endCycle } = CITY_CONFIG[city][originalVersion].stacking;
@@ -240,7 +242,12 @@ function getStackingClaimVersion(
   city: CityName,
   originalVersion: Version,
   cycle: number
-): Version {
+): Version | null {
+  if (isDaoVersion(originalVersion)) {
+    const cycleVersion = getVersionByCycle(city, cycle);
+    return cycleVersion && isDaoVersion(cycleVersion) ? cycleVersion : null;
+  }
+
   return originalVersion;
 }
 
@@ -367,6 +374,7 @@ const processedTransactionsAtom = atom((get) => {
             cityVersion.version,
             cycle
           );
+          if (version === null) continue;
           const key = `${cityVersion.city}-${version}-${cycle}`;
 
           if (tx.tx_status === "success") {

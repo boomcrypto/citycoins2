@@ -228,8 +228,14 @@ describe("DAO stacking cycle helpers", () => {
   it("should use configured cycle ranges to classify DAO staking cycles", () => {
     expect(getVersionByCycle("mia", 53)).toBe("daoV1");
     expect(getVersionByCycle("mia", 54)).toBe("daoV2");
+    expect(getVersionByCycle("mia", 83)).toBe("daoV2");
+    expect(getVersionByCycle("mia", 84)).toBeUndefined();
+    expect(getVersionByCycle("mia", 93)).toBeUndefined();
     expect(getVersionByCycle("nyc", 53)).toBe("daoV1");
     expect(getVersionByCycle("nyc", 54)).toBe("daoV2");
+    expect(getVersionByCycle("nyc", 83)).toBe("daoV2");
+    expect(getVersionByCycle("nyc", 84)).toBeUndefined();
+    expect(getVersionByCycle("nyc", 93)).toBeUndefined();
   });
 
   it("should treat DAO cycles as claimable only after the contract reward cycle advances", () => {

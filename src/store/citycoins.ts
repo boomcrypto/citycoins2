@@ -8,7 +8,12 @@
 import { Transaction } from "@stacks/stacks-blockchain-api-types";
 import { transactionsAtom } from "./stacks";
 import { atom } from "jotai";
-import { CONTRACTS, CoinType, ContractConfig, VOTING_CONTRACTS } from "../config/city-config";
+import {
+  CITY_CONFIG,
+  CityName,
+  VERSIONS,
+  VOTING_CONTRACTS,
+} from "../config/city-config";
 
 // =============================================================================
 // TYPES
@@ -22,47 +27,45 @@ export type TransactionTypes =
   | "stacking-claims"
   | "voting";
 
-type ContractFunctionMap = {
-  [contract: string]: string | string[];
-};
+type ContractFunctionSetMap = Record<string, Set<string>>;
 
-// =============================================================================
-// PRE-COMPUTED CONTRACT MAPS (computed once at module load)
-// =============================================================================
-
-function getContractFunctionMap(type: keyof ContractConfig['functions'], coin?: CoinType): ContractFunctionMap {
-  const map: ContractFunctionMap = {};
-
-  const addToMap = (contract: string, functions: string | string[]) => {
-    map[contract] = functions;
-  };
-
-  Object.entries(CONTRACTS).forEach(([key, config]) => {
-    if (!coin || key === coin) {
-      const funcs = config.functions[type];
-      addToMap(config.v1.core, funcs);
-      addToMap(config.v2.core, funcs);
-      if (type === 'mining' && config.miningV2) {
-        addToMap(config.miningV2, funcs);
-      }
-      if (type === 'stacking' && config.stackingV2) {
-        addToMap(config.stackingV2, funcs);
-      }
-      if (type === 'transfer') {
-        addToMap(config.v1.token, funcs);
-        addToMap(config.v2.token, funcs);
-      }
-    }
-  });
-
-  return map;
+function addFunctions(
+  map: ContractFunctionSetMap,
+  contractId: string,
+  functions: string[]
+) {
+  const existing = map[contractId] ?? new Set<string>();
+  for (const functionName of functions) {
+    existing.add(functionName);
+  }
+  map[contractId] = existing;
 }
 
-// Pre-compute contract maps once at module load (not on every iteration)
-const MINING_CONTRACT_MAP = getContractFunctionMap('mining');
-const MINING_CLAIMS_CONTRACT_MAP = getContractFunctionMap('miningClaims');
-const STACKING_CONTRACT_MAP = getContractFunctionMap('stacking');
-const STACKING_CLAIMS_CONTRACT_MAP = getContractFunctionMap('stackingClaims');
+function buildContractFunctionMaps() {
+  const mining: ContractFunctionSetMap = {};
+  const miningClaims: ContractFunctionSetMap = {};
+  const stacking: ContractFunctionSetMap = {};
+  const stackingClaims: ContractFunctionSetMap = {};
+
+  for (const city of ["mia", "nyc"] as CityName[]) {
+    for (const version of VERSIONS) {
+      const config = CITY_CONFIG[city][version];
+
+      addFunctions(mining, config.mining.contractId, config.mining.functions.mine);
+      addFunctions(miningClaims, config.mining.contractId, config.mining.functions.claim);
+      addFunctions(stacking, config.stacking.contractId, config.stacking.functions.stack);
+      addFunctions(
+        stackingClaims,
+        config.stacking.claimContractId,
+        config.stacking.functions.claim
+      );
+    }
+  }
+
+  return { mining, miningClaims, stacking, stackingClaims };
+}
+
+const CONTRACT_FUNCTION_MAPS = buildContractFunctionMaps();
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -70,15 +73,23 @@ const STACKING_CLAIMS_CONTRACT_MAP = getContractFunctionMap('stackingClaims');
 
 function checkContract(
   contractName: string,
-  contractCallsMap: ContractFunctionMap
+  contractCallsMap: Record<string, string | string[]>
 ) {
   return contractCallsMap.hasOwnProperty(contractName);
+}
+
+function checkFunctionSet(
+  contractId: string,
+  functionName: string,
+  transactionCalls: ContractFunctionSetMap
+): boolean {
+  return transactionCalls[contractId]?.has(functionName) ?? false;
 }
 
 function checkFunctionName(
   contractId: string,
   functionName: string,
-  transactionCalls: ContractFunctionMap
+  transactionCalls: Record<string, string | string[]>
 ): boolean {
   const expectedFunctionName = transactionCalls[contractId];
   if (Array.isArray(expectedFunctionName)) {
@@ -123,17 +134,13 @@ const categorizedTransactionsAtom = atom<CategorizedTransactions>((get) => {
     const functionName = tx.contract_call.function_name;
 
     // Check each category (a transaction can match multiple categories if needed)
-    if (checkContract(contractId, MINING_CONTRACT_MAP) &&
-        checkFunctionName(contractId, functionName, MINING_CONTRACT_MAP)) {
+    if (checkFunctionSet(contractId, functionName, CONTRACT_FUNCTION_MAPS.mining)) {
       result.mining.push(tx);
-    } else if (checkContract(contractId, MINING_CLAIMS_CONTRACT_MAP) &&
-        checkFunctionName(contractId, functionName, MINING_CLAIMS_CONTRACT_MAP)) {
+    } else if (checkFunctionSet(contractId, functionName, CONTRACT_FUNCTION_MAPS.miningClaims)) {
       result.miningClaims.push(tx);
-    } else if (checkContract(contractId, STACKING_CONTRACT_MAP) &&
-        checkFunctionName(contractId, functionName, STACKING_CONTRACT_MAP)) {
+    } else if (checkFunctionSet(contractId, functionName, CONTRACT_FUNCTION_MAPS.stacking)) {
       result.stacking.push(tx);
-    } else if (checkContract(contractId, STACKING_CLAIMS_CONTRACT_MAP) &&
-        checkFunctionName(contractId, functionName, STACKING_CLAIMS_CONTRACT_MAP)) {
+    } else if (checkFunctionSet(contractId, functionName, CONTRACT_FUNCTION_MAPS.stackingClaims)) {
       result.stackingClaims.push(tx);
     } else if (checkContract(contractId, VOTING_CONTRACTS) &&
         checkFunctionName(contractId, functionName, VOTING_CONTRACTS)) {
