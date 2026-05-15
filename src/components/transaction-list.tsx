@@ -5,7 +5,6 @@ import {
   Box,
   IconButton,
   Portal,
-  Button,
   Link,
   Input,
   Badge,
@@ -23,7 +22,6 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 
 interface TransactionListProps {
   transactions: Transaction[];
-  onOpenDetails: (tx: Transaction) => void;
 }
 
 function shortenPrincipal(addr: string): string {
@@ -97,10 +95,8 @@ const filterStatusCollection = createListCollection({
 // Memoized table row component to prevent unnecessary re-renders
 const TransactionRow = memo(function TransactionRow({
   tx,
-  onOpenDetails,
 }: {
   tx: Transaction;
-  onOpenDetails: (tx: Transaction) => void;
 }) {
   const category = getCategory(tx);
 
@@ -134,11 +130,6 @@ const TransactionRow = memo(function TransactionRow({
         </Badge>
       </Table.Cell>
       <Table.Cell>{formatDate(tx.block_time_iso)}</Table.Cell>
-      <Table.Cell>
-        <Button size="sm" onClick={() => onOpenDetails(tx)}>
-          Details
-        </Button>
-      </Table.Cell>
     </Table.Row>
   );
 });
@@ -146,10 +137,8 @@ const TransactionRow = memo(function TransactionRow({
 // Virtualized table body for large datasets
 function VirtualizedTableBody({
   transactions,
-  onOpenDetails,
 }: {
   transactions: Transaction[];
-  onOpenDetails: (tx: Transaction) => void;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -164,7 +153,7 @@ function VirtualizedTableBody({
     return (
       <Table.Body>
         <Table.Row>
-          <Table.Cell colSpan={5} textAlign="center">
+          <Table.Cell colSpan={4} textAlign="center">
             No transactions found.
           </Table.Cell>
         </Table.Row>
@@ -177,11 +166,7 @@ function VirtualizedTableBody({
     return (
       <Table.Body>
         {transactions.map((tx) => (
-          <TransactionRow
-            key={tx.tx_id}
-            tx={tx}
-            onOpenDetails={onOpenDetails}
-          />
+          <TransactionRow key={tx.tx_id} tx={tx} />
         ))}
       </Table.Body>
     );
@@ -218,7 +203,7 @@ function VirtualizedTableBody({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <TransactionRow tx={tx} onOpenDetails={onOpenDetails} />
+                  <TransactionRow tx={tx} />
                 </Box>
               );
             })}
@@ -229,10 +214,7 @@ function VirtualizedTableBody({
   );
 }
 
-function TransactionList({
-  transactions,
-  onOpenDetails,
-}: TransactionListProps) {
+function TransactionList({ transactions }: TransactionListProps) {
   const [allTransactions, updateTransactions] = useAtom(transactionsAtom);
   const { isLoading, error, progress } = useAtomValue(
     transactionFetchStatusAtom
@@ -282,11 +264,6 @@ function TransactionList({
       console.error("Failed to fetch transactions:", error);
     }
   }, [isLoading, updateTransactions, allTransactions]);
-
-  // Memoize open details handler
-  const handleOpenDetails = useCallback((tx: Transaction) => {
-    onOpenDetails(tx);
-  }, [onOpenDetails]);
 
   // Helper component for status indicator
   const StatusIndicator = () => (
@@ -434,10 +411,7 @@ function TransactionList({
       <Summaries />
       <Filters />
       {useVirtualization ? (
-        <VirtualizedTableBody
-          transactions={filteredTransactions}
-          onOpenDetails={handleOpenDetails}
-        />
+        <VirtualizedTableBody transactions={filteredTransactions} />
       ) : (
         <Box overflowX="auto">
           <Table.Root variant="outline">
@@ -447,23 +421,18 @@ function TransactionList({
                 <Table.ColumnHeader>Type</Table.ColumnHeader>
                 <Table.ColumnHeader>Status</Table.ColumnHeader>
                 <Table.ColumnHeader>Date</Table.ColumnHeader>
-                <Table.ColumnHeader>Actions</Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
             <Table.Body>
               {filteredTransactions.length === 0 ? (
                 <Table.Row>
-                  <Table.Cell colSpan={5} textAlign="center">
+                  <Table.Cell colSpan={4} textAlign="center">
                     No transactions found.
                   </Table.Cell>
                 </Table.Row>
               ) : (
                 filteredTransactions.map((tx) => (
-                  <TransactionRow
-                    key={tx.tx_id}
-                    tx={tx}
-                    onOpenDetails={handleOpenDetails}
-                  />
+                  <TransactionRow key={tx.tx_id} tx={tx} />
                 ))
               )}
             </Table.Body>

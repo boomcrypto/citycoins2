@@ -23,7 +23,7 @@ const stackingStatusFilterCollection = createListCollection({
     { label: "Locked", value: "locked" },
     { label: "Claimed", value: "claimed" },
     { label: "No Reward", value: "no-reward" },
-    { label: "Unpaid", value: "unpaid" },
+    { label: "No Payout", value: "no-payout" },
     { label: "Unavailable", value: "unavailable" },
   ],
 });

@@ -158,6 +158,53 @@ export const fetchUserIdsAtom = atom(
 /////////////////////////
 
 /**
+ * Project a Hiro `Transaction` to only the fields this app actually
+ * consumes. Events, post_conditions, raw_tx, microblock/execution_cost
+ * metadata, etc. are dropped to keep localStorage usage reasonable —
+ * a single mining/claim tx is dominated by `events`, so stripping
+ * yields a large size reduction.
+ *
+ * The return type is declared as `Transaction` for downstream
+ * compatibility, but the runtime object only contains the fields below.
+ * This boundary cast is safe because no consumer of stored transactions
+ * reads the dropped fields.
+ */
+function toStoredTx(tx: Transaction): Transaction {
+  if (!tx) return tx;
+  const slim: Record<string, unknown> = {
+    tx_id: tx.tx_id,
+    tx_status: tx.tx_status,
+    tx_type: tx.tx_type,
+    block_height: (tx as { block_height?: number }).block_height,
+    block_time_iso: (tx as { block_time_iso?: string }).block_time_iso,
+    burn_block_height: (tx as { burn_block_height?: number }).burn_block_height,
+  };
+  if (tx.tx_type === "contract_call") {
+    const cc = tx.contract_call;
+    slim.contract_call = {
+      contract_id: cc.contract_id,
+      function_name: cc.function_name,
+      function_args: cc.function_args,
+    };
+  }
+  return slim as unknown as Transaction;
+}
+
+/**
+ * Detect transactions that still carry fields we no longer store.
+ * Used by the one-shot migration to recompress legacy caches.
+ */
+function txHasLegacyFields(tx: unknown): boolean {
+  if (!tx || typeof tx !== "object") return false;
+  return (
+    "events" in tx ||
+    "post_conditions" in tx ||
+    "raw_tx" in tx ||
+    "execution_cost_read_count" in tx
+  );
+}
+
+/**
  * Memoization cache for decompressed transactions.
  *
  * Without memoization, LZ-string decompression runs on every atom read,
@@ -182,11 +229,11 @@ export const decompressedAcctTxsAtom = atom((get) => {
     return cachedDecompressedTxs;
   }
 
-  // Decompress and cache
+  // Decompress and cache. Project through `toStoredTx` so any legacy
+  // bloated entries in localStorage are slimmed before reaching consumers.
   try {
-    const decompressedTxs: Transaction[] = JSON.parse(
-      LZString.decompress(acctTxs)
-    );
+    const parsed: Transaction[] = JSON.parse(LZString.decompress(acctTxs));
+    const decompressedTxs = parsed.map(toStoredTx);
     cachedCompressedString = acctTxs;
     cachedDecompressedTxs = decompressedTxs;
     return decompressedTxs;
@@ -234,6 +281,26 @@ export const transactionsAtom = atom(
     }
   }
 );
+
+/**
+ * One-shot migration: detect legacy fat transactions in localStorage and
+ * rewrite them slimmed. Safe to invoke at app mount; no-op when the
+ * cached blob is already slim or absent. Failures are swallowed —
+ * a broken cache will simply be re-fetched on the next refresh.
+ */
+export const migrateStoredTxsAtom = atom(null, (get, set) => {
+  const compressed = get(acctTxsAtom);
+  if (!compressed) return;
+  try {
+    const parsed = JSON.parse(LZString.decompress(compressed)) as Transaction[];
+    if (!Array.isArray(parsed) || parsed.length === 0) return;
+    if (!parsed.some(txHasLegacyFields)) return;
+    const slim = parsed.map(toStoredTx);
+    set(acctTxsAtom, LZString.compress(JSON.stringify(slim)));
+  } catch {
+    // Ignore — corrupt cache will be refetched.
+  }
+});
 
 export const minedBlocksAtom = atom((get) => {
   const transactions = get(transactionsAtom);
@@ -446,9 +513,9 @@ async function getAllTxs(
   // Use a Map for O(1) deduplication (tx_id -> transaction)
   const txMap = new Map<string, Transaction>();
 
-  // Add existing transactions to map
+  // Add existing transactions to map (slimming any legacy fat entries).
   for (const tx of existingTxs) {
-    if (tx?.tx_id) txMap.set(tx.tx_id, tx);
+    if (tx?.tx_id) txMap.set(tx.tx_id, toStoredTx(tx));
   }
   const existingCount = txMap.size;
 
@@ -519,7 +586,7 @@ async function getAllTxs(
 
     for (const tx of newTransactions) {
       if (tx?.tx_id && !txMap.has(tx.tx_id)) {
-        txMap.set(tx.tx_id, tx);
+        txMap.set(tx.tx_id, toStoredTx(tx));
       }
     }
 
@@ -568,10 +635,10 @@ async function getAllTxs(
       // v1 returns transactions directly in results
       const additionalTransactions = result.data.results as Transaction[];
 
-      // Add unique transactions to map
+      // Add unique transactions to map (slimmed before storage)
       for (const tx of additionalTransactions) {
         if (tx?.tx_id && !txMap.has(tx.tx_id)) {
-          txMap.set(tx.tx_id, tx);
+          txMap.set(tx.tx_id, toStoredTx(tx));
         }
       }
 
