@@ -281,10 +281,15 @@ export const addPendingClaimTransactionAtom = atom(
  * in this set — it's the last claim cycle after the shutdown and many
  * stackers legitimately land there, so the verify path stays in play.
  *
- * Cycle numbers do not overlap across city/version, so a single set
- * suffices (no city/version filter needed).
+ * The override is intentionally applied globally with no city/version
+ * filter: CITY_CONFIG defines overlapping cycle ranges across MIA/NYC and
+ * across DAO versions, but the empty-payout situation for these specific
+ * cycle numbers is chain-wide, so the same cycle number means the same
+ * outcome regardless of city or version.
  */
-const KNOWN_NO_PAYOUT_CYCLES = new Set([56, 57, 58, 59, 84]);
+export const KNOWN_NO_PAYOUT_CYCLES: ReadonlySet<number> = new Set([
+  56, 57, 58, 59, 84,
+]);
 
 /**
  * Pre-compute function sets once (not on every iteration)

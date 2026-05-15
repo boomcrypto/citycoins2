@@ -1,11 +1,18 @@
 import { Button } from "@chakra-ui/react";
 import { disconnect } from "@stacks/connect";
 import { useSetAtom } from "jotai";
-import { useClearUserData } from "../../hooks/use-clear-user-data";
+import { stxAddressAtom } from "../../store/stacks";
 import { verificationProgressAtom } from "../../store/verification";
 
+/**
+ * Disconnects the wallet without touching cached per-address data. The
+ * dedicated "Clear Data" button is the explicit path for wiping the
+ * connected wallet's slice; signing out alone preserves it so the user
+ * can reconnect with the same wallet later and pick up their cached
+ * transactions / user IDs / pending claims without a fresh re-fetch.
+ */
 function SignOut(props: { variant?: string }) {
-  const clearUserData = useClearUserData();
+  const setStxAddress = useSetAtom(stxAddressAtom);
   const setVerificationProgress = useSetAtom(verificationProgressAtom);
   return (
     <Button
@@ -14,9 +21,9 @@ function SignOut(props: { variant?: string }) {
       onClick={() => {
         try {
           disconnect();
-          // Reset any in-flight verification UI immediately so the prior
-          // account's progress banner doesn't linger while the running loop
-          // notices the address change and breaks.
+          // Reset any in-flight verification UI so the prior account's
+          // progress banner doesn't linger while the running loop notices
+          // the address change and breaks.
           setVerificationProgress({
             isRunning: false,
             type: null,
@@ -25,9 +32,7 @@ function SignOut(props: { variant?: string }) {
             total: 0,
             currentItem: "",
           });
-          // clearUserData wipes the connected wallet's per-address slices and
-          // then clears stxAddress, so it must run with the address still set.
-          clearUserData();
+          setStxAddress(null);
         } catch (error) {
           console.error("Error while signing out: ", error);
         }

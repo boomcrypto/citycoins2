@@ -15,6 +15,7 @@
 
 import { describe, it, expect } from "vitest";
 import type { MiningEntry, StackingEntry, MiningStatus, StackingStatus } from "../claims";
+import { KNOWN_NO_PAYOUT_CYCLES } from "../claims";
 import type { VerificationStatus, VerificationResult } from "../verification";
 
 // =============================================================================
@@ -448,7 +449,10 @@ function resolveMiningEntryStatus(
 }
 
 /**
- * Simulate the priority resolution logic from verifiedStackingEntriesAtom
+ * Simulate the priority resolution logic from verifiedStackingEntriesAtom.
+ * Mirrors the real atom: tx history wins, then locked, then the
+ * pre-marked no-payout override (which intentionally beats a stale cache),
+ * then the verification cache, then the base unverified status.
  */
 function resolveStackingEntryStatus(
   entry: StackingEntry,
@@ -464,15 +468,35 @@ function resolveStackingEntryStatus(
     return "locked";
   }
 
-  // Priority 3: Verification cache
+  // Priority 3: pre-marked no-payout from stackingEntriesAtom takes
+  // precedence over any cached verification result so the known empty
+  // cycles can't be flipped back to claimable by stale cache data.
+  if (entry.status === "no-payout") {
+    return "no-payout";
+  }
+
+  // Priority 4: Verification cache
   const key = createCacheKey(entry.city, entry.version, "stacking", entry.cycle);
   const cached = verificationCache[key];
   if (cached) {
     return mapVerificationToStackingStatus(cached.status);
   }
 
-  // Priority 4: Base status (unverified)
+  // Priority 5: Base status (unverified)
   return entry.status;
+}
+
+/**
+ * Simulate the no-payout pre-mark applied in stackingEntriesAtom: an
+ * entry that would otherwise be "unverified" but whose cycle is in the
+ * known empty set is pre-marked "no-payout" before reaching the
+ * verification layer.
+ */
+function preMarkStackingEntry(entry: StackingEntry): StackingEntry {
+  if (entry.status === "unverified" && KNOWN_NO_PAYOUT_CYCLES.has(entry.cycle)) {
+    return { ...entry, status: "no-payout" };
+  }
+  return entry;
 }
 
 describe("Mining Status Priority Resolution", () => {
@@ -592,6 +616,56 @@ describe("Stacking Status Priority Resolution", () => {
     const entry = createStackingEntry(20, "unverified");
     const cache = {};
     expect(resolveStackingEntryStatus(entry, cache)).toBe("unverified");
+  });
+});
+
+// =============================================================================
+// KNOWN-NO-PAYOUT CYCLE PRE-MARK TESTS
+// =============================================================================
+
+describe("KNOWN_NO_PAYOUT_CYCLES pre-mark", () => {
+  it.each([56, 57, 58, 59, 84])(
+    "pre-marks cycle %i as no-payout instead of unverified",
+    (cycle) => {
+      const entry = preMarkStackingEntry(
+        createStackingEntry(cycle, "unverified")
+      );
+      expect(entry.status).toBe("no-payout");
+    }
+  );
+
+  it("leaves cycle 85 as unverified so the verify/claim path stays in play", () => {
+    const entry = preMarkStackingEntry(createStackingEntry(85, "unverified"));
+    expect(entry.status).toBe("unverified");
+  });
+
+  it("does not downgrade a claimed entry on a known empty cycle", () => {
+    const entry = preMarkStackingEntry(
+      createStackingEntry(56, "claimed", { claimTxId: "0xclaim" })
+    );
+    expect(entry.status).toBe("claimed");
+  });
+
+  it("does not downgrade a locked entry on a known empty cycle", () => {
+    const entry = preMarkStackingEntry(createStackingEntry(56, "locked"));
+    expect(entry.status).toBe("locked");
+  });
+
+  it("keeps no-payout sticky even with a cached claimable verification", () => {
+    const entry = preMarkStackingEntry(createStackingEntry(56, "unverified"));
+    const staleCache = {
+      [createCacheKey("mia", "daoV2", "stacking", 56)]: createVerificationResult(
+        "claimable"
+      ),
+    };
+    expect(resolveStackingEntryStatus(entry, staleCache)).toBe("no-payout");
+  });
+
+  it("applies the override to NYC cycles the same way as MIA", () => {
+    const entry = preMarkStackingEntry(
+      createStackingEntry(57, "unverified", { city: "nyc" })
+    );
+    expect(entry.status).toBe("no-payout");
   });
 });
 
