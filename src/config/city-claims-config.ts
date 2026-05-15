@@ -19,7 +19,7 @@ export const CITY_CLAIMS_CONFIG: Record<CityName, CityClaimsConfig> = {
       text: "CCIP-026",
       href: "https://github.com/citycoins/governance/pull/50",
     },
-    pendingApproval: true,
+    pendingApproval: false,
   },
   nyc: {
     cityName: "nyc",
