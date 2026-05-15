@@ -9,7 +9,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createStore } from "jotai";
 import LZString from "lz-string";
 import type { Transaction } from "@stacks/stacks-blockchain-api-types";
-import { acctTxsAtom, decompressedAcctTxsAtom } from "../stacks";
+import { acctTxsAtom, decompressedAcctTxsAtom, stxAddressAtom } from "../stacks";
+
+const TEST_ADDRESS = "SP1TEST123";
 
 // =============================================================================
 // TEST FIXTURES
@@ -78,6 +80,9 @@ describe("decompressedAcctTxsAtom memoization", () => {
 
   beforeEach(() => {
     store = createStore();
+    // acctTxsAtom routes reads/writes through the connected wallet's slice,
+    // so the test store needs an address before it can store anything.
+    store.set(stxAddressAtom, TEST_ADDRESS);
     // Spy on LZString.decompress to count calls
     decompressSpy = vi.spyOn(LZString, "decompress");
   });
@@ -228,6 +233,7 @@ describe("decompressedAcctTxsAtom memoization", () => {
 describe("decompressedAcctTxsAtom performance", () => {
   it("should handle large transaction sets efficiently", () => {
     const store = createStore();
+    store.set(stxAddressAtom, TEST_ADDRESS);
     const compressed = createCompressedTransactions(1000);
 
     // Set compressed data

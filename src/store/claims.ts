@@ -196,10 +196,58 @@ export interface PendingClaimTransaction {
   submittedAt: number;
 }
 
-export const pendingClaimTransactionsAtom = atomWithStorage<PendingClaimTransaction[]>(
-  "citycoins-pending-claim-transactions",
-  []
+export const pendingClaimTransactionsByAddressAtom = atomWithStorage<
+  Record<string, PendingClaimTransaction[]>
+>("citycoins-pending-claim-transactions-by-address", {});
+
+/**
+ * Pending claim transactions scoped to the connected wallet. The rows still
+ * carry `address` for back-compat with consumers that match against it, but
+ * the storage layer is keyed by address so switching accounts shows the
+ * right pending state instead of a mixed feed.
+ */
+export const pendingClaimTransactionsAtom = atom(
+  (get) => {
+    const address = get(stxAddressAtom);
+    if (!address) return [];
+    return get(pendingClaimTransactionsByAddressAtom)[address] ?? [];
+  },
+  (get, set, value: PendingClaimTransaction[]) => {
+    const address = get(stxAddressAtom);
+    if (!address) return;
+    const current = get(pendingClaimTransactionsByAddressAtom);
+    set(pendingClaimTransactionsByAddressAtom, { ...current, [address]: value });
+  }
 );
+
+/**
+ * One-shot migration: re-shape the legacy flat pending-claims array (keyed by
+ * a single localStorage key, with `address` on each row) into the new
+ * per-address record. No-op once the legacy key is gone.
+ */
+export const migratePendingClaimsByAddressAtom = atom(null, (get, set) => {
+  const legacyRaw = localStorage.getItem("citycoins-pending-claim-transactions");
+  if (legacyRaw === null) return;
+  try {
+    const legacy = JSON.parse(legacyRaw) as PendingClaimTransaction[];
+    if (Array.isArray(legacy) && legacy.length > 0) {
+      const grouped: Record<string, PendingClaimTransaction[]> = {};
+      for (const row of legacy) {
+        if (!row?.address) continue;
+        (grouped[row.address] ||= []).push(row);
+      }
+      const current = get(pendingClaimTransactionsByAddressAtom);
+      const merged: Record<string, PendingClaimTransaction[]> = { ...current };
+      for (const [addr, rows] of Object.entries(grouped)) {
+        if (merged[addr] === undefined) merged[addr] = rows;
+      }
+      set(pendingClaimTransactionsByAddressAtom, merged);
+    }
+  } catch {
+    // Ignore — broken legacy cache is dropped.
+  }
+  localStorage.removeItem("citycoins-pending-claim-transactions");
+});
 
 export const addPendingClaimTransactionAtom = atom(
   null,
@@ -219,13 +267,29 @@ export const addPendingClaimTransactionAtom = atom(
       nextClaim,
       ...pendingClaims.filter((pending) => {
         return (
-          pending.address !== address ||
           createClaimKey(pending.city, pending.version, pending.type, pending.id) !== key
         );
       }),
     ]);
   }
 );
+
+/**
+ * Cycles that are known to have no stacking payout. Pre-marked as
+ * "no-payout" so users don't waste a verify call (and a button click) on a
+ * round-trip we already know the answer to. Cycle 85 is intentionally not
+ * in this set — it's the last claim cycle after the shutdown and many
+ * stackers legitimately land there, so the verify path stays in play.
+ *
+ * The override is intentionally applied globally with no city/version
+ * filter: CITY_CONFIG defines overlapping cycle ranges across MIA/NYC and
+ * across DAO versions, but the empty-payout situation for these specific
+ * cycle numbers is chain-wide, so the same cycle number means the same
+ * outcome regardless of city or version.
+ */
+export const KNOWN_NO_PAYOUT_CYCLES: ReadonlySet<number> = new Set([
+  56, 57, 58, 59, 84,
+]);
 
 /**
  * Pre-compute function sets once (not on every iteration)
@@ -656,6 +720,10 @@ export const stackingEntriesAtom = atom((get) => {
     } else if (failedTxId) {
       return { ...entry, status: "unavailable" as StackingStatus, claimTxId: failedTxId };
     }
+    // Skip the verify round-trip for cycles we already know have no payout.
+    if (KNOWN_NO_PAYOUT_CYCLES.has(entry.cycle) && entry.status === "unverified") {
+      return { ...entry, status: "no-payout" as StackingStatus };
+    }
     return entry;
   });
 });
@@ -687,6 +755,13 @@ export const verifiedStackingEntriesAtom = atom((get) => {
 
     // If still locked (cycle not complete), keep as locked
     if (entry.status === "locked") {
+      return entry;
+    }
+
+    // Honor the pre-marked no-payout status from `stackingEntriesAtom` and
+    // ignore any cached verification result — these cycles are known to have
+    // no payout and the cache could otherwise hold a stale claimable verdict.
+    if (entry.status === "no-payout") {
       return entry;
     }
 

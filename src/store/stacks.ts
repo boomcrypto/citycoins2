@@ -6,7 +6,7 @@ import {
 } from "@stacks/stacks-blockchain-api-types";
 import { HIRO_API } from "./common";
 import { hiroFetch } from "../utilities/hiro-client";
-import { Setter, atom } from "jotai";
+import { Getter, Setter, atom } from "jotai";
 import LZString from "lz-string";
 import { decodeTxArgs, isValidMiningTxArgs, isValidMiningClaimTxArgs, isValidStackingTxArgs, isValidStackingClaimTxArgs } from "../utilities/transactions";
 import { fetchAllUserIds, UserIds } from "../utilities/claim-verification";
@@ -41,24 +41,90 @@ export const stxAddressAtom = atomWithStorage<string | null>(
   null
 );
 
-export const bnsNameAtom = atomWithStorage<string | null>(
-  "citycoins-stacks-bnsName",
-  null
+// =============================================================================
+// PER-ACCOUNT STORAGE
+//
+// Each per-account atom is backed by a `Record<address, value>` in
+// localStorage. The legacy single-key atoms are derived: they read/write the
+// slice for the currently-connected wallet. This keeps state isolated when the
+// user switches accounts and prevents leftover work (verification, refetches)
+// from polluting the new account's cache.
+// =============================================================================
+
+export const bnsNameByAddressAtom = atomWithStorage<Record<string, string | null>>(
+  "citycoins-stacks-bnsName-by-address",
+  {}
 );
 
-export const acctTxsAtom = atomWithStorage<string>(
-  "citycoins-stacks-acctTxs",
-  ""
+export const bnsNameAtom = atom(
+  (get) => {
+    const address = get(stxAddressAtom);
+    if (!address) return null;
+    return get(bnsNameByAddressAtom)[address] ?? null;
+  },
+  (get, set, value: string | null) => {
+    const address = get(stxAddressAtom);
+    if (!address) return;
+    const current = get(bnsNameByAddressAtom);
+    set(bnsNameByAddressAtom, { ...current, [address]: value });
+  }
 );
 
-export const acctMempoolTxsAtom = atomWithStorage<Transaction[]>(
-  "citycoins-stacks-acctMempoolTxs",
-  []
+export const acctTxsByAddressAtom = atomWithStorage<Record<string, string>>(
+  "citycoins-stacks-acctTxs-by-address",
+  {}
 );
 
-export const acctBalancesAtom = atomWithStorage(
-  "citycoins-stacks-acctBalances",
-  null
+export const acctTxsAtom = atom(
+  (get) => {
+    const address = get(stxAddressAtom);
+    if (!address) return "";
+    return get(acctTxsByAddressAtom)[address] ?? "";
+  },
+  (get, set, value: string) => {
+    const address = get(stxAddressAtom);
+    if (!address) return;
+    const current = get(acctTxsByAddressAtom);
+    set(acctTxsByAddressAtom, { ...current, [address]: value });
+  }
+);
+
+export const acctMempoolTxsByAddressAtom = atomWithStorage<Record<string, Transaction[]>>(
+  "citycoins-stacks-acctMempoolTxs-by-address",
+  {}
+);
+
+export const acctMempoolTxsAtom = atom(
+  (get) => {
+    const address = get(stxAddressAtom);
+    if (!address) return [];
+    return get(acctMempoolTxsByAddressAtom)[address] ?? [];
+  },
+  (get, set, value: Transaction[]) => {
+    const address = get(stxAddressAtom);
+    if (!address) return;
+    const current = get(acctMempoolTxsByAddressAtom);
+    set(acctMempoolTxsByAddressAtom, { ...current, [address]: value });
+  }
+);
+
+export const acctBalancesByAddressAtom = atomWithStorage<Record<string, unknown>>(
+  "citycoins-stacks-acctBalances-by-address",
+  {}
+);
+
+export const acctBalancesAtom = atom(
+  (get) => {
+    const address = get(stxAddressAtom);
+    if (!address) return null;
+    return get(acctBalancesByAddressAtom)[address] ?? null;
+  },
+  (get, set, value: unknown) => {
+    const address = get(stxAddressAtom);
+    if (!address) return;
+    const current = get(acctBalancesByAddressAtom);
+    set(acctBalancesByAddressAtom, { ...current, [address]: value });
+  }
 );
 
 /**
@@ -67,21 +133,49 @@ export const acctBalancesAtom = atomWithStorage(
  * - Legacy: Per-city, per-version IDs from each core contract
  * - DAO: Shared ID from ccd003-user-registry
  *
- * Cached indefinitely (clear data button resets all atoms).
+ * Cached indefinitely (clear data button resets the current address's slice).
  */
-export const userIdsAtom = atomWithStorage<UserIds | null>(
-  "citycoins-user-ids",
-  null
+export const userIdsByAddressAtom = atomWithStorage<Record<string, UserIds | null>>(
+  "citycoins-user-ids-by-address",
+  {}
 );
+
+export const userIdsAtom = atom(
+  (get) => {
+    const address = get(stxAddressAtom);
+    if (!address) return null;
+    return get(userIdsByAddressAtom)[address] ?? null;
+  },
+  (get, set, value: UserIds | null) => {
+    const address = get(stxAddressAtom);
+    if (!address) return;
+    const current = get(userIdsByAddressAtom);
+    set(userIdsByAddressAtom, { ...current, [address]: value });
+  }
+);
+
+/**
+ * Per-account storage atoms. Used by `useClearUserData` to wipe the current
+ * wallet's slice without touching other accounts' caches. `stxAddressAtom` and
+ * `blockHeightsAtom` are intentionally absent — address is identity (cleared
+ * separately on logout) and block heights are chain state, not account state.
+ */
+export const perAddressStorageAtoms = [
+  bnsNameByAddressAtom,
+  acctTxsByAddressAtom,
+  acctMempoolTxsByAddressAtom,
+  acctBalancesByAddressAtom,
+  userIdsByAddressAtom,
+];
 
 export const stacksLocalStorageAtoms = [
   blockHeightsAtom,
   stxAddressAtom,
-  bnsNameAtom,
-  acctTxsAtom,
-  acctMempoolTxsAtom,
-  acctBalancesAtom,
-  userIdsAtom,
+  bnsNameByAddressAtom,
+  acctTxsByAddressAtom,
+  acctMempoolTxsByAddressAtom,
+  acctBalancesByAddressAtom,
+  userIdsByAddressAtom,
 ];
 
 /////////////////////////
@@ -262,7 +356,7 @@ export const transactionsAtom = atom(
       progress: 0,
     });
     try {
-      const newTxs = await getAllTxs(address, update, set);
+      const newTxs = await getAllTxs(address, update, get, set);
       set(transactionFetchStatusAtom, {
         isLoading: false,
         error: null,
@@ -299,6 +393,90 @@ export const migrateStoredTxsAtom = atom(null, (get, set) => {
     set(acctTxsAtom, LZString.compress(JSON.stringify(slim)));
   } catch {
     // Ignore — corrupt cache will be refetched.
+  }
+});
+
+/**
+ * One-shot migration: move legacy single-key per-account caches into the new
+ * by-address records, scoped to the currently connected wallet. Without this,
+ * existing users would lose their cached transactions / user IDs on upgrade
+ * and have to re-fetch from scratch. No-op when no legacy keys are present or
+ * when no wallet is connected (we don't know which address to assign the data
+ * to). Old keys are removed after a successful migration.
+ */
+const LEGACY_ACCOUNT_KEYS = [
+  "citycoins-stacks-acctTxs",
+  "citycoins-stacks-acctMempoolTxs",
+  "citycoins-stacks-acctBalances",
+  "citycoins-stacks-bnsName",
+  "citycoins-user-ids",
+] as const;
+
+function readLegacyJSON<T>(key: string): T | undefined {
+  const raw = localStorage.getItem(key);
+  if (raw === null) return undefined;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return undefined;
+  }
+}
+
+export const migrateAccountAtomsByAddressAtom = atom(null, (get, set) => {
+  const address = get(stxAddressAtom);
+  if (!address) return;
+
+  // acctTxs (string)
+  const legacyTxs = readLegacyJSON<string>("citycoins-stacks-acctTxs");
+  if (typeof legacyTxs === "string" && legacyTxs.length > 0) {
+    const current = get(acctTxsByAddressAtom);
+    if (current[address] === undefined) {
+      set(acctTxsByAddressAtom, { ...current, [address]: legacyTxs });
+    }
+  }
+
+  // acctMempoolTxs (Transaction[])
+  const legacyMempool = readLegacyJSON<Transaction[]>(
+    "citycoins-stacks-acctMempoolTxs"
+  );
+  if (Array.isArray(legacyMempool)) {
+    const current = get(acctMempoolTxsByAddressAtom);
+    if (current[address] === undefined) {
+      set(acctMempoolTxsByAddressAtom, { ...current, [address]: legacyMempool });
+    }
+  }
+
+  // acctBalances (unknown)
+  const legacyBalances = readLegacyJSON<unknown>("citycoins-stacks-acctBalances");
+  if (legacyBalances !== undefined && legacyBalances !== null) {
+    const current = get(acctBalancesByAddressAtom);
+    if (current[address] === undefined) {
+      set(acctBalancesByAddressAtom, { ...current, [address]: legacyBalances });
+    }
+  }
+
+  // bnsName (string | null)
+  const legacyBns = readLegacyJSON<string | null>("citycoins-stacks-bnsName");
+  if (legacyBns !== undefined) {
+    const current = get(bnsNameByAddressAtom);
+    if (current[address] === undefined) {
+      set(bnsNameByAddressAtom, { ...current, [address]: legacyBns });
+    }
+  }
+
+  // userIds (UserIds | null)
+  const legacyUserIds = readLegacyJSON<UserIds | null>("citycoins-user-ids");
+  if (legacyUserIds !== undefined && legacyUserIds !== null) {
+    const current = get(userIdsByAddressAtom);
+    if (current[address] === undefined) {
+      set(userIdsByAddressAtom, { ...current, [address]: legacyUserIds });
+    }
+  }
+
+  // Remove legacy keys regardless of which fields migrated — anything left
+  // would be re-fetched on demand under the new keys.
+  for (const key of LEGACY_ACCOUNT_KEYS) {
+    localStorage.removeItem(key);
   }
 });
 
@@ -500,6 +678,7 @@ function sleep(ms: number): Promise<void> {
 async function getAllTxs(
   address: string,
   existingTxs: Transaction[],
+  atomGetter: Getter,
   atomSetter: Setter
 ) {
   // Use v1 endpoint which supports offset pagination (v2 uses cursor-based)
@@ -525,10 +704,13 @@ async function getAllTxs(
     const txs = getTransactions();
     const compressedTxs = LZString.compress(JSON.stringify(txs));
 
-    // Check storage before saving - calculate delta vs existing data
+    // Check storage before saving - calculate delta vs existing data for this
+    // address's slice of the per-address record. Other addresses' bytes are
+    // untouched, so they don't contribute to the write delta.
     const newSize = getStringByteSize(compressedTxs);
-    const existingData = localStorage.getItem("citycoins-stacks-acctTxs") || "";
-    const existingSize = getStringByteSize(existingData);
+    const existingForAddress =
+      atomGetter(acctTxsByAddressAtom)[address] || "";
+    const existingSize = getStringByteSize(existingForAddress);
     const deltaSize = newSize - existingSize; // Can be negative if shrinking
     const storageCheck = canSaveData(Math.max(0, deltaSize));
 
