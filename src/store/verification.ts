@@ -515,8 +515,16 @@ export const verifyAllMiningAtom = atom(
       batchUpdates = {};
     };
 
-    // Process entries one by one (rate limited by hiroFetch)
+    // Process entries one by one (rate limited by hiroFetch).
+    // Bail out if the user signs out or switches accounts mid-loop so we
+    // don't keep verifying — and writing results — for a stale address.
+    let cancelled = false;
     for (let i = 0; i < unverified.length; i++) {
+      if (get(stxAddressAtom) !== address) {
+        cancelled = true;
+        break;
+      }
+
       const entry = unverified[i];
       const key = createCacheKey({
         city: entry.city,
@@ -571,7 +579,11 @@ export const verifyAllMiningAtom = atom(
     }
 
     // Persist any remaining results so long verification runs survive refreshes.
-    flushBatchUpdates();
+    // If we cancelled mid-loop the address changed, so flushing would write to
+    // the wrong account's cache — skip it.
+    if (!cancelled) {
+      flushBatchUpdates();
+    }
 
     set(verificationProgressAtom, {
       isRunning: false,
@@ -689,8 +701,9 @@ export const verifyAllStackingAtom = atom(
   null,
   async (get, set, params: { city: CityName; entries: StackingEntry[] }) => {
     const { city, entries } = params;
+    const address = get(stxAddressAtom);
     const userIds = get(userIdsAtom);
-    if (!userIds) {
+    if (!address || !userIds) {
       return;
     }
 
@@ -735,8 +748,16 @@ export const verifyAllStackingAtom = atom(
       batchUpdates = {};
     };
 
-    // Process entries one by one (rate limited by hiroFetch)
+    // Process entries one by one (rate limited by hiroFetch).
+    // Bail out if the user signs out or switches accounts mid-loop so we
+    // don't keep verifying — and writing results — for a stale address.
+    let cancelled = false;
     for (let i = 0; i < unverified.length; i++) {
+      if (get(stxAddressAtom) !== address) {
+        cancelled = true;
+        break;
+      }
+
       const entry = unverified[i];
       const userId = getUserIdForVersion(userIds, entry.city, entry.version)!;
       const key = createCacheKey({
@@ -792,7 +813,11 @@ export const verifyAllStackingAtom = atom(
     }
 
     // Persist any remaining results so long verification runs survive refreshes.
-    flushBatchUpdates();
+    // If we cancelled mid-loop the address changed, so flushing would write to
+    // the wrong account's cache — skip it.
+    if (!cancelled) {
+      flushBatchUpdates();
+    }
 
     set(verificationProgressAtom, {
       isRunning: false,

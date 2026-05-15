@@ -8,8 +8,12 @@ import { Provider } from "./components/ui/provider";
 import { Toaster } from "./components/ui/toaster";
 import { useStorageMonitor } from "./hooks/use-storage-monitor";
 import { useBroadcastSync } from "./hooks/use-broadcast-sync";
-import { migrateStoredTxsAtom } from "./store/stacks";
+import {
+  migrateAccountAtomsByAddressAtom,
+  migrateStoredTxsAtom,
+} from "./store/stacks";
 import { migrateVerificationCacheAtom } from "./store/verification";
+import { migratePendingClaimsByAddressAtom } from "./store/claims";
 
 /**
  * Inner app content with storage monitoring and cross-tab sync
@@ -21,15 +25,32 @@ const AppContent = () => {
   // Enable cross-tab synchronization for verification cache
   useBroadcastSync();
 
-  // One-shot migrations: slim legacy transaction cache and rewrite any
-  // legacy "unpaid" verification entries to "no-payout". Both are no-ops
-  // when nothing needs migrating.
+  // One-shot migrations. Each is a no-op when nothing needs migrating:
+  //   - migrateAccountAtomsByAddress: move legacy single-key per-account
+  //     caches (acctTxs, userIds, bnsName, mempool, balances) into the new
+  //     address-keyed records under the connected wallet.
+  //   - migrateStoredTxs: slim legacy fat transactions in the cached blob.
+  //   - migrateVerificationCache: rewrite legacy "unpaid" entries to
+  //     "no-payout".
+  //   - migratePendingClaimsByAddress: reshape the flat pending-claims array
+  //     into a per-address record.
+  // Order matters: per-address migration must run before migrateStoredTxs,
+  // since the latter reads via the new address-scoped acctTxs atom.
+  const migrateAccountAtomsByAddress = useSetAtom(migrateAccountAtomsByAddressAtom);
   const migrateStoredTxs = useSetAtom(migrateStoredTxsAtom);
   const migrateVerificationCache = useSetAtom(migrateVerificationCacheAtom);
+  const migratePendingClaimsByAddress = useSetAtom(migratePendingClaimsByAddressAtom);
   useEffect(() => {
+    migrateAccountAtomsByAddress();
     migrateStoredTxs();
     migrateVerificationCache();
-  }, [migrateStoredTxs, migrateVerificationCache]);
+    migratePendingClaimsByAddress();
+  }, [
+    migrateAccountAtomsByAddress,
+    migrateStoredTxs,
+    migrateVerificationCache,
+    migratePendingClaimsByAddress,
+  ]);
 
   return (
     <Flex direction="column" minH="100vh">
