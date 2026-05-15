@@ -43,7 +43,7 @@ export type VerificationStatus =
   | "claimable" // Verified: can claim reward
   | "not-won" // Verified: didn't win mining lottery
   | "no-reward" // Verified: no stacking reward available
-  | "unpaid" // Verified: stacking cycle has not been paid out
+  | "no-payout" // Verified: stacking cycle has not been paid out
   | "claimed" // Already claimed
   | "error"; // Verification failed
 
@@ -123,7 +123,7 @@ function getStackingStatusFromResult(result: {
   isPaid?: boolean;
 }): VerificationStatus {
   if (result.canClaim) return "claimable";
-  if (result.isPaid === false) return "unpaid";
+  if (result.isPaid === false) return "no-payout";
   return "no-reward";
 }
 
@@ -150,12 +150,33 @@ export const verificationCacheByAddressAtom = atomWithStorage<
  *
  * The setter automatically broadcasts updates to other tabs via BroadcastChannel.
  */
+/**
+ * Normalize legacy verification statuses. Older caches stored "unpaid"
+ * for stacking cycles with no payout; the new label is "no-payout".
+ * Idempotent — no-op for already-normalized records.
+ */
+function normalizeVerificationRecord(
+  record: Record<string, VerificationResult>
+): Record<string, VerificationResult> {
+  let changed = false;
+  const next: Record<string, VerificationResult> = {};
+  for (const [key, result] of Object.entries(record)) {
+    if ((result.status as string) === "unpaid") {
+      next[key] = { ...result, status: "no-payout" };
+      changed = true;
+    } else {
+      next[key] = result;
+    }
+  }
+  return changed ? next : record;
+}
+
 export const verificationCacheAtom = atom(
   (get) => {
     const address = get(stxAddressAtom);
     const cacheByAddress = get(verificationCacheByAddressAtom);
     if (!address) return {};
-    return cacheByAddress[address] || {};
+    return normalizeVerificationRecord(cacheByAddress[address] || {});
   },
   (get, set, newCache: Record<string, VerificationResult>) => {
     const address = get(stxAddressAtom);
@@ -194,6 +215,25 @@ export const verificationCacheAtom = atom(
     }
   }
 );
+
+/**
+ * One-shot migration: rewrites any legacy "unpaid" verification results
+ * to "no-payout" across all stored addresses. Safe to invoke at app
+ * mount; no-op if nothing needs migrating.
+ */
+export const migrateVerificationCacheAtom = atom(null, (get, set) => {
+  const cacheByAddress = get(verificationCacheByAddressAtom);
+  let changed = false;
+  const next: Record<string, Record<string, VerificationResult>> = {};
+  for (const [address, record] of Object.entries(cacheByAddress)) {
+    const normalized = normalizeVerificationRecord(record);
+    if (normalized !== record) changed = true;
+    next[address] = normalized;
+  }
+  if (changed) {
+    set(verificationCacheByAddressAtom, next);
+  }
+});
 
 /**
  * Action atom to handle incoming broadcast messages from other tabs.
@@ -943,7 +983,7 @@ export const stackingVerificationSummaryAtom = atom((get) => {
     let verifying = 0;
     let claimable = 0;
     let noReward = 0;
-    let unpaid = 0;
+    let noPayout = 0;
     let claimed = 0;
     let error = 0;
 
@@ -980,8 +1020,8 @@ export const stackingVerificationSummaryAtom = atom((get) => {
           case "no-reward":
             noReward++;
             break;
-          case "unpaid":
-            unpaid++;
+          case "no-payout":
+            noPayout++;
             break;
           case "claimed":
             claimed++;
@@ -993,6 +1033,6 @@ export const stackingVerificationSummaryAtom = atom((get) => {
       }
     }
 
-    return { locked, unverified, verifying, claimable, noReward, unpaid, claimed, error, total: entries.length };
+    return { locked, unverified, verifying, claimable, noReward, noPayout, claimed, error, total: entries.length };
   };
 });

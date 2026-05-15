@@ -332,7 +332,7 @@ function mapVerificationToMiningStatus(verificationStatus: VerificationStatus): 
     case "verifying":
     case "unverified":
     case "no-reward":
-    case "unpaid":
+    case "no-payout":
     default:
       return "unverified";
   }
@@ -346,8 +346,8 @@ function mapVerificationToStackingStatus(verificationStatus: VerificationStatus)
       return "claimed";
     case "no-reward":
       return "no-reward";
-    case "unpaid":
-      return "unpaid";
+    case "no-payout":
+      return "no-payout";
     case "error":
       return "unavailable";
     case "verifying":
@@ -397,8 +397,8 @@ describe("mapVerificationToStackingStatus", () => {
     expect(mapVerificationToStackingStatus("no-reward")).toBe("no-reward");
   });
 
-  it('should map "unpaid" to "unpaid"', () => {
-    expect(mapVerificationToStackingStatus("unpaid")).toBe("unpaid");
+  it('should map "no-payout" to "no-payout"', () => {
+    expect(mapVerificationToStackingStatus("no-payout")).toBe("no-payout");
   });
 
   it('should map "error" to "unavailable"', () => {
@@ -750,7 +750,7 @@ describe("Summary Computation", () => {
       locked: 0,
       unverified: 0,
       noReward: 0,
-      unpaid: 0,
+      noPayout: 0,
       unavailable: 0,
     };
 
@@ -772,8 +772,8 @@ describe("Summary Computation", () => {
         case "no-reward":
           summary.noReward++;
           break;
-        case "unpaid":
-          summary.unpaid++;
+        case "no-payout":
+          summary.noPayout++;
           break;
         case "unavailable":
           summary.unavailable++;
@@ -816,7 +816,7 @@ describe("Summary Computation", () => {
       createStackingEntry(21, "locked"),
       createStackingEntry(22, "unverified"),
       createStackingEntry(23, "no-reward"),
-      createStackingEntry(24, "unpaid"),
+      createStackingEntry(24, "no-payout"),
       createStackingEntry(25, "unavailable"),
     ];
 
@@ -828,7 +828,7 @@ describe("Summary Computation", () => {
     expect(summary.locked).toBe(2);
     expect(summary.unverified).toBe(1);
     expect(summary.noReward).toBe(1);
-    expect(summary.unpaid).toBe(1);
+    expect(summary.noPayout).toBe(1);
     expect(summary.unavailable).toBe(1);
   });
 

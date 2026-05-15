@@ -610,7 +610,7 @@ function Nyc() {
                   {stackingSummary.claimable} claimable, {stackingSummary.unverified} unverified,
                   {stackingSummary.error > 0 && ` ${stackingSummary.error} failed,`}
                   {" "}{stackingSummary.noReward} no reward,
-                  {stackingSummary.unpaid > 0 && ` ${stackingSummary.unpaid} unpaid,`}
+                  {stackingSummary.noPayout > 0 && ` ${stackingSummary.noPayout} no payout,`}
                   {" "}{stackingSummary.claimed} claimed
                 </Text>
                 {cityUnverifiedStacking > 0 && (

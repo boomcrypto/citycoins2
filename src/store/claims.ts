@@ -76,7 +76,7 @@ export type StackingStatus =
   | "submitted"    // Claim tx was submitted and is waiting for chain confirmation
   | "claimed"      // Already claimed (from transaction history)
   | "no-reward"    // Verified: no reward available
-  | "unpaid"       // Verified: DAO cycle has not been paid out
+  | "no-payout"    // Verified: DAO cycle has not been paid out
   | "unavailable"; // Failed claim attempt
 
 export interface MiningEntry {
@@ -522,7 +522,7 @@ function mapVerificationToMiningStatus(
       return "unverified"; // Still show as unverified while checking
     case "unverified":
     case "no-reward":
-    case "unpaid":
+    case "no-payout":
     default:
       return "unverified";
   }
@@ -541,8 +541,8 @@ function mapVerificationToStackingStatus(
       return "claimed";
     case "no-reward":
       return "no-reward";
-    case "unpaid":
-      return "unpaid";
+    case "no-payout":
+      return "no-payout";
     case "error":
       return "unavailable";
     case "verifying":
@@ -810,7 +810,7 @@ export interface CitySummary {
   stackingLocked: number;
   stackingUnverified: number;
   stackingNoReward: number;
-  stackingUnpaid: number;
+  stackingNoPayout: number;
   stackingUnavailable: number;
 }
 
@@ -833,7 +833,7 @@ const emptySummary = (): CitySummary => ({
   stackingLocked: 0,
   stackingUnverified: 0,
   stackingNoReward: 0,
-  stackingUnpaid: 0,
+  stackingNoPayout: 0,
   stackingUnavailable: 0,
 });
 
@@ -875,7 +875,7 @@ export const claimsSummaryAtom = atom<ClaimsSummary>((get) => {
       case "locked": summary.stackingLocked++; break;
       case "unverified": summary.stackingUnverified++; break;
       case "no-reward": summary.stackingNoReward++; break;
-      case "unpaid": summary.stackingUnpaid++; break;
+      case "no-payout": summary.stackingNoPayout++; break;
       case "unavailable": summary.stackingUnavailable++; break;
     }
   }
